@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/config.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     $configuredSessionPath = trim((string) getenv('SAGIPBRO_SESSION_PATH'));
     $sessionPath = $configuredSessionPath !== ''

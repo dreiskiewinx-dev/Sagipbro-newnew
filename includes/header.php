@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../config/config.php';
+
 $pageTitle = $pageTitle ?? 'SAGIPBRO';
 $pageDescription = $pageDescription ?? 'SAGIPBRO Disaster Relief Resource Information System for Barangay Binloc, Dagupan City.';
 $basePath = $basePath ?? '';

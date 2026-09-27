@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/config.php';
+
 /** Shared connection factory. Requiring this file does not open a connection. */
 function sagipbroDatabase(): PDO
 {
