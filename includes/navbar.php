@@ -102,7 +102,7 @@ window.sagipbroNotifications = {
             </ul>
             <?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
                 <?php $portalFile = ($_SESSION['role'] ?? '') === 'resident' ? 'resident.php' : (($_SESSION['role'] ?? '') === 'volunteer' ? 'volunteer.php' : 'admin.php'); ?>
-                <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath . 'dashboard/' . $portalFile, ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-grid" aria-hidden="true"></i> My dashboard</a>
+                <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath . 'dashboard/' . $portalFile, ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-grid" aria-hidden="true"></i> My Dashboard</a>
             <?php else: ?>
                 <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>login.php"><i class="bi bi-person-lock" aria-hidden="true"></i> Staff login</a>
             <?php endif; ?>
