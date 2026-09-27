@@ -1,4 +1,8 @@
 /* Administration shell and operational components */
+@view-transition {
+    navigation: auto;
+}
+
 .admin-body {
     min-height: 100vh;
     overflow-x: hidden;
@@ -17,6 +21,7 @@
     color: #fff;
     background: #073e2a;
     box-shadow: 8px 0 30px rgba(5, 49, 32, .08);
+    view-transition-name: admin-sidebar-shell;
 }
 
 .sidebar-brand {
@@ -39,6 +44,7 @@
     flex: 1 1 auto;
     overflow-y: auto;
     padding: .9rem .8rem;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,.16) transparent;
 }
@@ -68,6 +74,9 @@
 .sidebar-link:hover { color: #fff; background: rgba(255,255,255,.07); }
 .sidebar-link.active { color: #fff; background: rgba(115, 211, 153, .16); }
 .sidebar-link.active::before { width: 3px; position: absolute; inset: .55rem auto .55rem -.8rem; border-radius: 0 3px 3px 0; background: #75d69c; content: ""; }
+.sidebar-navigation-pending a { pointer-events: none; }
+.sidebar-navigation-pending .sidebar-link { transition: none; }
+.sidebar-link.sidebar-link-pending { color: #fff; background: rgba(115, 211, 153, .16); cursor: progress; }
 .sidebar-count { min-width: 20px; margin-left: auto; border-radius: 999px; padding: .08rem .35rem; color: #fff; background: #bb7720; font-size: .6rem; font-weight: 850; text-align: center; }
 
 .sidebar-footer { flex: 0 0 auto; padding: .65rem .8rem .85rem; border-top: 1px solid rgba(255,255,255,.09); }
@@ -87,7 +96,41 @@
     backdrop-filter: blur(2px);
 }
 
-.admin-main { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; margin-left: 268px; }
+.admin-main { min-width: 0; min-height: 100vh; display: flex; flex-direction: column; margin-left: 268px; view-transition-name: admin-main-content; }
+
+::view-transition-group(admin-sidebar-shell) {
+    z-index: 1040;
+    animation: none;
+}
+
+::view-transition-old(admin-sidebar-shell),
+::view-transition-new(admin-sidebar-shell) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+::view-transition-old(admin-main-content) {
+    animation: admin-content-out .1s ease-out both;
+}
+
+::view-transition-new(admin-main-content) {
+    animation: admin-content-in .16s ease-out both;
+}
+
+@keyframes admin-content-out {
+    to { opacity: 0; }
+}
+
+@keyframes admin-content-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
 
 .admin-topbar {
     min-height: 78px;

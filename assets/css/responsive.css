@@ -157,6 +157,8 @@
         animation-duration: .01ms !important;
         animation-iteration-count: 1 !important;
     }
+    ::view-transition-old(admin-main-content),
+    ::view-transition-new(admin-main-content) { animation: none !important; }
 }
 
 @media print {

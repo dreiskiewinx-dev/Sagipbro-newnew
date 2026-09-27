@@ -42,7 +42,7 @@ if ($sidebarRole === 'volunteer') {
     ];
 }
 ?>
-<aside class="admin-sidebar" id="adminSidebar" aria-label="Administration navigation">
+<aside class="admin-sidebar" id="adminSidebar" data-sidebar-role="<?= htmlspecialchars($sidebarRole, ENT_QUOTES, 'UTF-8') ?>" aria-label="Administration navigation">
     <div class="sidebar-brand">
         <a class="brand-lockup" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>dashboard/admin.php">
             <img src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/images/sagipbro-mark.svg" alt="" width="40" height="45">
@@ -50,7 +50,7 @@ if ($sidebarRole === 'volunteer') {
         </a>
         <button class="icon-button sidebar-close d-lg-none" type="button" aria-label="Close navigation"><i class="bi bi-x-lg"></i></button>
     </div>
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" style="visibility: hidden">
         <?php foreach ($sidebarGroups as $group => $items): ?>
             <p class="sidebar-label"><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></p>
             <ul>
@@ -65,4 +65,75 @@ if ($sidebarRole === 'volunteer') {
         <div class="system-status"><span class="status-pulse" aria-hidden="true"></span><span><strong>System operational</strong><small>Last sync: just now</small></span></div>
     </div>
 </aside>
+<script>
+(() => {
+    const sidebar = document.getElementById('adminSidebar');
+    const navigation = sidebar?.querySelector('.sidebar-nav');
+    if (!sidebar || !navigation) return;
+
+    const storageKey = `sagipbro:sidebar-scroll:${sidebar.dataset.sidebarRole || 'default'}`;
+    try {
+        const storedPosition = window.sessionStorage.getItem(storageKey);
+        if (storedPosition !== null) {
+            const position = Number.parseInt(storedPosition, 10);
+            if (Number.isFinite(position) && position >= 0) {
+                navigation.scrollTop = position;
+                navigation.dataset.scrollRestored = 'true';
+            }
+        }
+    } catch (error) {
+        // Leave the sidebar at its natural position when storage is unavailable.
+    }
+    navigation.style.removeProperty('visibility');
+
+    let navigationPending = false;
+    let unlockTimer = null;
+    const unlockNavigation = () => {
+        navigationPending = false;
+        sidebar.classList.remove('sidebar-navigation-pending');
+        sidebar.querySelectorAll('a[href]').forEach((link) => {
+            link.classList.remove('sidebar-link-pending');
+            link.removeAttribute('aria-disabled');
+        });
+        if (unlockTimer !== null) {
+            window.clearTimeout(unlockTimer);
+            unlockTimer = null;
+        }
+    };
+
+    sidebar.addEventListener('click', (event) => {
+        const link = event.target.closest('a[href]');
+        if (!link || !sidebar.contains(link) || event.defaultPrevented) return;
+        if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        if (link.target && link.target !== '_self') return;
+
+        try {
+            window.sessionStorage.setItem(storageKey, String(Math.round(navigation.scrollTop)));
+        } catch (error) {
+            // Continue navigation even when browser storage is unavailable.
+        }
+
+        const destination = new URL(link.href, window.location.href);
+        const current = new URL(window.location.href);
+        const isCurrentPage = destination.origin === current.origin
+            && destination.pathname === current.pathname
+            && destination.search === current.search
+            && destination.hash === current.hash;
+
+        if (isCurrentPage || navigationPending) {
+            event.preventDefault();
+            return;
+        }
+
+        navigationPending = true;
+        sidebar.classList.add('sidebar-navigation-pending');
+        link.classList.add('sidebar-link-pending');
+        sidebar.querySelectorAll('a[href]').forEach((item) => item.setAttribute('aria-disabled', 'true'));
+        unlockTimer = window.setTimeout(unlockNavigation, 8000);
+    });
+
+    window.addEventListener('pageshow', unlockNavigation);
+})();
+</script>
+<noscript><style>#adminSidebar .sidebar-nav { visibility: visible !important; }</style></noscript>
 <div class="sidebar-backdrop" aria-hidden="true"></div>
