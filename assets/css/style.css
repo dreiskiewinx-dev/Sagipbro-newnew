@@ -775,6 +775,7 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .contact-hours span { color: rgba(255,255,255,.69); font-size: .76rem; }
 
 .form-card { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 1.75rem; background: #fff; box-shadow: var(--shadow-sm); }
+[data-scroll-target] { scroll-margin-top: 7rem; }
 .form-card h2 { margin-bottom: .35rem; font-size: 1.3rem; }
 .form-card > p { margin-bottom: 1.35rem; font-size: .86rem; }
 

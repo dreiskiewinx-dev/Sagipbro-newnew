@@ -12,12 +12,12 @@ include __DIR__ . '/includes/navbar.php';
 ?>
 <main id="main-content">
     <?php publicServiceHero('Emergency announcements', 'Read current barangay advisories and emergency instructions. Urgent notices are highlighted and appear first.', 'announcements'); ?>
-    <section class="section-space section-soft" aria-labelledby="announcement-directory-title">
+    <section class="section-space section-soft" id="announcement-directory" data-scroll-target aria-labelledby="announcement-directory-title">
         <div class="container">
             <div class="section-heading"><span class="section-kicker">Community advisories</span><h2 id="announcement-directory-title">Current announcements</h2><p>Published announcements remain visible until they expire or are archived. For an immediate threat to life, call 911.</p></div>
             <?php publicDataNotice($result); ?>
             <?php if (!$result['error']): $directory = $result['data']; ?>
-                <?php publicFilterForm('announcements.php', $filters, $priorities, null, 'priority'); ?>
+                <?php publicFilterForm('announcements.php#announcement-directory', $filters, $priorities, null, 'priority'); ?>
                 <p class="public-record-meta"><?= number_format($directory['total']) ?> announcement<?= $directory['total'] === 1 ? '' : 's' ?> found</p>
                 <?php if (!$directory['rows']): publicEmpty('No current announcements found', 'There are no current published announcements matching these filters. Check again for updates.'); else: ?>
                     <div class="public-directory-grid">

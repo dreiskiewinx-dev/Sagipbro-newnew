@@ -72,7 +72,7 @@ window.sagipbroNotifications = {
         <p class="mb-0"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Barangay Binloc, Dagupan City</p>
         <div class="utility-links">
             <span><i class="bi bi-telephone-fill" aria-hidden="true"></i> CDRRMO: <a href="tel:+639684449598">+63 968 444 9598</a></span>
-            <a class="d-none d-sm-inline" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php">Report a concern</a>
+            <a class="d-none d-sm-inline" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php#send-message">Report a concern</a>
         </div>
     </div>
 </div>
@@ -90,10 +90,10 @@ window.sagipbroNotifications = {
                 <?php
                 $publicLinks = [
                     'home' => ['Home', 'index.php'],
-                    'about' => ['About', 'about.php'],
-                    'services' => ['Services', 'services.php'],
-                    'resources' => ['Resources', 'resources.php'],
-                    'contact' => ['Contact', 'contact.php'],
+                    'about' => ['About', 'about.php#about-barangay'],
+                    'services' => ['Services', 'services.php#services-list'],
+                    'resources' => ['Resources', 'resources.php#resource-directory'],
+                    'contact' => ['Contact', 'contact.php#contact-details'],
                 ];
                 foreach ($publicLinks as $key => [$label, $href]):
                 ?>

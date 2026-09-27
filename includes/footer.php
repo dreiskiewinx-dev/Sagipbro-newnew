@@ -24,17 +24,17 @@
             <div>
                 <h2>Quick links</h2>
                 <ul class="footer-links">
-                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>about.php">About SAGIPBRO</a></li>
-                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>services.php">Our services</a></li>
-                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>resources.php">Available resources</a></li>
-                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php">Contact the barangay</a></li>
+                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>about.php#about-barangay">About SAGIPBRO</a></li>
+                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>services.php#services-list">Our services</a></li>
+                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>resources.php#resource-directory">Available resources</a></li>
+                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php#send-message">Contact the barangay</a></li>
                 </ul>
             </div>
             <div>
                 <h2>Contact</h2>
                 <ul class="footer-contact">
                     <li><i class="bi bi-geo-alt"></i><span>Bonuan Binloc<br>Dagupan City, Pangasinan 2400</span></li>
-                    <li><i class="bi bi-envelope"></i><span>Barangay email: <a href="mailto:barangaybonuabbinloc@gmail.com">barangaybonuabbinloc@gmail.com</a></span></li>
+                    <li><i class="bi bi-envelope"></i><span>Barangay email: <a href="mailto:barangaybonuanbinloc@gmail.com">barangaybonuanbinloc@gmail.com</a></span></li>
                     <li><i class="bi bi-telephone"></i><span>Barangay hall hotlines:<br><a href="tel:+639631743346">+63 963 174 3346</a> / <a href="tel:+639632173031">+63 963 217 3031</a></span></li>
                     <li><i class="bi bi-envelope"></i><span>City inquiries: <a href="mailto:dagupanlgu@gmail.com">dagupanlgu@gmail.com</a></span></li>
                     <li><i class="bi bi-telephone"></i><span>City CDRRMO: <a href="tel:+639684449598">+63 968 444 9598</a></span></li>

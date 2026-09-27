@@ -71,11 +71,11 @@ function publicStatus(string $label): void
 function publicServiceLinks(): array
 {
     return [
-        'centers' => ['evacuation-centers.php', 'Evacuation Centers', 'bi-buildings'],
-        'resources' => ['resources.php', 'Relief Resources', 'bi-box-seam'],
-        'distributions' => ['distributions.php', 'Relief Distribution', 'bi-truck'],
-        'announcements' => ['announcements.php', 'Emergency Announcements', 'bi-megaphone'],
-        'reports' => ['reports.php', 'Reports', 'bi-file-earmark-bar-graph'],
+        'centers' => ['evacuation-centers.php#center-directory', 'Evacuation Centers', 'bi-buildings'],
+        'resources' => ['resources.php#resource-directory', 'Relief Resources', 'bi-box-seam'],
+        'distributions' => ['distributions.php#distribution-directory', 'Relief Distribution', 'bi-truck'],
+        'announcements' => ['announcements.php#announcement-directory', 'Emergency Announcements', 'bi-megaphone'],
+        'reports' => ['reports.php#public-reports', 'Reports', 'bi-file-earmark-bar-graph'],
     ];
 }
 
@@ -99,7 +99,7 @@ function publicServiceHero(string $title, string $description, string $active): 
         <div class="container">
             <nav aria-label="Breadcrumb"><ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-                <li class="breadcrumb-item"><a href="services.php">Services</a></li>
+                <li class="breadcrumb-item"><a href="services.php#services-list">Services</a></li>
                 <li class="breadcrumb-item active" aria-current="page"><?= publicEscape($links[$active][1] ?? $title) ?></li>
             </ol></nav>
             <span class="hero-chip"><span aria-hidden="true"></span> Barangay Bonuan Binloc</span>
@@ -119,7 +119,7 @@ function publicDataNotice(array $result): void
             <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <div><h2>Information temporarily unavailable</h2>
                 <p>We could not load the barangay records. No availability figures are shown because they cannot be confirmed right now.</p>
-                <p class="mb-0">Try refreshing this page or <a href="contact.php">contact the barangay hall</a> at <a href="tel:+639631743346">+63 963 174 3346</a> / <a href="tel:+639632173031">+63 963 217 3031</a>.</p>
+                <p class="mb-0">Try refreshing this page or <a href="contact.php#send-message">contact the barangay hall</a> at <a href="tel:+639631743346">+63 963 174 3346</a> / <a href="tel:+639632173031">+63 963 217 3031</a>.</p>
             </div>
         </div>
         <?php

@@ -22,7 +22,7 @@ include __DIR__ . '/includes/navbar.php';
         </div>
     </section>
 
-    <section class="section-space section-soft" aria-labelledby="services-list-title">
+    <section class="section-space section-soft" id="services-list" data-scroll-target aria-labelledby="services-list-title">
         <div class="container">
             <div class="section-heading">
                 <span class="section-kicker">Core services</span>
@@ -34,7 +34,7 @@ include __DIR__ . '/includes/navbar.php';
                 <article class="service-row">
                     <div class="service-row-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
                     <div>
-                        <h2><a class="stretched-link" href="resources.php">Relief Resources</a></h2>
+                        <h2><a class="stretched-link" href="resources.php#resource-directory">Relief Resources</a></h2>
                         <p>Organizes food, water, hygiene, medical, and shelter supplies by available quantity, unit, category, and stock condition.</p>
                         <span class="quick-link">Browse available supplies <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </div>
@@ -43,7 +43,7 @@ include __DIR__ . '/includes/navbar.php';
                 <article class="service-row" id="evacuation-centers">
                     <div class="service-row-icon"><i class="bi bi-buildings" aria-hidden="true"></i></div>
                     <div>
-                        <h2><a class="stretched-link" href="evacuation-centers.php">Evacuation Centers</a></h2>
+                        <h2><a class="stretched-link" href="evacuation-centers.php#center-directory">Evacuation Centers</a></h2>
                         <p>Presents center locations, capacity, current occupancy, and availability so options can be reviewed quickly.</p>
                         <span class="quick-link">Check center availability <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </div>
@@ -52,7 +52,7 @@ include __DIR__ . '/includes/navbar.php';
                 <article class="service-row" id="relief-distribution">
                     <div class="service-row-icon"><i class="bi bi-truck" aria-hidden="true"></i></div>
                     <div>
-                        <h2><a class="stretched-link" href="distributions.php">Relief Distribution</a></h2>
+                        <h2><a class="stretched-link" href="distributions.php#distribution-directory">Relief Distribution</a></h2>
                         <p>Find published schedules, locations, active distributions, planned supplies, and totals already distributed. Recipient details remain private.</p>
                         <span class="quick-link">View distributions <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </div>
@@ -61,7 +61,7 @@ include __DIR__ . '/includes/navbar.php';
                 <article class="service-row" id="announcements">
                     <div class="service-row-icon"><i class="bi bi-megaphone" aria-hidden="true"></i></div>
                     <div>
-                        <h2><a class="stretched-link" href="announcements.php">Emergency Announcements</a></h2>
+                        <h2><a class="stretched-link" href="announcements.php#announcement-directory">Emergency Announcements</a></h2>
                         <p>Gives urgent advisories and community updates a prominent, readable location across the public experience.</p>
                         <span class="quick-link">Read current announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </div>
@@ -70,7 +70,7 @@ include __DIR__ . '/includes/navbar.php';
                 <article class="service-row">
                     <div class="service-row-icon"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i></div>
                     <div>
-                        <h2><a class="stretched-link" href="reports.php">Reports</a></h2>
+                        <h2><a class="stretched-link" href="reports.php#public-reports">Reports</a></h2>
                         <p>Review public resource availability, open evacuation capacity, and recent relief distributions from barangay records.</p>
                         <span class="quick-link">Open public reports <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </div>
@@ -138,8 +138,8 @@ include __DIR__ . '/includes/navbar.php';
                     <p>Browse supplies from the barangay database, or contact the barangay hall for assistance and confirmation.</p>
                 </div>
                 <div class="cta-actions">
-                    <a class="btn btn-white" href="resources.php"><i class="bi bi-search" aria-hidden="true"></i> Browse resources</a>
-                    <a class="btn btn-ghost-light" href="contact.php">Contact information</a>
+                    <a class="btn btn-white" href="resources.php#resource-directory"><i class="bi bi-search" aria-hidden="true"></i> Browse resources</a>
+                    <a class="btn btn-ghost-light" href="contact.php#contact-details">Contact information</a>
                 </div>
             </div>
         </div>

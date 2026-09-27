@@ -22,7 +22,7 @@ include __DIR__ . '/includes/navbar.php';
         </div>
     </section>
 
-    <section class="section-space" aria-labelledby="about-barangay-title">
+    <section class="section-space" id="about-barangay" data-scroll-target aria-labelledby="about-barangay-title">
         <div class="container">
             <div class="row g-3 g-lg-4 align-items-center">
                 <div class="col-lg-6">
@@ -30,7 +30,7 @@ include __DIR__ . '/includes/navbar.php';
                     <h2 id="about-barangay-title">About Barangay Binloc</h2>
                     <p class="mt-3">Barangay Binloc is a community in Dagupan City, Pangasinan. It is the community at the heart of SAGIPBRO and the focus of the system’s disaster-relief information.</p>
                     <p>For residents and families, finding clear information matters before, during, and after a disaster. SAGIPBRO brings local relief and preparedness updates into one place that is easy to access.</p>
-                    <a class="btn btn-outline-brand mt-2" href="contact.php"><i class="bi bi-telephone" aria-hidden="true"></i> Contact the barangay</a>
+                    <a class="btn btn-outline-brand mt-2" href="contact.php#send-message"><i class="bi bi-telephone" aria-hidden="true"></i> Contact the barangay</a>
                 </div>
                 <div class="col-lg-6">
                     <figure class="about-community-photo">
@@ -55,7 +55,7 @@ include __DIR__ . '/includes/navbar.php';
                             <div><dt>City</dt><dd>Dagupan City</dd></div>
                             <div><dt>Province</dt><dd>Pangasinan</dd></div>
                         </dl>
-                        <a href="evacuation-centers.php">Find local evacuation centers <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        <a href="evacuation-centers.php#center-directory">Find local evacuation centers <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                     </div>
                 </section>
                 <section class="col-lg-7" aria-labelledby="our-community-title">
@@ -84,7 +84,7 @@ include __DIR__ . '/includes/navbar.php';
                         <div class="icon-box"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
                         <h3>Relief resources</h3>
                         <p>See recorded supplies, quantities, and stock conditions so it is easier to understand what assistance may be available.</p>
-                        <a href="resources.php">View relief resources <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        <a href="resources.php#resource-directory">View relief resources <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                     </article>
                 </div>
                 <div class="col-md-6">
@@ -92,7 +92,7 @@ include __DIR__ . '/includes/navbar.php';
                         <div class="icon-box"><i class="bi bi-buildings" aria-hidden="true"></i></div>
                         <h3>Evacuation centers</h3>
                         <p>Find center locations, capacity, current occupants, and available spaces in one place.</p>
-                        <a href="evacuation-centers.php">View evacuation centers <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        <a href="evacuation-centers.php#center-directory">View evacuation centers <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                     </article>
                 </div>
                 <div class="col-md-6">
@@ -100,7 +100,7 @@ include __DIR__ . '/includes/navbar.php';
                         <div class="icon-box"><i class="bi bi-megaphone" aria-hidden="true"></i></div>
                         <h3>Community announcements</h3>
                         <p>Read published advisories and urgent notices to keep up with information that affects the barangay.</p>
-                        <a href="announcements.php">Read announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        <a href="announcements.php#announcement-directory">Read announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                     </article>
                 </div>
                 <div class="col-md-6">
@@ -108,13 +108,13 @@ include __DIR__ . '/includes/navbar.php';
                         <div class="icon-box"><i class="bi bi-file-earmark-bar-graph" aria-hidden="true"></i></div>
                         <h3>Disaster and relief information</h3>
                         <p>Review resource and evacuation summaries alongside recent relief distribution information to support local planning.</p>
-                        <a href="reports.php">View public information <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                        <a href="reports.php#public-reports">View public information <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
                     </article>
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-3 mt-4">
-                <a class="btn btn-brand" href="services.php">Explore all services <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
-                <a class="btn btn-outline-brand" href="distributions.php">View distribution schedules</a>
+                <a class="btn btn-brand" href="services.php#services-list">Explore all services <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                <a class="btn btn-outline-brand" href="distributions.php#distribution-directory">View distribution schedules</a>
             </div>
         </div>
     </section>

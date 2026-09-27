@@ -57,7 +57,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="auth-input"><i class="bi bi-person" aria-hidden="true"></i><input class="form-control" id="username" name="username" required maxlength="80" autocomplete="username" placeholder="Enter your username"></div>
                 </div>
                 <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center gap-2"><label class="form-label" for="password">Password</label><a class="auth-help" href="contact.php">Forgot password?</a></div>
+                    <div class="d-flex justify-content-between align-items-center gap-2"><label class="form-label" for="password">Password</label><a class="auth-help" href="contact.php#send-message">Forgot password?</a></div>
                     <div class="auth-input"><i class="bi bi-lock" aria-hidden="true"></i><input class="form-control" id="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password"><button type="button" data-password-toggle="password" aria-label="Show password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div>
                 </div>
                 <?php if (getenv('SAGIPBRO_RECAPTCHA_SITE_KEY')): ?>

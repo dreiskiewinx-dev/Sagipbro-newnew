@@ -59,7 +59,7 @@ include __DIR__ . '/includes/navbar.php';
     <section class="section-space section-soft" aria-labelledby="contact-details-title">
         <div class="container">
             <div class="contact-layout">
-                <aside class="contact-panel" aria-labelledby="contact-details-title">
+                <aside class="contact-panel" id="contact-details" data-scroll-target aria-labelledby="contact-details-title">
                     <div class="contact-panel-body">
                         <span class="eyebrow text-white">Contact details</span>
                         <h2 id="contact-details-title">Barangay Bonuan Binloc</h2>
@@ -84,7 +84,7 @@ include __DIR__ . '/includes/navbar.php';
                                 <i class="bi bi-envelope" aria-hidden="true"></i>
                                 <div>
                                     <strong>Barangay email</strong>
-                                    <a href="mailto:barangaybonuabbinloc@gmail.com">barangaybonuabbinloc@gmail.com</a>
+                                    <a href="mailto:barangaybonuanbinloc@gmail.com">barangaybonuanbinloc@gmail.com</a>
                                 </div>
                             </li>
                             <li>
@@ -117,7 +117,7 @@ include __DIR__ . '/includes/navbar.php';
                     </div>
                 </aside>
 
-                <div class="form-card">
+                <div class="form-card" id="send-message" data-scroll-target>
                     <h2>Send a message</h2>
                     <p>Send your inquiry to the barangay administrators through their SAGIPBRO Messages inbox.</p>
 

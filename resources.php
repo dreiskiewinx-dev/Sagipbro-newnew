@@ -41,7 +41,7 @@ include __DIR__ . '/includes/navbar.php';
 
     <?php publicServiceNavigation('resources'); ?>
 
-    <section class="section-space section-soft" aria-labelledby="resource-directory-title">
+    <section class="section-space section-soft" id="resource-directory" data-scroll-target aria-labelledby="resource-directory-title">
         <div class="container">
             <div class="section-heading">
                 <span class="section-kicker">Live inventory</span>
@@ -145,7 +145,7 @@ include __DIR__ . '/includes/navbar.php';
                     <p>Use the verified Dagupan City disaster-response contact details listed on the contact page.</p>
                 </div>
                 <div class="cta-actions">
-                    <a class="btn btn-white" href="contact.php"><i class="bi bi-telephone" aria-hidden="true"></i> View contact details</a>
+                    <a class="btn btn-white" href="contact.php#contact-details"><i class="bi bi-telephone" aria-hidden="true"></i> View contact details</a>
                     <a class="btn btn-ghost-light" href="tel:911">Call 911</a>
                 </div>
             </div>

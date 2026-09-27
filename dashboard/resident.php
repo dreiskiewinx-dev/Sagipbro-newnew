@@ -45,9 +45,9 @@ require __DIR__ . '/../includes/navbar.php';
         <div class="container">
             <?php require __DIR__ . '/../includes/alerts.php'; ?>
             <div class="quick-grid mb-4">
-                <a class="quick-card" href="../resources.php"><span class="quick-icon"><i class="bi bi-box-seam"></i></span><h3>Available resources</h3><p>View the latest public relief supply information and stock status.</p><span class="quick-link">Browse resources <i class="bi bi-arrow-right"></i></span></a>
-                <a class="quick-card" href="../evacuation-centers.php"><span class="quick-icon"><i class="bi bi-buildings"></i></span><h3>Evacuation information</h3><p>Review center capacity, availability, and preparedness information.</p><span class="quick-link">View centers <i class="bi bi-arrow-right"></i></span></a>
-                <a class="quick-card" href="../contact.php"><span class="quick-icon"><i class="bi bi-telephone"></i></span><h3>Emergency contacts</h3><p>Save the verified Dagupan City response numbers before you need them.</p><span class="quick-link">Contact directory <i class="bi bi-arrow-right"></i></span></a>
+                <a class="quick-card" href="../resources.php#resource-directory"><span class="quick-icon"><i class="bi bi-box-seam"></i></span><h3>Available resources</h3><p>View the latest public relief supply information and stock status.</p><span class="quick-link">Browse resources <i class="bi bi-arrow-right"></i></span></a>
+                <a class="quick-card" href="../evacuation-centers.php#center-directory"><span class="quick-icon"><i class="bi bi-buildings"></i></span><h3>Evacuation information</h3><p>Review center capacity, availability, and preparedness information.</p><span class="quick-link">View centers <i class="bi bi-arrow-right"></i></span></a>
+                <a class="quick-card" href="../contact.php#contact-details"><span class="quick-icon"><i class="bi bi-telephone"></i></span><h3>Emergency contacts</h3><p>Save the verified Dagupan City response numbers before you need them.</p><span class="quick-link">Contact directory <i class="bi bi-arrow-right"></i></span></a>
             </div>
             <div class="contact-layout">
                 <section class="surface-card" aria-labelledby="household-title">
@@ -64,9 +64,9 @@ require __DIR__ . '/../includes/navbar.php';
                         <div class="empty-state py-4"><i class="bi bi-person-exclamation"></i><h3>No resident record linked</h3><p>Your account name does not currently match a resident record. Contact the barangay office to link or update it.</p></div>
                         <?php endif; ?>
                     </div>
-                    <div class="surface-card-footer"><a class="btn btn-sm btn-outline-brand" href="../contact.php">Request an information update</a></div>
+                    <div class="surface-card-footer"><a class="btn btn-sm btn-outline-brand" href="../contact.php#send-message">Request an information update</a></div>
                 </section>
-                <aside class="center-feature"><span class="feature-icon"><i class="bi bi-backpack"></i></span><h2>Is your family go-bag ready?</h2><p>Include drinking water, food, medicines, a flashlight, radio, clothing, hygiene supplies, and copies of important documents.</p><a class="btn btn-ghost-light w-100 mt-3" href="../services.php">Review preparedness services</a></aside>
+                <aside class="center-feature"><span class="feature-icon"><i class="bi bi-backpack"></i></span><h2>Is your family go-bag ready?</h2><p>Include drinking water, food, medicines, a flashlight, radio, clothing, hygiene supplies, and copies of important documents.</p><a class="btn btn-ghost-light w-100 mt-3" href="../services.php#services-list">Review preparedness services</a></aside>
             </div>
             <form class="mt-4 text-end" action="../actions/auth/logout.php" method="post" data-confirm-logout><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"><button class="btn btn-outline-brand" type="submit"><i class="bi bi-box-arrow-left"></i> Sign out</button></form>
         </div>

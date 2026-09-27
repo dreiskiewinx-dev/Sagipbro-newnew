@@ -20,8 +20,8 @@ require __DIR__ . '/includes/navbar.php';
                 <p class="hero-subtitle">Disaster Relief Resource Information System</p>
                 <p class="hero-copy">One trusted place for residents and barangay responders to find relief supply availability, evacuation center information, and verified emergency updates when every minute matters.</p>
                 <div class="hero-actions">
-                    <a class="btn btn-white" href="resources.php"><i class="bi bi-box-seam" aria-hidden="true"></i> View resources</a>
-                    <a class="btn btn-ghost-light" href="evacuation-centers.php"><i class="bi bi-buildings" aria-hidden="true"></i> View evacuation centers</a>
+                    <a class="btn btn-white" href="resources.php#resource-directory"><i class="bi bi-box-seam" aria-hidden="true"></i> View resources</a>
+                    <a class="btn btn-ghost-light" href="evacuation-centers.php#center-directory"><i class="bi bi-buildings" aria-hidden="true"></i> View evacuation centers</a>
                 </div>
             </div>
         </div>
@@ -42,7 +42,7 @@ require __DIR__ . '/includes/navbar.php';
                     <strong>Community preparedness reminder</strong>
                     <span>Keep your family go-bag ready, monitor official weather bulletins, and know your nearest evacuation route.</span>
                 </div>
-                <a class="emergency-link" href="announcements.php">Read guidance <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                <a class="emergency-link" href="announcements.php#announcement-directory">Read guidance <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </div>
         </div>
     </section>
@@ -55,19 +55,19 @@ require __DIR__ . '/includes/navbar.php';
                 <p>Find clear, current information before, during, and after an emergency.</p>
             </div>
             <div class="quick-grid">
-                <a class="quick-card" href="resources.php">
+                <a class="quick-card" href="resources.php#resource-directory">
                     <span class="quick-icon"><i class="bi bi-box2-heart" aria-hidden="true"></i></span>
                     <h3>Relief resources</h3>
                     <p>Check the current availability of food, water, hygiene supplies, medicine, and other essential goods.</p>
                     <span class="quick-link">Browse supplies <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
                 </a>
-                <a class="quick-card" href="evacuation-centers.php">
+                <a class="quick-card" href="evacuation-centers.php#center-directory">
                     <span class="quick-icon"><i class="bi bi-houses" aria-hidden="true"></i></span>
                     <h3>Evacuation centers</h3>
                     <p>Review center locations, operating status, capacity, and available accommodation before traveling.</p>
                     <span class="quick-link">Find a safe center <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
                 </a>
-                <a class="quick-card" href="distributions.php">
+                <a class="quick-card" href="distributions.php#distribution-directory">
                     <span class="quick-icon"><i class="bi bi-truck" aria-hidden="true"></i></span>
                     <h3>Relief distribution</h3>
                     <p>Understand how organized relief is scheduled, recorded, and delivered fairly to affected households.</p>
@@ -88,7 +88,7 @@ require __DIR__ . '/includes/navbar.php';
             <?php if (!$snapshot['error']): ?>
                 <div class="snapshot-wrap">
                     <article class="surface-card">
-                        <div class="surface-card-header"><div><h3>Relief inventory</h3><p>Latest quantities recorded in the barangay database</p></div><a class="btn btn-sm btn-brand-soft" href="resources.php">View all</a></div>
+                        <div class="surface-card-header"><div><h3>Relief inventory</h3><p>Latest quantities recorded in the barangay database</p></div><a class="btn btn-sm btn-brand-soft" href="resources.php#resource-directory">View all</a></div>
                         <div class="surface-card-body pt-0">
                             <?php if (!$snapshot['data']['resources']): ?>
                                 <p>No resources have been recorded yet. Contact the barangay for availability.</p>
@@ -107,7 +107,7 @@ require __DIR__ . '/includes/navbar.php';
                         <?php $availableCenters = array_filter($snapshot['data']['centers'], static fn(array $center): bool => $center['availability'] === 'Available'); ?>
                         <p><?= count($availableCenters) ?> available of <?= count($snapshot['data']['centers']) ?> recorded centers. Full and closed centers are excluded from available spaces.</p>
                         <div class="occupancy-line"><span>Available spaces</span><strong><?= number_format(array_sum(array_column($availableCenters, 'available_spaces'))) ?></strong></div>
-                        <a class="btn btn-ghost-light w-100 mt-4" href="evacuation-centers.php"><i class="bi bi-geo-alt" aria-hidden="true"></i> View evacuation centers</a>
+                        <a class="btn btn-ghost-light w-100 mt-4" href="evacuation-centers.php#center-directory"><i class="bi bi-geo-alt" aria-hidden="true"></i> View evacuation centers</a>
                     </article>
                 </div>
             <?php endif; ?>
@@ -122,8 +122,8 @@ require __DIR__ . '/includes/navbar.php';
                     <p>Review available resources, save official emergency contacts, and talk with your household about where to go before an emergency begins.</p>
                 </div>
                 <div class="cta-actions">
-                    <a class="btn btn-white" href="resources.php">Check resources</a>
-                    <a class="btn btn-ghost-light" href="contact.php">Contact us</a>
+                    <a class="btn btn-white" href="resources.php#resource-directory">Check resources</a>
+                    <a class="btn btn-ghost-light" href="contact.php#send-message">Contact us</a>
                 </div>
             </div>
         </div>

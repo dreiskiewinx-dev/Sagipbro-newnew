@@ -43,7 +43,7 @@ include __DIR__ . '/includes/navbar.php';
 ?>
 <main id="main-content">
     <?php publicServiceHero('Public relief reports', 'Review the barangay’s recorded supplies, available evacuation spaces, and recent distributions. Individual resident and recipient details are not published.', 'reports'); ?>
-    <section class="section-space section-soft"><div class="container">
+    <section class="section-space section-soft" id="public-reports" data-scroll-target><div class="container">
         <?php publicDataNotice($result); ?>
         <?php if (!$result['error']): $report = $result['data']; $summary = $report['summary']; ?>
             <div class="public-report-actions no-print">
@@ -89,7 +89,7 @@ include __DIR__ . '/includes/navbar.php';
                         <tbody><?php foreach ($recent as $r): ?><tr><th scope="row"><?= publicEscape($r['title']) ?><span class="table-secondary-text"><?= publicEscape($r['location']) ?></span></th><td><?= publicEscape(publicDate($r['starts_at'])) ?><?= !$r['time_recorded'] ? '<small class="d-block">Time not recorded</small>' : '' ?></td><td><?php foreach ($r['resources'] as $item): ?><span class="d-block"><?= publicEscape($item['name']) ?>: <?= publicQuantity($item['distributed_quantity']) ?> <?= publicEscape($item['unit']) ?></span><?php endforeach; ?><?= !$r['resources'] ? 'No supply details recorded' : '' ?></td><td><?php publicStatus($r['status']); ?></td></tr><?php endforeach; ?></tbody>
                     </table></div>
                 <?php endif; ?>
-                <a class="btn btn-brand mt-3 no-print" href="distributions.php">View upcoming and active distributions <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+                <a class="btn btn-brand mt-3 no-print" href="distributions.php#distribution-directory">View upcoming and active distributions <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </section>
         <?php endif; ?>
     </div></section>

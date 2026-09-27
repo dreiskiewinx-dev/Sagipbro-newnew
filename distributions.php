@@ -25,7 +25,7 @@ include __DIR__ . '/includes/navbar.php';
         'distributions'
     ); ?>
 
-    <section class="section-space section-soft" aria-labelledby="distribution-directory-title">
+    <section class="section-space section-soft" id="distribution-directory" data-scroll-target aria-labelledby="distribution-directory-title">
         <div class="container">
             <div class="section-heading">
                 <span class="section-kicker">Published operations</span>
@@ -35,7 +35,7 @@ include __DIR__ . '/includes/navbar.php';
 
             <?php publicDataNotice($result); ?>
             <?php if (!$result['error']): $directory = $result['data']; ?>
-                <?php publicFilterForm('distributions.php', $filters, $statuses); ?>
+                <?php publicFilterForm('distributions.php#distribution-directory', $filters, $statuses); ?>
                 <p class="public-record-meta"><?= number_format($directory['total']) ?> distribution<?= $directory['total'] === 1 ? '' : 's' ?> found</p>
 
                 <?php if (!$directory['rows']): ?>
