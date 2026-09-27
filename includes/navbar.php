@@ -21,12 +21,6 @@ if ($isAdmin):
         </div>
     </div>
     <div class="admin-topbar-actions">
-        <div class="admin-search d-none d-xl-flex" role="search">
-            <i class="bi bi-search" aria-hidden="true"></i>
-            <label class="visually-hidden" for="globalAdminSearch">Search records</label>
-            <input id="globalAdminSearch" type="search" placeholder="Search records..." autocomplete="off">
-            <kbd>Ctrl K</kbd>
-        </div>
         <div class="dropdown notification-menu">
             <button class="icon-button position-relative" id="notificationToggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-notification-toggle>
                 <i class="bi bi-bell" aria-hidden="true"></i>
@@ -55,6 +49,13 @@ if ($isAdmin):
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                 <li><a class="dropdown-item" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/profile/index.php"><i class="bi bi-person me-2"></i>My profile</a></li>
                 <li><a class="dropdown-item" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>index.php"><i class="bi bi-house-door me-2"></i>View public site</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>actions/auth/logout.php" method="post" data-confirm-logout>
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-left me-2" aria-hidden="true"></i>Logout</button>
+                    </form>
+                </li>
             </ul>
         </div>
     </div>

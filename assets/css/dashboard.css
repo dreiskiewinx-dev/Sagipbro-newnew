@@ -72,7 +72,6 @@
 
 .sidebar-footer { flex: 0 0 auto; padding: .65rem .8rem .85rem; border-top: 1px solid rgba(255,255,255,.09); }
 .sidebar-footer form { margin: 0; }
-.sidebar-logout:hover { color: #ffd8d5; background: rgba(209,76,65,.12); }
 .system-status { display: flex; align-items: center; gap: .62rem; margin-top: .65rem; padding: .65rem .72rem; border-radius: .65rem; background: rgba(255,255,255,.055); }
 .status-pulse { width: 8px; height: 8px; flex: 0 0 auto; border: 2px solid rgba(117,214,156,.25); border-radius: 50%; background: #75d69c; box-shadow: 0 0 0 4px rgba(117,214,156,.09); }
 .system-status strong, .system-status small { display: block; }
@@ -110,10 +109,6 @@
 .admin-greeting .eyebrow::before { display: none; }
 .admin-greeting strong { display: block; color: var(--ink-900); font-size: .86rem; }
 .admin-topbar-actions { display: flex; align-items: center; gap: .55rem; }
-.admin-search { width: 280px; height: 42px; align-items: center; gap: .55rem; padding: 0 .55rem 0 .75rem; border: 1px solid var(--line); border-radius: .72rem; color: var(--ink-500); background: #f8faf9; }
-.admin-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink-900); background: transparent; font-size: .78rem; }
-.admin-search input::placeholder { color: #94a39d; }
-.admin-search kbd { border: 1px solid var(--line); border-radius: .3rem; padding: .1rem .34rem; color: var(--ink-500); background: #fff; box-shadow: none; font-family: inherit; font-size: .58rem; }
 .notification-count {
     min-width: 17px;
     height: 17px;

@@ -26,14 +26,6 @@
         if (window.innerWidth >= 992) setSidebar(false);
     });
 
-    const globalSearch = document.getElementById('globalAdminSearch');
-    document.addEventListener('keydown', (event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
-            event.preventDefault();
-            globalSearch?.focus();
-        }
-    });
-
     const normalize = (value) => String(value || '').trim().toLowerCase();
     const searchInputs = document.querySelectorAll('[data-table-search]');
     searchInputs.forEach((input) => {

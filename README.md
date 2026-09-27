@@ -12,13 +12,30 @@ Modern Bootstrap 5 interface for the **SAGIPBRO Disaster Relief Resource Informa
 
 ## Run locally
 
-From the project directory:
+The application does not have a fixed web port. From the `Sagipbro-newnew`
+project directory, start it on any available port:
 
 ```powershell
-php -S 127.0.0.1:8000 -t .
+php -S localhost:3000 -t .
 ```
 
-Then open `http://127.0.0.1:8000`.
+Then open `http://localhost:3000`. To use another port, stop the current server
+with `Ctrl+C` and change only the port number, for example:
+
+```powershell
+php -S localhost:5000 -t .
+```
+
+Then open `http://localhost:5000`. Links, redirects, assets, and API requests
+use the current browser origin, so no PHP configuration needs to change when
+the port changes. If `php` is not on PATH, use XAMPP's executable instead:
+
+```powershell
+& 'C:\xampp\php\php.exe' -S localhost:3000 -t .
+```
+
+Run these commands inside `Sagipbro-newnew`; otherwise PHP will serve the wrong
+folder. Only one process can use a given port at a time.
 
 Public Services and the homepage availability snapshot now read MySQL. They show a clear unavailable message (HTTP 503) if the database cannot be reached; they never fall back to sample quantities. The static About, Services landing, and Contact pages remain accessible without MySQL.
 
@@ -42,10 +59,13 @@ This workspace uses the existing **`sagipbro`** database selected by the user. I
 
 ```powershell
 & 'C:\xampp\php\php.exe' database/migrate_public_services.php
-& 'C:\xampp\php\php.exe' -S 127.0.0.1:8080 -t .
+& 'C:\xampp\php\php.exe' -S localhost:3000 -t .
 ```
 
-Open `http://127.0.0.1:8080/services.php`. Start MySQL in XAMPP first. Use XAMPP's PHP: the separate PHP on this machine's PATH currently has no `pdo_mysql` extension. Keep the server terminal open; Ctrl+C stops it.
+Open `http://localhost:3000/services.php`. You may replace `3000` with any
+available port, such as `5000`. Start MySQL in XAMPP first. Use XAMPP's PHP: the
+separate PHP on this machine's PATH currently has no `pdo_mysql` extension.
+Keep the server terminal open; `Ctrl+C` stops it.
 
 Connection settings are environment variables read by `config/connection.php`: `SAGIPBRO_DB_HOST` (127.0.0.1), `SAGIPBRO_DB_PORT` (3306), `SAGIPBRO_DB_NAME` (sagipbro), `SAGIPBRO_DB_USER` (root), `SAGIPBRO_DB_PASSWORD` (empty). Use a restricted account in deployment; never publish database passwords or expose the PHP development server to the internet.
 

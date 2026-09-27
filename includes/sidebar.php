@@ -62,10 +62,6 @@ if ($sidebarRole === 'volunteer') {
     </nav>
     <div class="sidebar-footer">
         <a class="sidebar-link<?= $activeAdmin === 'profile' ? ' active' : '' ?>" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/profile/index.php"><i class="bi bi-person-circle"></i><span>Profile</span></a>
-        <form action="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>actions/auth/logout.php" method="post" data-confirm-logout>
-            <input type="hidden" name="csrf_token" value="<?= function_exists('csrfToken') ? htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') : '' ?>">
-            <button class="sidebar-link sidebar-logout" type="submit"><i class="bi bi-box-arrow-left"></i><span>Logout</span></button>
-        </form>
         <div class="system-status"><span class="status-pulse" aria-hidden="true"></span><span><strong>System operational</strong><small>Last sync: just now</small></span></div>
     </div>
 </aside>
