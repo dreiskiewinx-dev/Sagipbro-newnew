@@ -35,9 +35,9 @@
                 <ul class="footer-contact">
                     <li><i class="bi bi-geo-alt"></i><span>Bonuan Binloc<br>Dagupan City, Pangasinan 2400</span></li>
                     <li><i class="bi bi-envelope"></i><span>Barangay email: <a href="mailto:barangaybonuabbinloc@gmail.com">barangaybonuabbinloc@gmail.com</a></span></li>
-                    <li><i class="bi bi-telephone"></i><span>Barangay hall hotlines:<br><a href="tel:+639631743346">0963 174 3346</a> / <a href="tel:+639632173031">0963 217 3031</a></span></li>
+                    <li><i class="bi bi-telephone"></i><span>Barangay hall hotlines:<br><a href="tel:+639631743346">+63 963 174 3346</a> / <a href="tel:+639632173031">+63 963 217 3031</a></span></li>
                     <li><i class="bi bi-envelope"></i><span>City inquiries: <a href="mailto:dagupanlgu@gmail.com">dagupanlgu@gmail.com</a></span></li>
-                    <li><i class="bi bi-telephone"></i><span>City CDRRMO: <a href="tel:+639684449598">0968 444 9598</a></span></li>
+                    <li><i class="bi bi-telephone"></i><span>City CDRRMO: <a href="tel:+639684449598">+63 968 444 9598</a></span></li>
                 </ul>
             </div>
             <div class="footer-emergency">

@@ -71,7 +71,7 @@ window.sagipbroNotifications = {
     <div class="container d-flex justify-content-between align-items-center gap-3">
         <p class="mb-0"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Barangay Binloc, Dagupan City</p>
         <div class="utility-links">
-            <span><i class="bi bi-telephone-fill" aria-hidden="true"></i> CDRRMO: <a href="tel:+639684449598">0968 444 9598</a></span>
+            <span><i class="bi bi-telephone-fill" aria-hidden="true"></i> CDRRMO: <a href="tel:+639684449598">+63 968 444 9598</a></span>
             <a class="d-none d-sm-inline" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php">Report a concern</a>
         </div>
     </div>

@@ -119,7 +119,7 @@ function publicDataNotice(array $result): void
             <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
             <div><h2>Information temporarily unavailable</h2>
                 <p>We could not load the barangay records. No availability figures are shown because they cannot be confirmed right now.</p>
-                <p class="mb-0">Try refreshing this page or <a href="contact.php">contact the barangay hall</a> at <a href="tel:+639631743346">0963 174 3346</a> / <a href="tel:+639632173031">0963 217 3031</a>.</p>
+                <p class="mb-0">Try refreshing this page or <a href="contact.php">contact the barangay hall</a> at <a href="tel:+639631743346">+63 963 174 3346</a> / <a href="tel:+639632173031">+63 963 217 3031</a>.</p>
             </div>
         </div>
         <?php
