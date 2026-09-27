@@ -3,6 +3,13 @@ $basePath = $basePath ?? '../../';
 $activeAdmin = $activeAdmin ?? 'dashboard';
 $sidebarRole = $_SESSION['role'] ?? 'admin';
 $dashboardFile = $sidebarRole === 'volunteer' ? 'dashboard/volunteer.php' : 'dashboard/admin.php';
+$announcementCount = 0;
+try {
+    require_once __DIR__ . '/../config/connection.php';
+    $announcementCount = (int) sagipbroDatabase()->query("SELECT COUNT(*) FROM announcements WHERE status = 'Published'")->fetchColumn();
+} catch (Throwable $e) {
+    error_log('Sidebar announcement count unavailable (' . get_class($e) . ').');
+}
 $sidebarGroups = [
     'Overview' => [
         ['dashboard', 'Dashboard', 'bi-grid-1x2-fill', $dashboardFile],
@@ -48,14 +55,14 @@ if ($sidebarRole === 'volunteer') {
             <p class="sidebar-label"><?= htmlspecialchars($group, ENT_QUOTES, 'UTF-8') ?></p>
             <ul>
                 <?php foreach ($items as [$key, $label, $icon, $href]): ?>
-                    <li><a class="sidebar-link<?= $activeAdmin === $key ? ' active' : '' ?>" <?= $activeAdmin === $key ? 'aria-current="page"' : '' ?> href="<?= htmlspecialchars($basePath . $href, ENT_QUOTES, 'UTF-8') ?>"><i class="bi <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span><?php if ($key === 'announcements'): ?><span class="sidebar-count">3</span><?php endif; ?></a></li>
+                    <li><a class="sidebar-link<?= $activeAdmin === $key ? ' active' : '' ?>" <?= $activeAdmin === $key ? 'aria-current="page"' : '' ?> href="<?= htmlspecialchars($basePath . $href, ENT_QUOTES, 'UTF-8') ?>"><i class="bi <?= htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i><span><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></span><?php if ($key === 'announcements' && $announcementCount > 0): ?><span class="sidebar-count"><?= $announcementCount ?></span><?php endif; ?></a></li>
                 <?php endforeach; ?>
             </ul>
         <?php endforeach; ?>
     </nav>
     <div class="sidebar-footer">
         <a class="sidebar-link<?= $activeAdmin === 'profile' ? ' active' : '' ?>" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/profile/index.php"><i class="bi bi-person-circle"></i><span>Profile</span></a>
-        <form action="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>actions/auth/logout.php" method="post">
+        <form action="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>actions/auth/logout.php" method="post" data-confirm-logout>
             <input type="hidden" name="csrf_token" value="<?= function_exists('csrfToken') ? htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') : '' ?>">
             <button class="sidebar-link sidebar-logout" type="submit"><i class="bi bi-box-arrow-left"></i><span>Logout</span></button>
         </form>

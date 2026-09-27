@@ -45,6 +45,7 @@
                 <td><span class="status-badge ${statusClass}">${status}</span></td>
                 <td>${escapeHtml(resource.updated_at || resource.created_at || '')}</td>
                 <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(resource.name)}">
+                    <button class="btn btn-light btn-icon" type="button" title="View" aria-label="View ${escapeHtml(resource.name)}" data-record-json="${escapeHtml(JSON.stringify(resource))}" data-bs-toggle="modal" data-bs-target="#viewResourceModal"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit ${escapeHtml(resource.name)}" data-resource-edit="${resource.id}" data-bs-toggle="modal" data-bs-target="#editResourceModal"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-light btn-icon text-danger" type="button" title="Archive" aria-label="Archive ${escapeHtml(resource.name)}" data-resource-delete="${resource.id}" data-bs-toggle="modal" data-bs-target="#deleteResourceModal"><i class="bi bi-archive"></i></button>
                 </div></td>
@@ -57,20 +58,31 @@
         tableBody.querySelectorAll('[data-resource-delete]').forEach((button) => {
             button.addEventListener('click', () => deleteForm.dataset.resourceId = button.dataset.resourceDelete);
         });
+        const attention = resources.filter((resource) => Number(resource.stock) <= Number(resource.low_stock_threshold)).length;
+        const badge = document.querySelector('#resourcesTable')?.closest('.data-card')?.querySelector('.data-card-header .status-badge');
+        const summary = document.querySelector('#resourcesTable')?.closest('.data-card')?.querySelector('.record-summary > span');
+        const resultCount = document.querySelector('[data-filter-results]');
+        if (badge) badge.innerHTML = `<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${attention} need attention`;
+        if (summary) summary.textContent = `Showing ${resources.length} of ${resources.length} resources`;
+        if (resultCount) resultCount.textContent = `${resources.length} resource records`;
     };
 
     const fillEditForm = (id) => {
         const resource = resources.find((item) => Number(item.id) === id);
         if (!resource) return;
         editForm.dataset.resourceId = id;
-        ['name', 'category', 'unit'].forEach((field) => {
+        ['name', 'category', 'unit', 'location'].forEach((field) => {
             editForm.elements[field].value = resource[field] || '';
         });
         editForm.elements.stock.value = resource.stock;
         editForm.elements.low_stock_threshold.value = resource.low_stock_threshold;
+        editForm.elements.notes.value = resource.notes || '';
     };
 
     const formData = (form) => Object.fromEntries(new FormData(form).entries());
+    document.addEventListener('sagipbro:record-viewed', (event) => {
+        if (event.detail.modal.id === 'viewResourceModal') fillEditForm(Number(event.detail.record.id));
+    });
     const closeModal = (form) => window.bootstrap?.Modal.getOrCreateInstance(form.closest('.modal')).hide();
     const save = async (form, method, body) => {
         const button = form.querySelector('[type="submit"]');

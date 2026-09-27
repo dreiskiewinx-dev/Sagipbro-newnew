@@ -817,6 +817,27 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .modal-title { font-size: 1.05rem; }
 .modal-body { padding: 1.35rem; }
 .modal-footer { padding: 1rem 1.35rem; border-color: var(--line); background: #fafcfa; }
+.logout-confirm-modal .modal-dialog { max-width: 430px; }
+.logout-confirm-modal .modal-content { border: 1px solid rgba(166, 51, 51, .12); }
+.logout-confirm-modal .modal-body { padding: 2rem 1.75rem 1.45rem; text-align: center; }
+.logout-confirm-icon {
+    width: 66px;
+    height: 66px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 1rem;
+    border: 8px solid #fff2f1;
+    border-radius: 50%;
+    color: #b43d38;
+    background: #fde1df;
+    box-shadow: 0 0 0 1px #f5c7c4;
+    font-size: 1.45rem;
+}
+.logout-confirm-kicker { display: block; margin-bottom: .35rem; color: #a63333; font-size: .62rem; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; }
+.logout-confirm-modal h2 { margin: 0 0 .55rem; color: var(--ink-900); font-size: 1.35rem; }
+.logout-confirm-modal p { max-width: 330px; margin: 0 auto; color: var(--ink-600); font-size: .78rem; line-height: 1.65; }
+.logout-confirm-modal .modal-footer { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; padding: 1rem 1.25rem 1.25rem; border: 0; background: #fff; }
+.logout-confirm-modal .modal-footer .btn { justify-content: center; margin: 0; }
 .modal-intro { margin: -.3rem 0 1.2rem; color: var(--ink-500); font-size: .8rem; }
 
 .toast { border-radius: var(--radius-md); }

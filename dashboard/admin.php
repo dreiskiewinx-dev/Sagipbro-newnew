@@ -21,23 +21,23 @@ $distributionOverview = [];
 try {
     $dashboardStats = $conn->query("SELECT
         (SELECT COUNT(*) FROM resources WHERE status <> 'Inactive') AS resources,
-        (SELECT COUNT(*) FROM resources WHERE status <> 'Inactive' AND quantity <= minimum_stock) AS low_stock,
+        (SELECT COUNT(*) FROM resources WHERE status <> 'Inactive' AND stock <= low_stock_threshold) AS low_stock,
         (SELECT COUNT(*) FROM evacuation_centers) AS centers,
         (SELECT COUNT(*) FROM evacuation_centers WHERE status = 'Open') AS open_centers,
         (SELECT COUNT(*) FROM residents WHERE status = 'Active') AS residents,
-        (SELECT COUNT(*) FROM users WHERE role = 'volunteer' AND status = 'Active') AS volunteers,
-        (SELECT COUNT(*) FROM distributions WHERE distribution_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributions,
-        (SELECT COALESCE(SUM(quantity), 0) FROM distributions WHERE distribution_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributed_quantity")->fetch();
-    $recentActivity = $conn->query("SELECT l.action, l.module, l.description, l.created_at, COALESCE(u.full_name, u.username, 'System') AS actor
+        (SELECT COUNT(*) FROM volunteers WHERE status IN ('Active', 'Deployed')) AS volunteers,
+        (SELECT COUNT(*) FROM distributions WHERE distributed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributions,
+        (SELECT COALESCE(SUM(quantity), 0) FROM distributions WHERE distributed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributed_quantity")->fetch();
+    $recentActivity = $conn->query("SELECT l.action, l.entity_type AS module, l.details AS description, l.created_at, COALESCE(u.full_name, u.username, 'System') AS actor
         FROM activity_logs l LEFT JOIN users u ON u.id = l.user_id ORDER BY l.created_at DESC LIMIT 5")->fetchAll();
-    $lowStockItems = $conn->query("SELECT resource_name, quantity, minimum_stock, unit FROM resources
-        WHERE status <> 'Inactive' AND quantity <= minimum_stock ORDER BY quantity ASC LIMIT 3")->fetchAll();
-    $recentAnnouncements = $conn->query("SELECT title, message, created_at FROM announcements
+    $lowStockItems = $conn->query("SELECT name AS resource_name, stock AS quantity, low_stock_threshold AS minimum_stock, unit FROM resources
+        WHERE status <> 'Inactive' AND stock <= low_stock_threshold ORDER BY stock ASC LIMIT 3")->fetchAll();
+    $recentAnnouncements = $conn->query("SELECT title, body AS message, created_at FROM announcements
         WHERE status = 'Published' ORDER BY created_at DESC LIMIT 3")->fetchAll();
-    $distributionOverview = $conn->query("SELECT r.resource_name, r.unit, SUM(d.quantity) AS quantity
+    $distributionOverview = $conn->query("SELECT r.name AS resource_name, r.unit, SUM(d.quantity) AS quantity
         FROM distributions d JOIN resources r ON r.id = d.resource_id
-        WHERE d.distribution_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        GROUP BY r.id, r.resource_name, r.unit ORDER BY quantity DESC LIMIT 4")->fetchAll();
+        WHERE d.distributed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        GROUP BY r.id, r.name, r.unit ORDER BY quantity DESC LIMIT 4")->fetchAll();
 } catch (Throwable $e) {
     error_log('Dashboard data unavailable (' . get_class($e) . ').');
 }

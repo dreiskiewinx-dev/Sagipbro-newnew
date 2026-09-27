@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth_check.php';
+require_once '../../config/database.php';
 requireRole(['admin', 'official']);
 
 $pageTitle = 'Activity Logs';
@@ -9,6 +10,37 @@ $isAdmin = true;
 $activeAdmin = 'activity';
 
 $logs = [];
+$activityStats = ['today' => 0, 'users' => 0, 'warnings' => 0, 'blocked' => 0];
+try {
+    $rows = $conn->query("SELECT l.id, l.action, l.entity_type, l.entity_id, l.details, l.ip_address, l.created_at,
+        COALESCE(u.full_name, u.username, 'System') AS actor
+        FROM activity_logs l LEFT JOIN users u ON u.id = l.user_id
+        ORDER BY l.created_at DESC LIMIT 500")->fetchAll();
+    foreach ($rows as $row) {
+        $action = ucfirst(str_replace('-', ' ', (string) $row['action']));
+        $actor = (string) $row['actor'];
+        $words = preg_split('/\s+/', trim($actor));
+        $initials = strtoupper(substr($words[0] ?? 'S', 0, 1) . substr($words[1] ?? '', 0, 1));
+        $details = trim((string) ($row['details'] ?? ''));
+        $logs[] = [
+            'LOG-' . str_pad((string) $row['id'], 5, '0', STR_PAD_LEFT), $actor, $initials ?: 'S', $action,
+            ucfirst(str_replace('_', ' ', (string) $row['entity_type'])),
+            $details !== '' ? $details : ($row['entity_id'] ? 'Record #' . $row['entity_id'] : 'No additional details'),
+            (string) ($row['ip_address'] ?: 'Local'), date('M j, Y', strtotime((string) $row['created_at'])),
+            date('g:i:s A', strtotime((string) $row['created_at'])),
+            str_contains(strtolower((string) $row['action']), 'block') ? 'danger' : (str_contains(strtolower((string) $row['action']), 'fail') ? 'warning' : 'success'),
+            'bi-activity',
+        ];
+    }
+    $activityStats = $conn->query("SELECT
+        SUM(DATE(created_at) = CURDATE()) AS today,
+        COUNT(DISTINCT CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN user_id END) AS users,
+        SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%') AS warnings,
+        SUM(LOWER(action) LIKE '%block%') AS blocked
+        FROM activity_logs")->fetch() ?: $activityStats;
+} catch (Throwable $e) {
+    error_log('Activity page data unavailable (' . get_class($e) . ').');
+}
 
 include '../../includes/header.php';
 ?>
@@ -30,10 +62,10 @@ include '../../includes/header.php';
             </header>
 
             <section class="stat-grid" aria-label="Activity log overview">
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Events today</span><span class="stat-card-icon"><i class="bi bi-activity" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No events recorded today</span></article>
-                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Active users</span><span class="stat-card-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No recent user activity</span></article>
-                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Warnings</span><span class="stat-card-icon"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No warnings require review</span></article>
-                <article class="stat-card danger"><div class="stat-card-top"><span class="stat-card-label">Blocked attempts</span><span class="stat-card-icon"><i class="bi bi-shield-x" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No blocked attempts</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Events today</span><span class="stat-card-icon"><i class="bi bi-activity" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['today'] ?></strong><span class="stat-meta">Recorded database activity</span></article>
+                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Active users</span><span class="stat-card-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['users'] ?></strong><span class="stat-meta">Users active in the last 24 hours</span></article>
+                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Warnings</span><span class="stat-card-icon"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['warnings'] ?></strong><span class="stat-meta">Events requiring review</span></article>
+                <article class="stat-card danger"><div class="stat-card-top"><span class="stat-card-label">Blocked attempts</span><span class="stat-card-icon"><i class="bi bi-shield-x" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['blocked'] ?></strong><span class="stat-meta">Rejected security events</span></article>
             </section>
 
             <div class="info-callout mb-3" role="note"><i class="bi bi-shield-check" aria-hidden="true"></i><div><strong>Audit records are read-only</strong><span>Logs help Barangay Binloc account for system changes. Times are shown in Philippine Standard Time (UTC+8).</span></div></div>
@@ -61,13 +93,13 @@ include '../../includes/header.php';
                                         <td><?= htmlspecialchars($log[5], ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><code class="small text-body-secondary"><?= htmlspecialchars($log[6], ENT_QUOTES, 'UTF-8') ?></code></td>
                                         <td><span class="table-primary-text"><?= htmlspecialchars($log[7], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text"><?= htmlspecialchars($log[8], ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td class="text-end"><button class="btn btn-light btn-icon" type="button" title="Review event" aria-label="Review activity <?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#activityDetailModal"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
+                                        <td class="text-end"><button class="btn btn-light btn-icon" type="button" title="Review event" aria-label="Review activity <?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?>" data-record-json="<?= htmlspecialchars(json_encode(['reference' => $log[0], 'event' => $log[3], 'user' => $log[1], 'module' => $log[4], 'details' => $log[5], 'source' => $log[6], 'date' => $log[7], 'time' => $log[8]], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#activityDetailModal"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
-                    <div class="data-card-footer record-summary"><span>Showing 0 of 0 retained events</span><span>No activity records yet</span></div>
+                    <div class="data-card-footer record-summary"><span>Showing <?= count($logs) ?> retained events</span><span><?= $logs ? 'Latest activity first' : 'No activity records yet' ?></span></div>
                 </div>
             </section>
         </main>
@@ -75,12 +107,8 @@ include '../../includes/header.php';
 </div>
 
 <div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><div><h2 class="modal-title" id="activityDetailModalLabel">Activity event details</h2><p class="mb-0 mt-1 small text-body-secondary">Immutable audit entry LOG-9842</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-    <div class="modal-body">
-        <div class="d-flex align-items-start gap-3 mb-4"><span class="activity-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span><div><h3 class="h6 mb-1">Resource stock updated</h3><span class="status-badge status-success">Successful</span></div></div>
-        <dl class="row small mb-3"><dt class="col-sm-4 text-body-secondary">Performed by</dt><dd class="col-sm-8">Maria Santos (Administrator)</dd><dt class="col-sm-4 text-body-secondary">Date and time</dt><dd class="col-sm-8">September 10, 2026 at 8:42:16 AM PHT</dd><dt class="col-sm-4 text-body-secondary">Module</dt><dd class="col-sm-8">Resources</dd><dt class="col-sm-4 text-body-secondary">Affected record</dt><dd class="col-sm-8">RES-102 — Family Food Pack</dd><dt class="col-sm-4 text-body-secondary">Source address</dt><dd class="col-sm-8"><code>10.10.4.18</code></dd><dt class="col-sm-4 text-body-secondary">Session reference</dt><dd class="col-sm-8 mb-0"><code>SES-6F82…A190</code></dd></dl>
-        <div class="rounded-3 border p-3 bg-body-tertiary"><strong class="d-block small mb-1">Change summary</strong><span class="small text-body-secondary">Available stock changed from 138 to 120 packs after reconciliation with distribution batch DST-2026-0910-03.</span></div>
-    </div>
+    <div class="modal-header"><div><h2 class="modal-title" id="activityDetailModalLabel">Activity event details</h2><p class="mb-0 mt-1 small text-body-secondary">Select an activity record to review it.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-activity"></i><h3>No event selected</h3><p>Event details are loaded from the activity log.</p></div></div>
     <div class="modal-footer"><button class="btn btn-brand" type="button" data-bs-dismiss="modal">Done</button></div>
 </div></div></div>
 <?php include '../../includes/footer.php'; ?>

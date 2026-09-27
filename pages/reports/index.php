@@ -1,5 +1,6 @@
 <?php
 require_once '../../includes/auth_check.php';
+require_once '../../config/database.php';
 requireRole(['admin', 'official']);
 
 $pageTitle = 'Reports';
@@ -8,7 +9,30 @@ $basePath = '../../';
 $isAdmin = true;
 $activeAdmin = 'reports';
 
-$reports = [];
+$reports = [
+    ['resource-stock', 'Resource stock', 'bi-box-seam', 'Current inventory quantities and low-stock conditions.', 'Live', 'Resources', 'Current data'],
+    ['distribution-summary', 'Distribution summary', 'bi-truck', 'Relief releases grouped by resource and recipient.', 'Live', 'Distributions', 'Current data'],
+    ['evacuation-capacity', 'Evacuation capacity', 'bi-buildings', 'Center occupancy, capacity, and available spaces.', 'Live', 'Centers', 'Current data'],
+    ['resident-summary', 'Resident summary', 'bi-people', 'Active resident and vulnerability totals.', 'Live', 'Residents', 'Current data'],
+];
+$reportStats = ['records' => 0, 'resources' => 0, 'low_stock' => 0];
+$previewResources = [];
+$reportFrom = (isset($_GET['from']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['from'])) ? (string) $_GET['from'] : date('Y-m-01');
+$reportTo = (isset($_GET['to']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['to'])) ? (string) $_GET['to'] : date('Y-m-d');
+try {
+    $reportStats = $conn->query("SELECT
+        (SELECT COUNT(*) FROM resources WHERE status <> 'Inactive') +
+        (SELECT COUNT(*) FROM distributions) +
+        (SELECT COUNT(*) FROM evacuation_centers) +
+        (SELECT COUNT(*) FROM residents WHERE status = 'Active') AS records,
+        (SELECT COALESCE(SUM(stock), 0) FROM resources WHERE status <> 'Inactive') AS resources,
+        (SELECT COUNT(*) FROM resources WHERE status <> 'Inactive' AND stock <= low_stock_threshold) AS low_stock")->fetch() ?: $reportStats;
+    $previewResources = $conn->query("SELECT name, category, stock, unit, low_stock_threshold,
+        CASE WHEN stock = 0 THEN 'Out of stock' WHEN stock <= low_stock_threshold THEN 'Low stock' ELSE 'In stock' END AS stock_status
+        FROM resources WHERE status <> 'Inactive' ORDER BY name")->fetchAll();
+} catch (Throwable $e) {
+    error_log('Reports page data unavailable (' . get_class($e) . ').');
+}
 
 include '../../includes/header.php';
 ?>
@@ -27,18 +51,18 @@ include '../../includes/header.php';
             </header>
 
             <section class="stat-grid" aria-label="Reporting overview">
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Reports generated</span><span class="stat-card-icon"><i class="bi bi-file-earmark-bar-graph-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No reports generated yet</span></article>
-                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Records summarized</span><span class="stat-card-icon"><i class="bi bi-database-fill-check" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No records summarized yet</span></article>
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Last data sync</span><span class="stat-card-icon"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No sync recorded yet</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Reports available</span><span class="stat-card-icon"><i class="bi bi-file-earmark-bar-graph-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= count($reports) ?></strong><span class="stat-meta">Live operational report types</span></article>
+                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Records summarized</span><span class="stat-card-icon"><i class="bi bi-database-fill-check" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $reportStats['records'] ?></strong><span class="stat-meta">Current database records</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Last data sync</span><span class="stat-card-icon"><i class="bi bi-arrow-repeat" aria-hidden="true"></i></span></div><strong class="stat-value"><?= htmlspecialchars(date('g:i A'), ENT_QUOTES, 'UTF-8') ?></strong><span class="stat-meta">Loaded from the live database</span></article>
                 <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Scheduled reports</span><span class="stat-card-icon"><i class="bi bi-calendar-check-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No scheduled reports yet</span></article>
             </section>
 
             <form class="filter-toolbar" action="index.php" method="get" data-demo-form data-toast-message="Report period applied.">
-                <div class="filter-field"><label for="reportDateFrom">From</label><input class="form-control" id="reportDateFrom" name="from" type="date" value="2026-09-01"></div>
-                <div class="filter-field"><label for="reportDateTo">To</label><input class="form-control" id="reportDateTo" name="to" type="date" value="2026-09-10"></div>
+                <div class="filter-field"><label for="reportDateFrom">From</label><input class="form-control" id="reportDateFrom" name="from" type="date" value="<?= htmlspecialchars($reportFrom, ENT_QUOTES, 'UTF-8') ?>"></div>
+                <div class="filter-field"><label for="reportDateTo">To</label><input class="form-control" id="reportDateTo" name="to" type="date" value="<?= htmlspecialchars($reportTo, ENT_QUOTES, 'UTF-8') ?>"></div>
                 <div class="filter-field"><label for="reportArea">Category</label><select class="form-select" id="reportArea" name="coverage"><option>All categories</option><option>Japan</option><option>China</option><option>America</option><option>Palatong</option><option>Bliss</option><option>Korea</option><option>Russia</option></select></div>
                 <button class="btn btn-brand" type="submit"><i class="bi bi-funnel" aria-hidden="true"></i> Apply period</button>
-                <span class="filter-results">Reporting period: Sep 1–10, 2026</span>
+                <span class="filter-results">Reporting period: <?= htmlspecialchars(date('M j, Y', strtotime($reportFrom)), ENT_QUOTES, 'UTF-8') ?>–<?= htmlspecialchars(date('M j, Y', strtotime($reportTo)), ENT_QUOTES, 'UTF-8') ?></span>
             </form>
 
             <section id="reportCatalog" aria-labelledby="reportCatalogHeading">
@@ -76,11 +100,11 @@ include '../../includes/header.php';
 </div>
 
 <div class="modal fade" id="reportPreviewModal" tabindex="-1" aria-labelledby="reportPreviewModalLabel" aria-hidden="true"><div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
-    <div class="modal-header"><div><h2 class="modal-title" id="reportPreviewModalLabel">Operational report preview</h2><p class="mb-0 mt-1 small text-body-secondary">Barangay Binloc · September 1–10, 2026</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-header"><div><h2 class="modal-title" id="reportPreviewModalLabel">Operational report preview</h2><p class="mb-0 mt-1 small text-body-secondary">Barangay Binloc · <?= htmlspecialchars(date('M j, Y', strtotime($reportFrom)), ENT_QUOTES, 'UTF-8') ?>–<?= htmlspecialchars(date('M j, Y', strtotime($reportTo)), ENT_QUOTES, 'UTF-8') ?></p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
     <div class="modal-body" id="reportPreviewContent">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"><div><span class="eyebrow mb-2">SAGIPBRO report</span><h3 class="h4 mb-1">Resource Stock Position</h3><p class="small mb-0">No report generated yet</p></div><span class="status-badge status-neutral">No data</span></div>
-        <div class="metric-split border rounded-3 mb-4"><div><strong>0</strong><span>Total available units</span></div><div><strong>0</strong><span>Resource categories</span></div><div><strong>0</strong><span>Low-stock items</span></div></div>
-        <div class="table-responsive"><table class="table app-table"><caption class="visually-hidden">Resource stock report preview</caption><thead><tr><th scope="col">Resource</th><th scope="col">Category</th><th scope="col">Available</th><th scope="col">Threshold</th><th scope="col">Status</th></tr></thead><tbody><tr><td>Family Food Pack</td><td>Food</td><td>120 packs</td><td>40</td><td><span class="status-badge status-success">Available</span></td></tr><tr><td>Drinking Water</td><td>Water</td><td>18 cases</td><td>25</td><td><span class="status-badge status-warning">Low stock</span></td></tr><tr><td>Hygiene Kit</td><td>Sanitation</td><td>64 kits</td><td>20</td><td><span class="status-badge status-success">Available</span></td></tr></tbody></table></div>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4"><div><span class="eyebrow mb-2">SAGIPBRO report</span><h3 class="h4 mb-1">Resource Stock Position</h3><p class="small mb-0">Generated from current inventory data</p></div><span class="status-badge status-success">Live data</span></div>
+        <div class="metric-split border rounded-3 mb-4"><div><strong><?= number_format((int) $reportStats['resources']) ?></strong><span>Total available units</span></div><div><strong><?= count(array_unique(array_column($previewResources, 'category'))) ?></strong><span>Resource categories</span></div><div><strong><?= (int) $reportStats['low_stock'] ?></strong><span>Low-stock items</span></div></div>
+        <div class="table-responsive"><table class="table app-table"><caption class="visually-hidden">Resource stock report preview</caption><thead><tr><th scope="col">Resource</th><th scope="col">Category</th><th scope="col">Available</th><th scope="col">Threshold</th><th scope="col">Status</th></tr></thead><tbody><?php foreach ($previewResources as $resource): ?><tr><td><?= htmlspecialchars($resource['name'], ENT_QUOTES, 'UTF-8') ?></td><td><?= htmlspecialchars($resource['category'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format((int) $resource['stock']) ?> <?= htmlspecialchars($resource['unit'], ENT_QUOTES, 'UTF-8') ?></td><td><?= number_format((int) $resource['low_stock_threshold']) ?></td><td><span class="status-badge <?= $resource['stock_status'] === 'In stock' ? 'status-success' : ($resource['stock_status'] === 'Low stock' ? 'status-warning' : 'status-danger') ?>"><?= htmlspecialchars($resource['stock_status'], ENT_QUOTES, 'UTF-8') ?></span></td></tr><?php endforeach; ?><?php if (!$previewResources): ?><tr><td colspan="5" class="text-center text-body-secondary">No resource records available.</td></tr><?php endif; ?></tbody></table></div>
     </div>
     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-outline-brand" type="button" data-print="#reportPreviewContent"><i class="bi bi-printer" aria-hidden="true"></i> Print</button><button class="btn btn-brand" type="button" data-export="#reportPreviewContent" data-export-name="resource-stock-report"><i class="bi bi-download" aria-hidden="true"></i> Export</button></div>
 </div></div></div>

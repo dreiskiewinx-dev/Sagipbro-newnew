@@ -54,15 +54,42 @@
     </div>
 </footer>
 <?php endif; ?>
+<?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
+<div class="modal fade logout-confirm-modal" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmDescription" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body">
+                <span class="logout-confirm-icon" aria-hidden="true"><i class="bi bi-box-arrow-right"></i></span>
+                <span class="logout-confirm-kicker">Secure sign out</span>
+                <h2 id="logoutConfirmTitle">Ready to leave?</h2>
+                <p id="logoutConfirmDescription">Are you sure you want to log out of SAGIPBRO? You will need to sign in again to access your dashboard.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-light" type="button" data-bs-dismiss="modal">Stay signed in</button>
+                <button class="btn btn-danger" type="button" data-confirm-logout-submit><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Yes, log out</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="appToast" class="toast border-0 shadow" role="status" aria-live="polite" aria-atomic="true">
         <div class="toast-header"><span class="toast-icon"><i class="bi bi-check-lg"></i></span><strong class="me-auto">SAGIPBRO</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div>
         <div class="toast-body">Action completed successfully.</div>
     </div>
 </div>
+<?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
+<script>
+window.sagipbroPresence = {
+    endpoint: <?= json_encode(appUrl('api/presence.php')) ?>,
+    csrfToken: <?= json_encode(csrfToken()) ?>
+};
+</script>
+<?php endif; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/script.js"></script>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/crud-view.js"></script><?php endif; ?>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/dashboard.js"></script><?php endif; ?>
+<?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/notifications.js"></script><?php endif; ?>
 </body>
 </html>

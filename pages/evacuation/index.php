@@ -123,10 +123,7 @@ include '../../includes/header.php';
                         </tbody>
                     </table>
                 </div>
-                <div class="data-card-footer record-summary">
-                    <span>Showing 1–<?= count($centers) ?> of <?= count($centers) ?> centers</span>
-                    <nav aria-label="Evacuation center pagination"><ul class="pagination pagination-sm"><li class="page-item disabled"><button class="page-link" type="button" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button></li><li class="page-item active" aria-current="page"><button class="page-link" type="button">1</button></li><li class="page-item"><button class="page-link" type="button">2</button></li><li class="page-item"><button class="page-link" type="button" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></li></ul></nav>
-                </div>
+                <div class="data-card-footer record-summary"><span>Loading evacuation centers…</span><span>Live database records</span></div>
             </section>
 
             <div class="modal fade" id="addCenterModal" tabindex="-1" aria-labelledby="addCenterTitle" aria-hidden="true">
@@ -149,7 +146,7 @@ include '../../includes/header.php';
             <div class="modal fade" id="viewCenterModal" tabindex="-1" aria-labelledby="viewCenterTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
                     <div class="modal-header"><h2 class="modal-title" id="viewCenterTitle">Center details</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                    <div class="modal-body"><span class="status-badge status-success mb-3">Open</span><h3 class="h5 mb-1">One Bonuan Multi-Purpose Center</h3><p class="small text-muted">EC-001 · Bonuan Boquig, Dagupan City</p><dl class="row small mb-3"><dt class="col-5">Maximum capacity</dt><dd class="col-7">1,200 people</dd><dt class="col-5">Current occupants</dt><dd class="col-7">782 people</dd><dt class="col-5">Available spaces</dt><dd class="col-7">418</dd><dt class="col-5">Contact person</dt><dd class="col-7">Elena M. Ramos · 0917 555 0138</dd></dl><div class="info-callout"><i class="bi bi-universal-access"></i><div><strong>Facility readiness</strong><span>Accessible entrance, generator, potable water, family area, and first-aid station available.</span></div></div></div>
+                    <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-buildings"></i><h3>No center selected</h3><p>Center details are loaded from the database.</p></div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-outline-brand" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editCenterModal"><i class="bi bi-pencil"></i> Edit center</button></div>
                 </div></div>
             </div>
@@ -158,13 +155,14 @@ include '../../includes/header.php';
                 <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="editCenterForm">
                     <div class="modal-header"><h2 class="modal-title" id="editCenterTitle">Edit evacuation center</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Update occupancy only after confirming the latest registration count.</p><div class="row g-3">
-                        <div class="col-md-8"><label class="form-label" for="editCenterName">Center name</label><input class="form-control" id="editCenterName" name="name" value="One Bonuan Multi-Purpose Center" required></div>
-                        <div class="col-md-4"><label class="form-label" for="editCenterStatus">Status</label><select class="form-select" id="editCenterStatus" name="status"><option selected>Open</option><option>Closed</option></select></div>
-                        <div class="col-12"><label class="form-label" for="editCenterLocation">Complete location</label><input class="form-control" id="editCenterLocation" name="location" value="Bonuan Boquig, Dagupan City" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="editCenterCapacity">Maximum capacity</label><input class="form-control" id="editCenterCapacity" name="capacity" type="number" min="1" value="1200" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="editCenterOccupants">Current occupants</label><input class="form-control" id="editCenterOccupants" name="occupants" type="number" min="0" value="782" required></div>
-                        <div class="col-md-7"><label class="form-label" for="editCenterContact">Contact person</label><input class="form-control" id="editCenterContact" name="contact_person" value="Elena M. Ramos" required></div>
-                        <div class="col-md-5"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" value="0917 555 0138" required></div>
+                        <div class="col-md-8"><label class="form-label" for="editCenterName">Center name</label><input class="form-control" id="editCenterName" name="name" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editCenterStatus">Status</label><select class="form-select" id="editCenterStatus" name="status"><option>Open</option><option>Closed</option></select></div>
+                        <div class="col-12"><label class="form-label" for="editCenterLocation">Complete location</label><input class="form-control" id="editCenterLocation" name="location" required></div>
+                        <div class="col-sm-6"><label class="form-label" for="editCenterCapacity">Maximum capacity</label><input class="form-control" id="editCenterCapacity" name="capacity" type="number" min="1" required></div>
+                        <div class="col-sm-6"><label class="form-label" for="editCenterOccupants">Current occupants</label><input class="form-control" id="editCenterOccupants" name="occupants" type="number" min="0" required></div>
+                        <div class="col-md-7"><label class="form-label" for="editCenterContact">Contact person</label><input class="form-control" id="editCenterContact" name="contact_person" required></div>
+                        <div class="col-md-5"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" required></div>
+                        <div class="col-12"><label class="form-label" for="editCenterNotes">Facilities and accessibility notes</label><textarea class="form-control" id="editCenterNotes" name="notes" rows="3"></textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
                 </form></div></div>
@@ -173,7 +171,7 @@ include '../../includes/header.php';
             <div class="modal fade" id="deleteCenterModal" tabindex="-1" aria-labelledby="deleteCenterTitle" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="deleteCenterForm">
                     <div class="modal-header"><h2 class="modal-title" id="deleteCenterTitle">Remove evacuation center?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                    <div class="modal-body"><p class="mb-2">Remove <strong>One Bonuan Multi-Purpose Center</strong> from the active directory?</p><div class="alert alert-warning small mb-0" role="alert"><i class="bi bi-exclamation-triangle me-1"></i> Centers with current occupants should be closed and cleared before removal.</div></div>
+                    <div class="modal-body"><p class="mb-2">Remove the selected center from the active directory?</p><div class="alert alert-warning small mb-0" role="alert"><i class="bi bi-exclamation-triangle me-1"></i> Centers with current occupants should be closed and cleared before removal.</div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Keep center</button><button class="btn btn-danger" type="submit" data-confirm-action="Evacuation center removed."><i class="bi bi-trash3"></i> Remove center</button></div>
                 </form></div></div>
             </div>

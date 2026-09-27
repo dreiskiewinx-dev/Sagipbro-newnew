@@ -41,22 +41,42 @@
                     <td>${escapeHtml(resident.contact_no || 'Not specified')}</td>
                     <td><span class="status-badge ${priorityClass}">${escapeHtml(priority)}</span></td>
                     <td><span class="status-badge ${statusClass}">${escapeHtml(resident.status)}</span></td>
-                    <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(fullName)}"><button class="btn btn-light btn-icon" type="button" title="Edit resident" aria-label="Edit ${escapeHtml(fullName)}" data-resident-edit="${resident.id}" data-bs-toggle="modal" data-bs-target="#editResidentModal"><i class="bi bi-pencil"></i></button><button class="btn btn-light btn-icon text-danger" type="button" title="Deactivate resident" aria-label="Deactivate ${escapeHtml(fullName)}" data-resident-delete="${resident.id}"><i class="bi bi-person-x"></i></button></div></td>
+                    <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(fullName)}"><button class="btn btn-light btn-icon" type="button" title="View resident" aria-label="View ${escapeHtml(fullName)}" data-record-json="${escapeHtml(JSON.stringify(resident))}" data-bs-toggle="modal" data-bs-target="#viewResidentModal"><i class="bi bi-eye"></i></button><button class="btn btn-light btn-icon" type="button" title="Edit resident" aria-label="Edit ${escapeHtml(fullName)}" data-resident-edit="${resident.id}" data-bs-toggle="modal" data-bs-target="#editResidentModal"><i class="bi bi-pencil"></i></button><button class="btn btn-light btn-icon text-danger" type="button" title="Deactivate resident" aria-label="Deactivate ${escapeHtml(fullName)}" data-resident-delete="${resident.id}"><i class="bi bi-person-x"></i></button></div></td>
                 </tr>`;
             }).join('');
             tableBody.querySelectorAll('[data-resident-edit]').forEach((button) => button.addEventListener('click', () => fillEditForm(Number(button.dataset.residentEdit))));
             tableBody.querySelectorAll('[data-resident-delete]').forEach((button) => button.addEventListener('click', () => deactivate(Number(button.dataset.residentDelete))));
+            const values = document.querySelectorAll('.stat-grid .stat-value');
+            const active = residents.filter((resident) => resident.status === 'Active');
+            const households = new Set(residents.map((resident) => resident.household_no).filter(Boolean));
+            const priority = active.filter((resident) => resident.vulnerability && resident.vulnerability !== 'None').length;
+            if (values[0]) values[0].textContent = residents.length;
+            if (values[1]) values[1].textContent = households.size;
+            if (values[2]) values[2].textContent = priority;
+            if (values[3]) values[3].textContent = residents.length ? `${Math.round(active.length / residents.length * 100)}%` : '0%';
+            const resultCount = document.querySelector('.filter-results');
+            const summary = document.querySelector('#residentsTable')?.closest('.data-card')?.querySelector('.record-summary > span');
+            if (resultCount) resultCount.textContent = `Showing ${residents.length} records`;
+            if (summary) summary.textContent = `Showing ${residents.length} of ${residents.length} residents`;
         };
         const fillEditForm = (id) => {
             const resident = residents.find((item) => Number(item.id) === id);
             if (!resident) return;
             editForm.dataset.residentId = id;
-            editForm.elements.full_name.value = `${resident.first_name} ${resident.last_name}`.trim();
+            editForm.elements.first_name.value = resident.first_name || '';
+            editForm.elements.last_name.value = resident.last_name || '';
+            editForm.elements.birth_date.value = resident.birth_date || '';
+            editForm.elements.sex.value = resident.sex || 'Other';
             editForm.elements.contact.value = resident.contact_no || '';
+            editForm.elements.household_id.value = resident.household_no || '';
             editForm.elements.priority_group.value = resident.vulnerability || 'None';
+            editForm.elements.address.value = resident.address_display || '';
             editForm.elements.status.value = resident.status;
         };
         const formData = (form) => Object.fromEntries(new FormData(form).entries());
+        document.addEventListener('sagipbro:record-viewed', (event) => {
+            if (event.detail.modal.id === 'viewResidentModal') fillEditForm(Number(event.detail.record.id));
+        });
         const save = async (form, method, body) => {
             const submit = form.querySelector('[type="submit"]');
             if (submit) submit.disabled = true;

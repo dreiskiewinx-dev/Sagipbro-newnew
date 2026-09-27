@@ -30,10 +30,10 @@ include '../../includes/header.php';
             </header>
 
             <section class="stat-grid" aria-label="User account overview">
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Total accounts</span><span class="stat-card-icon"><i class="bi bi-person-gear" aria-hidden="true"></i></span></div><strong class="stat-value">54</strong><span class="stat-meta">Across four permission roles</span></article>
-                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Officials &amp; admins</span><span class="stat-card-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span></div><strong class="stat-value">11</strong><span class="stat-meta">Privileged accounts</span></article>
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Active today</span><span class="stat-card-icon"><i class="bi bi-person-check-fill" aria-hidden="true"></i></span></div><strong class="stat-value">23</strong><span class="stat-meta"><span class="trend-up">+5</span> from yesterday</span></article>
-                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Inactive accounts</span><span class="stat-card-icon"><i class="bi bi-person-dash-fill" aria-hidden="true"></i></span></div><strong class="stat-value">4</strong><span class="stat-meta">Review recommended</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Total accounts</span><span class="stat-card-icon"><i class="bi bi-person-gear" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Live account records</span></article>
+                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Officials &amp; admins</span><span class="stat-card-icon"><i class="bi bi-shield-lock-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Privileged accounts</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Online now</span><span class="stat-card-icon"><i class="bi bi-person-check-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Seen within the last two minutes</span></article>
+                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Inactive accounts</span><span class="stat-card-icon"><i class="bi bi-person-dash-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Current inactive records</span></article>
             </section>
 
             <div class="info-callout mb-3" role="note"><i class="bi bi-info-circle-fill" aria-hidden="true"></i><div><strong>Principle of least privilege</strong><span>Assign only the role needed for each user's barangay responsibilities. All account changes are recorded in Activity Logs.</span></div></div>
@@ -42,7 +42,7 @@ include '../../includes/header.php';
                 <div class="filter-toolbar">
                     <div class="search-field"><label for="userSearch">Search accounts</label><div class="input-icon"><i class="bi bi-search" aria-hidden="true"></i><input class="form-control" id="userSearch" type="search" placeholder="Name, username, email or ID" autocomplete="off" data-table-search="#usersTable"></div></div>
                     <div class="filter-field"><label for="userRoleFilter">Access role</label><select class="form-select" id="userRoleFilter" data-filter-select="#usersTable" data-filter-field="role"><option value="">All roles</option><option value="Administrator">Administrator</option><option value="Barangay Official">Barangay Official</option><option value="Volunteer">Volunteer</option><option value="Resident">Resident</option></select></div>
-                    <span class="filter-results" aria-live="polite">Showing 6 recent accounts</span>
+                    <span class="filter-results" aria-live="polite">Loading accounts…</span>
                 </div>
 
                 <div class="data-card">
@@ -50,7 +50,7 @@ include '../../includes/header.php';
                     <div class="table-responsive">
                         <table class="table app-table" id="usersTable">
                             <caption class="visually-hidden">SAGIPBRO user accounts</caption>
-                            <thead><tr><th scope="col">User</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Email</th><th scope="col">Last login</th><th scope="col">Status</th><th scope="col" class="text-end">Actions</th></tr></thead>
+                            <thead><tr><th scope="col">User</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Email</th><th scope="col">Last login</th><th scope="col">Sign-in status</th><th scope="col">Account access</th><th scope="col" class="text-end">Actions</th></tr></thead>
                             <tbody>
                                 <?php foreach ($users as $user): ?>
                                     <?php $roleClass = $user[4] === 'Administrator' ? 'status-danger' : ($user[4] === 'Barangay Official' ? 'status-info' : ($user[4] === 'Volunteer' ? 'status-warning' : 'status-neutral')); ?>
@@ -67,7 +67,7 @@ include '../../includes/header.php';
                             </tbody>
                         </table>
                     </div>
-                    <div class="data-card-footer record-summary"><span>Showing 1–6 of 54 user accounts</span><span>Roles last reviewed September 8, 2026</span></div>
+                    <div class="data-card-footer record-summary"><span>Loading user accounts…</span><span>Live database records</span></div>
                 </div>
             </section>
         </main>
@@ -95,7 +95,7 @@ include '../../includes/header.php';
     <form id="editUserForm">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <div class="modal-header"><h2 class="modal-title" id="editUserModalLabel">Edit user access</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body"><p class="modal-intro">Update the selected account's role and access status.</p><div class="mb-3"><label class="form-label" for="editUserFullName">Full name</label><input class="form-control" id="editUserFullName" name="full_name" value="Rogelio Cruz" required></div><div class="mb-3"><label class="form-label" for="editUserRole">Access role</label><select class="form-select" id="editUserRole" name="role"><option>Administrator</option><option selected>Barangay Official</option><option>Volunteer</option><option>Resident</option></select></div><div><label class="form-label" for="editUserStatus">Account status</label><select class="form-select" id="editUserStatus" name="status"><option selected>Active</option><option>Inactive</option></select></div></div>
+        <div class="modal-body"><p class="modal-intro">Update the selected account's identity, role, and access status.</p><div class="mb-3"><label class="form-label" for="editUserFullName">Full name</label><input class="form-control" id="editUserFullName" name="full_name" required></div><div class="mb-3"><label class="form-label" for="editUserEmail">Email address</label><input class="form-control" id="editUserEmail" name="email" type="email" required></div><div class="mb-3"><label class="form-label" for="editUserRole">Access role</label><select class="form-select" id="editUserRole" name="role"><option>Administrator</option><option>Barangay Official</option><option>Volunteer</option><option>Resident</option></select></div><div><label class="form-label" for="editUserStatus">Account status</label><select class="form-select" id="editUserStatus" name="status"><option>Active</option><option>Inactive</option></select></div></div>
         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit">Save permissions</button></div>
     </form>
 </div></div></div>
@@ -104,7 +104,7 @@ include '../../includes/header.php';
     <form id="resetPasswordForm">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <div class="modal-header"><h2 class="modal-title" id="resetPasswordModalLabel">Reset user password</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body"><div class="info-callout mb-3"><i class="bi bi-shield-lock" aria-hidden="true"></i><div><strong>Secure reset</strong><span>The user will be required to replace this temporary password after signing in.</span></div></div><label class="form-label" for="temporaryPassword">Temporary password</label><input class="form-control" id="temporaryPassword" name="temporary_password" type="password" minlength="8" value="Binloc!2026" required autocomplete="new-password"></div>
+        <div class="modal-body"><div class="info-callout mb-3"><i class="bi bi-shield-lock" aria-hidden="true"></i><div><strong>Secure reset</strong><span>The user will be required to replace this temporary password after signing in.</span></div></div><label class="form-label" for="temporaryPassword">Temporary password</label><input class="form-control" id="temporaryPassword" name="temporary_password" type="password" minlength="8" required autocomplete="new-password"></div>
         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit">Issue temporary password</button></div>
     </form>
 </div></div></div>

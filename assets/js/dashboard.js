@@ -40,7 +40,6 @@
         const selector = input.dataset.tableSearch;
         const table = selector ? document.querySelector(selector) : input.closest('.admin-content')?.querySelector('table');
         if (!table) return;
-        const rows = [...table.querySelectorAll('tbody tr[data-row]')];
         const relatedFilters = [
             ...document.querySelectorAll(`[data-filter-table="${selector}"], [data-filter-select="${selector}"]`),
         ];
@@ -48,6 +47,7 @@
         const empty = document.querySelector(`[data-table-empty="${selector}"]`);
 
         const run = () => {
+            const rows = [...table.querySelectorAll('tbody tr[data-row]')];
             const term = normalize(input.value);
             let shown = 0;
             rows.forEach((row) => {

@@ -6,6 +6,9 @@ $isAdmin = $isAdmin ?? false;
 if ($isAdmin):
     $adminName = $_SESSION['username'] ?? $_SESSION['full_name'] ?? 'Admin';
     $adminRole = ucfirst($_SESSION['role'] ?? 'Administrator');
+    $notificationArchive = ($_SESSION['role'] ?? '') === 'volunteer'
+        ? $basePath . 'pages/distribution/index.php'
+        : $basePath . 'pages/activity/index.php';
 ?>
 <header class="admin-topbar">
     <div class="d-flex align-items-center gap-2 gap-lg-3">
@@ -24,10 +27,22 @@ if ($isAdmin):
             <input id="globalAdminSearch" type="search" placeholder="Search records..." autocomplete="off">
             <kbd>Ctrl K</kbd>
         </div>
-        <a class="icon-button position-relative" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/announcements/index.php" aria-label="Notifications, 3 unread">
-            <i class="bi bi-bell" aria-hidden="true"></i>
-            <span class="notification-dot" aria-hidden="true"></span>
-        </a>
+        <div class="dropdown notification-menu">
+            <button class="icon-button position-relative" id="notificationToggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications" data-notification-toggle>
+                <i class="bi bi-bell" aria-hidden="true"></i>
+                <span class="notification-count" data-notification-count hidden>0</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end notification-dropdown shadow border-0" aria-labelledby="notificationToggle">
+                <div class="notification-header">
+                    <div><strong>Notifications</strong><span data-notification-summary>Checking for updates…</span></div>
+                    <button class="btn btn-sm btn-link" type="button" data-notification-read-all hidden>Mark all read</button>
+                </div>
+                <div class="notification-list" data-notification-list aria-live="polite" aria-busy="true">
+                    <div class="notification-empty"><i class="bi bi-arrow-repeat"></i><span>Loading notifications…</span></div>
+                </div>
+                <a class="notification-footer" href="<?= htmlspecialchars($notificationArchive, ENT_QUOTES, 'UTF-8') ?>">View activity history <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
         <div class="dropdown">
             <button class="profile-menu" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="avatar" aria-hidden="true"><?= htmlspecialchars(strtoupper(substr($adminName, 0, 1)), ENT_QUOTES, 'UTF-8') ?></span>
@@ -39,11 +54,17 @@ if ($isAdmin):
             </button>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0">
                 <li><a class="dropdown-item" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/profile/index.php"><i class="bi bi-person me-2"></i>My profile</a></li>
-                <li><a class="dropdown-item" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>index.php" target="_blank"><i class="bi bi-box-arrow-up-right me-2"></i>View public site</a></li>
+                <li><a class="dropdown-item" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>index.php"><i class="bi bi-house-door me-2"></i>View public site</a></li>
             </ul>
         </div>
     </div>
 </header>
+<script>
+window.sagipbroNotifications = {
+    endpoint: <?= json_encode(appUrl('api/notifications.php')) ?>,
+    csrfToken: <?= json_encode(csrfToken()) ?>
+};
+</script>
 <?php else: ?>
 <div class="utility-bar">
     <div class="container d-flex justify-content-between align-items-center gap-3">

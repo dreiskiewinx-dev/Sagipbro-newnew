@@ -79,6 +79,14 @@ if ($user && password_verify($password, $user["password_hash"])) {
     $_SESSION["full_name"] = $user["full_name"];
     $_SESSION["username"] = $user["username"];
     $_SESSION["role"] = $user["role"];
+    $conn->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$user['id']]);
+    $sessionHash = hash('sha256', session_id());
+    $presence = $conn->prepare(
+        'INSERT INTO user_sessions (session_hash, user_id, last_seen_at, signed_out_at)
+         VALUES (?, ?, NOW(), NULL)
+         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), last_seen_at = NOW(), signed_out_at = NULL'
+    );
+    $presence->execute([$sessionHash, $user['id']]);
 
     $dashboard = $_SESSION["role"] === 'resident' ? 'resident.php' : ($_SESSION["role"] === 'volunteer' ? 'volunteer.php' : 'admin.php');
     header("Location: ../../dashboard/" . $dashboard);

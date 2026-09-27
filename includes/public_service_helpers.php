@@ -68,15 +68,32 @@ function publicStatus(string $label): void
     echo '<span class="status-badge status-' . ($tones[$label] ?? 'neutral') . '">' . publicEscape($label) . '</span>';
 }
 
-function publicServiceHero(string $title, string $description, string $active): void
+function publicServiceLinks(): array
 {
-    $links = [
+    return [
         'centers' => ['evacuation-centers.php', 'Evacuation Centers', 'bi-buildings'],
         'resources' => ['resources.php', 'Relief Resources', 'bi-box-seam'],
         'distributions' => ['distributions.php', 'Relief Distribution', 'bi-truck'],
         'announcements' => ['announcements.php', 'Emergency Announcements', 'bi-megaphone'],
         'reports' => ['reports.php', 'Reports', 'bi-file-earmark-bar-graph'],
     ];
+}
+
+function publicServiceNavigation(string $active): void
+{
+    $links = publicServiceLinks();
+    ?>
+    <nav class="public-service-nav no-print" aria-label="Public disaster services"><div class="container">
+        <?php foreach ($links as $key => [$url, $label, $icon]): ?>
+            <a href="<?= publicEscape($url) ?>" <?= $key === $active ? 'aria-current="page"' : '' ?>><i class="bi <?= publicEscape($icon) ?>" aria-hidden="true"></i> <?= publicEscape($label) ?></a>
+        <?php endforeach; ?>
+    </div></nav>
+    <?php
+}
+
+function publicServiceHero(string $title, string $description, string $active): void
+{
+    $links = publicServiceLinks();
     ?>
     <section class="page-hero public-service-hero<?= $active === 'resources' ? ' photo-hero resources-hero' : '' ?>" aria-labelledby="public-service-title">
         <div class="container">
@@ -90,11 +107,7 @@ function publicServiceHero(string $title, string $description, string $active): 
             <p><?= publicEscape($description) ?></p>
         </div>
     </section>
-    <nav class="public-service-nav no-print" aria-label="Public disaster services"><div class="container">
-        <?php foreach ($links as $key => [$url, $label, $icon]): ?>
-            <a href="<?= publicEscape($url) ?>" <?= $key === $active ? 'aria-current="page"' : '' ?>><i class="bi <?= publicEscape($icon) ?>" aria-hidden="true"></i> <?= publicEscape($label) ?></a>
-        <?php endforeach; ?>
-    </div></nav>
+    <?php publicServiceNavigation($active); ?>
     <?php
 }
 

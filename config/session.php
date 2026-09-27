@@ -1,6 +1,19 @@
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
+    $configuredSessionPath = trim((string) getenv('SAGIPBRO_SESSION_PATH'));
+    $sessionPath = $configuredSessionPath !== ''
+        ? $configuredSessionPath
+        : rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'sagipbro-sessions';
+
+    if (!is_dir($sessionPath) && !mkdir($sessionPath, 0700, true) && !is_dir($sessionPath)) {
+        throw new RuntimeException('Unable to create the SAGIPBRO session directory.');
+    }
+    if (!is_writable($sessionPath)) {
+        throw new RuntimeException('The SAGIPBRO session directory is not writable.');
+    }
+
+    session_save_path($sessionPath);
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
     session_set_cookie_params([

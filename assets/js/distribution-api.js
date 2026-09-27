@@ -1,16 +1,147 @@
 (() => {
     'use strict';
-    const config=window.sagipbroDistributionApi; const tableBody=document.querySelector('#distributionsTable tbody'); const addForm=document.getElementById('addDistributionForm'); const editForm=document.getElementById('editDistributionForm'); const deleteForm=document.getElementById('deleteDistributionForm');
-    if(!config||!tableBody||!addForm||!editForm||!deleteForm)return; let distributions=[]; let resources=[];
-    const esc=(v)=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-    const request=async(endpoint,method='GET',body=null)=>{const o={method,headers:{Accept:'application/json'}};if(body){o.headers['Content-Type']='application/json';o.headers['X-CSRF-Token']=config.csrfToken;o.body=JSON.stringify(body);}const r=await fetch(endpoint,o);const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Unable to complete the request.');return d;};
-    const fillResources=()=>document.querySelectorAll('select[name="resource"], select[name="resource_id"]').forEach((select)=>{select.innerHTML='<option value="">Select resource</option>'+resources.map((r)=>`<option value="${r.id}">${esc(r.name)} (${Number(r.stock).toLocaleString()} ${esc(r.unit)})</option>`).join('');});
-    const resourceId=(form)=>{const value=form.elements.resource?.value||form.elements.resource_id?.value;const resource=resources.find((r)=>String(r.id)===String(value)||r.name===value);return resource?.id||value;};
-    const render=()=>{tableBody.innerHTML=distributions.map((d)=>`<tr data-row data-category="" data-status="Completed"><td><span class="table-primary-text">${esc(d.resource_name)}</span><span class="table-secondary-text">DST-${String(d.id).padStart(6,'0')}</span></td><td><span class="table-primary-text">${esc(d.recipient_name)}</span><span class="table-secondary-text">${esc(d.household_id||'')}</span></td><td><strong>${esc(d.quantity)}</strong></td><td>Not recorded</td><td>${esc(d.distribution_date||d.distributed_at||'')}</td><td>${esc(d.distributed_by_name||'')}</td><td><span class="status-badge status-success">Completed</span></td><td class="text-end"><button class="btn btn-light btn-icon" type="button" title="View" data-record-json="${esc(JSON.stringify(d))}" data-bs-toggle="modal" data-bs-target="#viewDistributionModal"><i class="bi bi-eye"></i></button><button class="btn btn-light btn-icon" type="button" data-distribution-edit="${d.id}" data-bs-toggle="modal" data-bs-target="#editDistributionModal"><i class="bi bi-pencil"></i></button> <button class="btn btn-light btn-icon text-danger" type="button" data-distribution-delete="${d.id}" data-bs-toggle="modal" data-bs-target="#deleteDistributionModal"><i class="bi bi-arrow-counterclockwise"></i></button></td></tr>`).join('');tableBody.querySelectorAll('[data-distribution-edit]').forEach((b)=>b.addEventListener('click',()=>fillEdit(Number(b.dataset.distributionEdit))));tableBody.querySelectorAll('[data-distribution-delete]').forEach((b)=>b.addEventListener('click',()=>deleteForm.dataset.id=b.dataset.distributionDelete));};
-    const fillEdit=(id)=>{const d=distributions.find((item)=>Number(item.id)===id);if(!d)return;editForm.dataset.id=id;if(editForm.elements.resource)editForm.elements.resource.value=d.resource_id;if(editForm.elements.quantity)editForm.elements.quantity.value=d.quantity;if(editForm.elements.recipient)editForm.elements.recipient.value=d.recipient_name;if(editForm.elements.recipient_name)editForm.elements.recipient_name.value=d.recipient_name;};
-    const submit=async(form,method,body)=>{try{await request(config.endpoint,method,body);await load();window.bootstrap?.Modal.getOrCreateInstance(form.closest('.modal')).hide();form.reset();window.sagipbroToast?.('Distribution saved to the database.','Action complete');}catch(e){window.sagipbroToast?.(e.message,'Request failed');}};
-    addForm.addEventListener('submit',(e)=>{e.preventDefault();if(!addForm.reportValidity())return;const d=Object.fromEntries(new FormData(addForm).entries());submit(addForm,'POST',{resource_id:resourceId(addForm),quantity:d.quantity,recipient_name:d.recipient||d.recipient_name,household_id:d.recipient_id||null});});
-    editForm.addEventListener('submit',(e)=>{e.preventDefault();if(!editForm.reportValidity())return;const d=Object.fromEntries(new FormData(editForm).entries());submit(editForm,'PUT',{id:editForm.dataset.id,resource_id:resourceId(editForm),quantity:d.quantity,recipient_name:d.recipient||d.recipient_name,household_id:d.recipient_id||null});});
-    deleteForm.addEventListener('submit',(e)=>{e.preventDefault();submit(deleteForm,'DELETE',{id:deleteForm.dataset.id});});
-    const load=async()=>{try{const [d,r]=await Promise.all([request(config.endpoint),request(config.resourcesEndpoint)]);distributions=d.data||[];resources=r.data||[];fillResources();render();}catch(e){window.sagipbroToast?.(e.message,'Unable to load distributions');}};load();
+
+    const config = window.sagipbroDistributionApi;
+    const tableBody = document.querySelector('#distributionsTable tbody');
+    const addForm = document.getElementById('addDistributionForm');
+    const editForm = document.getElementById('editDistributionForm');
+    const deleteForm = document.getElementById('deleteDistributionForm');
+    if (!config || !tableBody || !addForm || !editForm || !deleteForm) return;
+
+    let distributions = [];
+    let resources = [];
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+    }[character]));
+    const request = async (endpoint, method = 'GET', body = null) => {
+        const options = { method, headers: { Accept: 'application/json' } };
+        if (body) {
+            options.headers['Content-Type'] = 'application/json';
+            options.headers['X-CSRF-Token'] = config.csrfToken;
+            options.body = JSON.stringify(body);
+        }
+        const response = await fetch(endpoint, options);
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Unable to complete the request.');
+        return result;
+    };
+    const localDateTime = (value) => value ? value.replace(' ', 'T').slice(0, 16) : '';
+    const statusClass = (status) => status === 'Completed' ? 'status-success' : 'status-warning';
+
+    const fillResourceOptions = () => {
+        document.querySelectorAll('select[name="resource"], select[name="resource_id"]').forEach((select) => {
+            const selected = select.value;
+            select.innerHTML = '<option value="">Select resource</option>' + resources.map((resource) =>
+                `<option value="${resource.id}">${escapeHtml(resource.name)} (${Number(resource.stock).toLocaleString()} ${escapeHtml(resource.unit)})</option>`
+            ).join('');
+            select.value = selected;
+        });
+    };
+    const payload = (form) => {
+        const data = Object.fromEntries(new FormData(form).entries());
+        return {
+            resource_id: data.resource || data.resource_id,
+            quantity: data.quantity,
+            recipient_name: data.recipient || data.recipient_name,
+            recipient_reference: data.recipient_id || data.recipient_reference || '',
+            location: data.location || '',
+            distributed_at: data.distributed_at || '',
+            status: data.status || 'Completed',
+            remarks: data.notes || data.remarks || '',
+        };
+    };
+    const render = () => {
+        const today = new Date().toISOString().slice(0, 10);
+        tableBody.innerHTML = distributions.map((distribution) => {
+            const resource = resources.find((item) => Number(item.id) === Number(distribution.resource_id));
+            const status = distribution.status || 'Completed';
+            const date = distribution.distributed_at || '';
+            return `<tr data-row data-category="${escapeHtml(resource?.category || '')}" data-status="${escapeHtml(status)}" data-period="${date.slice(0, 10) === today ? 'today' : 'previous'}" data-search="${escapeHtml(`${distribution.resource_name} ${distribution.recipient_name} ${distribution.recipient_reference || ''} ${distribution.location || ''}`)}">
+                <td><span class="table-primary-text">${escapeHtml(distribution.resource_name)}</span><span class="table-secondary-text">DST-${String(distribution.id).padStart(6, '0')}</span></td>
+                <td><span class="table-primary-text">${escapeHtml(distribution.recipient_name)}</span><span class="table-secondary-text">${escapeHtml(distribution.recipient_reference || 'No reference')}</span></td>
+                <td><strong>${Number(distribution.quantity).toLocaleString()} ${escapeHtml(distribution.resource_unit || '')}</strong></td>
+                <td>${escapeHtml(distribution.location || 'Not recorded')}</td>
+                <td>${escapeHtml(date)}</td>
+                <td>${escapeHtml(distribution.distributed_by_name || '')}</td>
+                <td><span class="status-badge ${statusClass(status)}">${escapeHtml(status)}</span></td>
+                <td class="text-end"><div class="table-actions">
+                    <button class="btn btn-light btn-icon" type="button" title="View" aria-label="View distribution" data-record-json="${escapeHtml(JSON.stringify(distribution))}" data-bs-toggle="modal" data-bs-target="#viewDistributionModal"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit distribution" data-distribution-edit="${distribution.id}" data-bs-toggle="modal" data-bs-target="#editDistributionModal"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-light btn-icon text-danger" type="button" title="Reverse" aria-label="Reverse distribution" data-distribution-delete="${distribution.id}" data-bs-toggle="modal" data-bs-target="#deleteDistributionModal"><i class="bi bi-arrow-counterclockwise"></i></button>
+                </div></td>
+            </tr>`;
+        }).join('');
+
+        tableBody.querySelectorAll('[data-distribution-edit]').forEach((button) =>
+            button.addEventListener('click', () => fillEdit(Number(button.dataset.distributionEdit))));
+        tableBody.querySelectorAll('[data-distribution-delete]').forEach((button) =>
+            button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.distributionDelete; }));
+        const pending = distributions.filter((item) => item.status === 'Pending review').length;
+        const badge = document.querySelector('#distributionsTable')?.closest('.data-card')?.querySelector('.data-card-header .status-badge');
+        const summary = document.querySelector('#distributionsTable')?.closest('.data-card')?.querySelector('.record-summary > span');
+        const resultCount = document.querySelector('[data-filter-results]');
+        if (badge) badge.textContent = `${pending} awaiting review`;
+        if (summary) summary.textContent = `Showing ${distributions.length} of ${distributions.length} distributions`;
+        if (resultCount) resultCount.textContent = `${distributions.length} distribution records`;
+    };
+    const fillEdit = (id) => {
+        const distribution = distributions.find((item) => Number(item.id) === id);
+        if (!distribution) return;
+        editForm.dataset.id = id;
+        editForm.elements.resource.value = distribution.resource_id;
+        editForm.elements.quantity.value = distribution.quantity;
+        editForm.elements.recipient.value = distribution.recipient_name;
+        editForm.elements.recipient_id.value = distribution.recipient_reference || '';
+        editForm.elements.location.value = distribution.location || '';
+        editForm.elements.distributed_at.value = localDateTime(distribution.distributed_at);
+        editForm.elements.distributed_by.value = distribution.distributed_by_name || '';
+        editForm.elements.status.value = distribution.status || 'Completed';
+        editForm.elements.notes.value = distribution.remarks || '';
+    };
+    const submit = async (form, method, body) => {
+        const button = form.querySelector('[type="submit"]');
+        if (button) button.disabled = true;
+        try {
+            await request(config.endpoint, method, body);
+            await load();
+            window.bootstrap?.Modal.getOrCreateInstance(form.closest('.modal')).hide();
+            form.reset();
+            window.sagipbroToast?.('Distribution saved to the database.', 'Action complete');
+        } catch (error) {
+            window.sagipbroToast?.(error.message, 'Request failed');
+        } finally {
+            if (button) button.disabled = false;
+        }
+    };
+    document.addEventListener('sagipbro:record-viewed', (event) => {
+        if (event.detail.modal.id === 'viewDistributionModal') fillEdit(Number(event.detail.record.id));
+    });
+
+    addForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (addForm.reportValidity()) submit(addForm, 'POST', payload(addForm));
+    });
+    editForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (editForm.reportValidity()) submit(editForm, 'PUT', { ...payload(editForm), id: editForm.dataset.id });
+    });
+    deleteForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(deleteForm).entries());
+        submit(deleteForm, 'DELETE', { id: deleteForm.dataset.id, reason: data.reason });
+    });
+    const load = async () => {
+        try {
+            const [distributionResult, resourceResult] = await Promise.all([
+                request(config.endpoint), request(config.resourcesEndpoint),
+            ]);
+            distributions = distributionResult.data || [];
+            resources = resourceResult.data || [];
+            fillResourceOptions();
+            render();
+        } catch (error) {
+            window.sagipbroToast?.(error.message, 'Unable to load distributions');
+        }
+    };
+    load();
 })();

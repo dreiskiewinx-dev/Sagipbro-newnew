@@ -1,0 +1,33 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Runtime files
+*.log
+*.tmp
+*.bak
+*.swp
+*.pid
+
+# Local database exports (keep the versioned schema and migrations)
+database/*.dump
+database/*.backup
+database/local-*.sql
+
+# Dependency directories
+vendor/
+node_modules/
+
+# Test and coverage output
+coverage/
+.phpunit.cache/
+.phpunit.result.cache
+
+# IDE metadata
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini

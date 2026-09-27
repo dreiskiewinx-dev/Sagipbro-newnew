@@ -64,14 +64,15 @@ function positiveInt(array $data, string $key): int
 function logActivity(PDO $conn, string $action, string $entityType, ?int $entityId = null, array $details = []): void
 {
     $stmt = $conn->prepare(
-        'INSERT INTO activity_logs (user_id, action, module, description, ip_address)
-         VALUES (:user_id, :action, :module, :description, :ip_address)'
+        'INSERT INTO activity_logs (user_id, action, entity_type, entity_id, details, ip_address)
+         VALUES (:user_id, :action, :entity_type, :entity_id, :details, :ip_address)'
     );
     $stmt->execute([
         ':user_id' => currentUserId(),
         ':action' => $action,
-        ':module' => $entityType,
-        ':description' => json_encode(['entity_id' => $entityId, 'details' => $details], JSON_UNESCAPED_UNICODE),
+        ':entity_type' => $entityType,
+        ':entity_id' => $entityId,
+        ':details' => $details ? json_encode($details, JSON_UNESCAPED_UNICODE) : null,
         ':ip_address' => $_SERVER['REMOTE_ADDR'] ?? null
     ]);
 }

@@ -30,9 +30,13 @@
     const render = () => {
         const published = announcements.filter((announcement) => announcement.status === 'Published').length;
         if (publishedCount) publishedCount.textContent = `${published} currently published`;
+        if (summary) summary.textContent = `Showing ${announcements.length} of ${announcements.length} announcements`;
+        const resultCount = document.querySelector('[data-filter-results]');
+        if (resultCount) resultCount.textContent = `${announcements.length} announcements`;
         if (summary) summary.textContent = `Showing ${announcements.length ? 1 : 0}–${announcements.length} of ${announcements.length} announcements`;
         tableBody.innerHTML = announcements.map((announcement) => {
-            const date = announcement.created_at ? new Date(announcement.created_at.replace(' ', 'T')) : null;
+            const sourceDate = announcement.published_at || announcement.created_at;
+            const date = sourceDate ? new Date(sourceDate.replace(' ', 'T')) : null;
             return `<tr data-row data-category="${escapeHtml(announcement.category)}" data-status="${escapeHtml(announcement.status)}" data-audience="${escapeHtml(announcement.audience)}" data-search="${escapeHtml(`${announcement.title} ${announcement.content} ${announcement.author}`)}">
                 <td style="min-width: 280px; max-width: 420px;"><span class="table-primary-text">${escapeHtml(announcement.title)}</span><span class="table-secondary-text text-truncate" style="max-width: 390px;">${escapeHtml(announcement.content)}</span><span class="table-secondary-text">ANN-${String(announcement.id).padStart(4, '0')}</span></td>
                 <td><span class="d-inline-flex align-items-center gap-2"><i class="bi bi-megaphone-fill text-success" aria-hidden="true"></i>${escapeHtml(announcement.category)}</span></td>
@@ -53,7 +57,9 @@
         editForm.elements.title.value = announcement.title;
         editForm.elements.content.value = announcement.content;
         editForm.elements.category.value = announcement.category;
+        editForm.elements.audience.value = announcement.audience;
         editForm.elements.status.value = announcement.status;
+        editForm.elements.published_at.value = announcement.published_at ? announcement.published_at.replace(' ', 'T').slice(0, 16) : '';
     };
     const submit = async (form, method, body) => {
         const button = form.querySelector('[type="submit"]');
@@ -70,17 +76,21 @@
             if (button) button.disabled = false;
         }
     };
+    document.addEventListener('sagipbro:record-viewed', (event) => {
+        if (event.detail.modal.id === 'viewAnnouncementModal') fillEdit(Number(event.detail.record.id));
+    });
     addForm.addEventListener('submit', (event) => {
         event.preventDefault();
         if (!addForm.reportValidity()) return;
         const data = Object.fromEntries(new FormData(addForm).entries());
-        submit(addForm, 'POST', { title: data.title, body: data.content, category: data.category, status: data.status });
+        const status = event.submitter?.value === 'publish' ? 'Published' : (event.submitter?.value === 'draft' ? 'Draft' : data.status);
+        submit(addForm, 'POST', { title: data.title, body: data.content, category: data.category, audience: data.audience, status, published_at: data.published_at });
     });
     editForm.addEventListener('submit', (event) => {
         event.preventDefault();
         if (!editForm.reportValidity()) return;
         const data = Object.fromEntries(new FormData(editForm).entries());
-        submit(editForm, 'PUT', { id: editForm.dataset.id, title: data.title, body: data.content, category: data.category, status: data.status });
+        submit(editForm, 'PUT', { id: editForm.dataset.id, title: data.title, body: data.content, category: data.category, audience: data.audience, status: data.status, published_at: data.published_at });
     });
     deleteForm.addEventListener('submit', (event) => {
         event.preventDefault();

@@ -4,7 +4,7 @@ $pageDescription = 'Browse current relief-supply information for the SAGIPBRO pu
 $activePage = 'resources';
 $basePath = '';
 
-require_once __DIR__ . '/includes/public_data.php';
+require_once __DIR__ . '/includes/public_service_helpers.php';
 $resources = [];
 $resourceIcons = ['Food' => 'bi-basket2', 'Water' => 'bi-droplet', 'Hygiene' => 'bi-handbag', 'Medical' => 'bi-bandaid', 'Shelter' => 'bi-grid'];
 try {
@@ -38,6 +38,8 @@ include __DIR__ . '/includes/navbar.php';
             <p>Search and filter current relief resources recorded by authorized barangay staff.</p>
         </div>
     </section>
+
+    <?php publicServiceNavigation('resources'); ?>
 
     <section class="section-space section-soft" aria-labelledby="resource-directory-title">
         <div class="container">

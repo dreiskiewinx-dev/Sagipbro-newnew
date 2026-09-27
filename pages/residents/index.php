@@ -164,7 +164,7 @@ include '../../includes/header.php';
                         <div class="col-md-4"><label class="form-label" for="residentBirthDate">Birth date</label><input class="form-control" id="residentBirthDate" name="birth_date" type="date"></div>
                         <div class="col-md-4"><label class="form-label" for="residentSex">Sex</label><select class="form-select" id="residentSex" name="sex"><option>Female</option><option>Male</option><option>Other</option></select></div>
                         <div class="col-md-4"><label class="form-label" for="residentContact">Contact number</label><input class="form-control" id="residentContact" name="contact" type="tel" autocomplete="tel" placeholder="09XX XXX XXXX"></div>
-                        <div class="col-md-6"><label class="form-label" for="residentHousehold">Household ID</label><input class="form-control" id="residentHousehold" name="household_id" placeholder="HH-2026-000"></div>
+                        <div class="col-md-6"><label class="form-label" for="residentHousehold">Household ID</label><input class="form-control" id="residentHousehold" name="household_id" placeholder="Enter an existing household number"></div>
                         <div class="col-md-6"><label class="form-label" for="residentPriority">Priority group</label><select class="form-select" id="residentPriority" name="priority_group"><option>None</option><option>Senior citizen</option><option>PWD</option><option>Pregnant</option><option>Solo parent</option><option>Child under five</option></select></div>
                         <div class="col-12"><label class="form-label" for="residentAddress">Complete address <span class="required-mark">*</span></label><textarea class="form-control" id="residentAddress" name="address" rows="3" required autocomplete="street-address"></textarea></div>
                     </div>
@@ -187,34 +187,31 @@ include '../../includes/header.php';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header"><h2 class="modal-title" id="viewResidentModalLabel">Resident profile</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-            <div class="modal-body">
-                <div class="d-flex align-items-center gap-3 mb-4"><span class="profile-avatar-large m-0" aria-hidden="true">--</span><div><h3 class="h5 mb-1">No resident selected</h3><span class="status-badge status-neutral">No record</span></div></div>
-                <dl class="row mb-0 small">
-                    <dt class="col-5 text-body-secondary">Resident ID</dt><dd class="col-7">BIN-0241</dd>
-                    <dt class="col-5 text-body-secondary">Household</dt><dd class="col-7">HH-2026-041</dd>
-                    <dt class="col-5 text-body-secondary">Address</dt><dd class="col-7">Purok 1, Riverside</dd>
-                    <dt class="col-5 text-body-secondary">Contact</dt><dd class="col-7">0917 624 1842</dd>
-                    <dt class="col-5 text-body-secondary">Priority group</dt><dd class="col-7">Pregnant</dd>
-                    <dt class="col-5 text-body-secondary">Last verified</dt><dd class="col-7 mb-0">September 4, 2026</dd>
-                </dl>
-            </div>
+            <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-person-vcard"></i><h3>No resident selected</h3><p>Resident details are loaded from the database.</p></div></div>
             <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-brand" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editResidentModal"><i class="bi bi-pencil" aria-hidden="true"></i> Edit record</button></div>
         </div>
     </div>
 </div>
 
 <div class="modal fade" id="editResidentModal" tabindex="-1" aria-labelledby="editResidentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <form id="editResidentForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="modal-header"><h2 class="modal-title" id="editResidentModalLabel">Edit resident record</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
                 <div class="modal-body">
                     <p class="modal-intro">Update the selected resident's basic contact and classification information.</p>
-                    <div class="mb-3"><label class="form-label" for="editResidentName">Full name</label><input class="form-control" id="editResidentName" name="full_name" value="" required></div>
-                    <div class="mb-3"><label class="form-label" for="editResidentContact">Contact number</label><input class="form-control" id="editResidentContact" name="contact" value="0917 624 1842" type="tel"></div>
-                    <div class="mb-3"><label class="form-label" for="editResidentPriority">Priority group</label><select class="form-select" id="editResidentPriority" name="priority_group"><option>None</option><option>Senior citizen</option><option>PWD</option><option selected>Pregnant</option><option>Solo parent</option></select></div>
-                    <div><label class="form-label" for="editResidentStatus">Record status</label><select class="form-select" id="editResidentStatus" name="status"><option selected>Active</option><option>Inactive</option></select></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label" for="editResidentFirstName">First name</label><input class="form-control" id="editResidentFirstName" name="first_name" required></div>
+                        <div class="col-md-6"><label class="form-label" for="editResidentLastName">Last name</label><input class="form-control" id="editResidentLastName" name="last_name" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editResidentBirthDate">Birth date</label><input class="form-control" id="editResidentBirthDate" name="birth_date" type="date"></div>
+                        <div class="col-md-4"><label class="form-label" for="editResidentSex">Sex</label><select class="form-select" id="editResidentSex" name="sex"><option>Female</option><option>Male</option><option>Other</option></select></div>
+                        <div class="col-md-4"><label class="form-label" for="editResidentContact">Contact number</label><input class="form-control" id="editResidentContact" name="contact" type="tel"></div>
+                        <div class="col-md-6"><label class="form-label" for="editResidentHousehold">Household ID</label><input class="form-control" id="editResidentHousehold" name="household_id"></div>
+                        <div class="col-md-6"><label class="form-label" for="editResidentPriority">Priority group</label><select class="form-select" id="editResidentPriority" name="priority_group"><option>None</option><option>Senior citizen</option><option>PWD</option><option>Pregnant</option><option>Solo parent</option><option>Child under five</option></select></div>
+                        <div class="col-12"><label class="form-label" for="editResidentAddress">Complete address</label><textarea class="form-control" id="editResidentAddress" name="address" rows="2" required></textarea></div>
+                        <div class="col-12"><label class="form-label" for="editResidentStatus">Record status</label><select class="form-select" id="editResidentStatus" name="status"><option>Active</option><option>Inactive</option></select></div>
+                    </div>
                 </div>
                 <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit">Save changes</button></div>
             </form>

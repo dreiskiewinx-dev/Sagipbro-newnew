@@ -39,13 +39,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $id = positiveInt($data, 'id');
 if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     $status = in_array($data['status'] ?? 'Active', ['Active', 'Deployed', 'Inactive'], true) ? $data['status'] : 'Active';
+    $exists = $conn->prepare('SELECT id FROM volunteers WHERE id = ?');
+    $exists->execute([$id]);
+    if (!$exists->fetchColumn()) jsonResponse(['error' => 'Volunteer not found.'], 404);
     $stmt = $conn->prepare('UPDATE volunteers SET full_name = ?, contact = ?, email = ?, availability = ?, skills = ?, assignment = ?, notes = ?, status = ? WHERE id = ?');
     $stmt->execute([
         requiredString($data, 'full_name', 150), requiredString($data, 'contact', 30), $data['email'] ?? null,
         requiredString($data, 'availability', 80), requiredString($data, 'skills', 255), $data['assignment'] ?? null,
         $data['notes'] ?? null, $status, $id
     ]);
-    if (!$stmt->rowCount()) jsonResponse(['error' => 'Volunteer not found or unchanged.'], 404);
     logActivity($conn, 'update', 'volunteer', $id);
     jsonResponse(['message' => 'Volunteer updated.']);
 }

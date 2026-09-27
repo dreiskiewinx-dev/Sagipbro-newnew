@@ -107,4 +107,63 @@
             target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
+
+    const logoutModalElement = document.getElementById('logoutConfirmModal');
+    const logoutConfirmButton = logoutModalElement?.querySelector('[data-confirm-logout-submit]');
+    let pendingLogoutForm = null;
+
+    document.querySelectorAll('form[data-confirm-logout]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (!logoutModalElement || !window.bootstrap) {
+                if (window.confirm('Are you sure you want to log out?')) form.submit();
+                return;
+            }
+            pendingLogoutForm = form;
+            window.bootstrap.Modal.getOrCreateInstance(logoutModalElement).show();
+        });
+    });
+
+    logoutConfirmButton?.addEventListener('click', () => {
+        if (!pendingLogoutForm) return;
+        logoutConfirmButton.disabled = true;
+        logoutConfirmButton.innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span> Logging out…';
+        pendingLogoutForm.submit();
+    });
+
+    logoutModalElement?.addEventListener('hidden.bs.modal', () => {
+        pendingLogoutForm = null;
+    });
+
+    const presence = window.sagipbroPresence;
+    let presenceTimer = null;
+    const sendPresence = async () => {
+        clearTimeout(presenceTimer);
+        if (!presence) return;
+        try {
+            await fetch(presence.endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                keepalive: true,
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': presence.csrfToken,
+                },
+                body: '{}',
+            });
+        } catch (_) {
+            // Presence is best-effort and will retry while the page remains open.
+        } finally {
+            presenceTimer = window.setTimeout(sendPresence, 15000);
+        }
+    };
+    if (presence) {
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) sendPresence();
+        });
+        window.addEventListener('online', sendPresence);
+        sendPresence();
+    }
 })();

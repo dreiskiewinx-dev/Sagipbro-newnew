@@ -133,17 +133,7 @@ include '../../includes/header.php';
                         </tbody>
                     </table>
                 </div>
-                <div class="data-card-footer record-summary">
-                    <span>Showing 1–<?= count($resources) ?> of <?= count($resources) ?> resources</span>
-                    <nav aria-label="Resource table pagination">
-                        <ul class="pagination pagination-sm">
-                            <li class="page-item disabled"><button class="page-link" type="button" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button></li>
-                            <li class="page-item active" aria-current="page"><button class="page-link" type="button">1</button></li>
-                            <li class="page-item"><button class="page-link" type="button">2</button></li>
-                            <li class="page-item"><button class="page-link" type="button" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></li>
-                        </ul>
-                    </nav>
-                </div>
+                <div class="data-card-footer record-summary"><span>Loading resources…</span><span>Live database records</span></div>
             </section>
 
             <div class="modal fade" id="addResourceModal" tabindex="-1" aria-labelledby="addResourceTitle" aria-hidden="true">
@@ -154,7 +144,7 @@ include '../../includes/header.php';
                             <div class="modal-body">
                                 <p class="modal-intro">Create an inventory record and define when the system should flag low stock.</p>
                                 <div class="row g-3">
-                                    <div class="col-md-7"><label class="form-label" for="addResourceName">Resource name</label><input class="form-control" id="addResourceName" name="name" placeholder="e.g. Family Food Pack" required></div>
+                                    <div class="col-md-7"><label class="form-label" for="addResourceName">Resource name</label><input class="form-control" id="addResourceName" name="name" required></div>
                                     <div class="col-md-5"><label class="form-label" for="addResourceCategory">Category</label><select class="form-select" id="addResourceCategory" name="category" required><option value="" selected disabled>Select category</option><option>Food packs</option><option>Water &amp; hydration</option><option>Hygiene</option><option>Shelter</option><option>Medical</option><option>Special needs</option></select></div>
                                     <div class="col-sm-4"><label class="form-label" for="addResourceQuantity">Opening quantity</label><input class="form-control" id="addResourceQuantity" name="stock" type="number" min="0" value="0" required></div>
                                     <div class="col-sm-4"><label class="form-label" for="addResourceUnit">Unit</label><input class="form-control" id="addResourceUnit" name="unit" placeholder="packs, cases, pieces" required></div>
@@ -174,16 +164,7 @@ include '../../includes/header.php';
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header"><h2 class="modal-title" id="viewResourceTitle">Resource details</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                        <div class="modal-body">
-                            <span class="status-badge status-success mb-3">In stock</span>
-                            <h3 class="h5 mb-1">Family Food Pack</h3><p class="text-muted small">RES-001 · Food packs</p>
-                            <dl class="row small mb-0">
-                                <dt class="col-5">Available quantity</dt><dd class="col-7">284 packs</dd>
-                                <dt class="col-5">Low-stock threshold</dt><dd class="col-7">80 packs</dd>
-                                <dt class="col-5">Storage location</dt><dd class="col-7">Main Warehouse · Rack A1</dd>
-                                <dt class="col-5">Last updated</dt><dd class="col-7">September 10, 2026 at 9:42 AM</dd>
-                            </dl>
-                        </div>
+                        <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-box-seam"></i><h3>No resource selected</h3><p>Resource details are loaded from the database.</p></div></div>
                         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-outline-brand" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editResourceModal"><i class="bi bi-pencil"></i> Edit record</button></div>
                     </div>
                 </div>
@@ -197,12 +178,13 @@ include '../../includes/header.php';
                             <div class="modal-body">
                                 <p class="modal-intro">Update resource details and current physical stock.</p>
                                 <div class="row g-3">
-                                    <div class="col-md-7"><label class="form-label" for="editResourceName">Resource name</label><input class="form-control" id="editResourceName" name="name" value="Family Food Pack" required></div>
-                                    <div class="col-md-5"><label class="form-label" for="editResourceCategory">Category</label><select class="form-select" id="editResourceCategory" name="category"><option selected>Food packs</option><option>Water &amp; hydration</option><option>Hygiene</option><option>Shelter</option><option>Medical</option><option>Special needs</option></select></div>
-                                    <div class="col-sm-4"><label class="form-label" for="editResourceQuantity">Available quantity</label><input class="form-control" id="editResourceQuantity" name="stock" type="number" min="0" value="284" required></div>
-                                    <div class="col-sm-4"><label class="form-label" for="editResourceUnit">Unit</label><input class="form-control" id="editResourceUnit" name="unit" value="packs" required></div>
-                                    <div class="col-sm-4"><label class="form-label" for="editResourceThreshold">Low-stock threshold</label><input class="form-control" id="editResourceThreshold" name="low_stock_threshold" type="number" min="0" value="80" required></div>
-                                    <div class="col-12"><label class="form-label" for="editResourceLocation">Storage location</label><input class="form-control" id="editResourceLocation" name="location" value="Main Warehouse · Rack A1" required></div>
+                                    <div class="col-md-7"><label class="form-label" for="editResourceName">Resource name</label><input class="form-control" id="editResourceName" name="name" required></div>
+                                    <div class="col-md-5"><label class="form-label" for="editResourceCategory">Category</label><select class="form-select" id="editResourceCategory" name="category"><option>Food packs</option><option>Water &amp; hydration</option><option>Hygiene</option><option>Shelter</option><option>Medical</option><option>Special needs</option></select></div>
+                                    <div class="col-sm-4"><label class="form-label" for="editResourceQuantity">Available quantity</label><input class="form-control" id="editResourceQuantity" name="stock" type="number" min="0" required></div>
+                                    <div class="col-sm-4"><label class="form-label" for="editResourceUnit">Unit</label><input class="form-control" id="editResourceUnit" name="unit" required></div>
+                                    <div class="col-sm-4"><label class="form-label" for="editResourceThreshold">Low-stock threshold</label><input class="form-control" id="editResourceThreshold" name="low_stock_threshold" type="number" min="0" required></div>
+                                    <div class="col-12"><label class="form-label" for="editResourceLocation">Storage location</label><input class="form-control" id="editResourceLocation" name="location" required></div>
+                                    <div class="col-12"><label class="form-label" for="editResourceNotes">Inventory notes</label><textarea class="form-control" id="editResourceNotes" name="notes" rows="3" placeholder="Source, expiry information, or handling instructions"></textarea></div>
                                     <div class="col-12"><label class="form-label" for="editResourceReason">Adjustment note</label><textarea class="form-control" id="editResourceReason" name="reason" rows="3" placeholder="Briefly explain this stock adjustment"></textarea></div>
                                 </div>
                             </div>
@@ -217,7 +199,7 @@ include '../../includes/header.php';
                     <div class="modal-content">
                         <form id="deleteResourceForm">
                             <div class="modal-header"><h2 class="modal-title" id="deleteResourceTitle">Archive resource?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-                            <div class="modal-body"><p class="mb-2">Archive <strong>Family Food Pack</strong> from the active inventory?</p><p class="small text-muted mb-0">Historical distribution records will be preserved. You can reactivate this resource later.</p></div>
+                            <div class="modal-body"><p class="mb-2">Archive the selected resource from the active inventory?</p><p class="small text-muted mb-0">Historical distribution records will be preserved. You can reactivate this resource later.</p></div>
                             <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Keep resource</button><button class="btn btn-danger" type="submit" data-confirm-action="Resource archived."><i class="bi bi-archive"></i> Archive resource</button></div>
                         </form>
                     </div>
