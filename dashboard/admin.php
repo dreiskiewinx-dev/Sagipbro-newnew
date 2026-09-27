@@ -115,7 +115,7 @@ require __DIR__ . '/../includes/header.php';
                             <thead><tr><th scope="col">Activity</th><th scope="col">User</th><th scope="col">Module</th><th scope="col">Time</th></tr></thead>
                             <tbody>
                                 <?php foreach ($recentActivity as $activity): ?>
-                                    <?php $module = ucfirst((string) $activity['module']); ?>
+                                    <?php $module = ucwords(str_replace(['_', '-'], ' ', (string) $activity['module'])); ?>
                                     <tr>
                                         <td><div class="activity-cell"><span class="activity-icon"><i class="bi bi-activity"></i></span><span><span class="table-primary-text"><?= htmlspecialchars(ucfirst((string) $activity['action']) . ' ' . strtolower($module), ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text">Database activity recorded</span></span></div></td>
                                         <td><?= htmlspecialchars((string) $activity['actor'], ENT_QUOTES, 'UTF-8') ?></td>

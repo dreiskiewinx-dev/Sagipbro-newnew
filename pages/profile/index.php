@@ -186,7 +186,7 @@ include '../../includes/header.php';
                                 <?php foreach ($profileActivity as $activity):
                                     $activityLabel = ucwords(str_replace(['-', '_'], ' ', (string) $activity['action']));
                                     $activityIcon = str_contains((string) $activity['action'], 'password') ? 'bi-key' : (str_contains((string) $activity['action'], 'sign') || str_contains((string) $activity['action'], 'login') ? 'bi-box-arrow-in-right' : 'bi-person-check');
-                                    $activitySource = $activity['ip_address'] ? 'Source: ' . $activity['ip_address'] : ucfirst(str_replace('_', ' ', (string) $activity['entity_type']));
+                                    $activitySource = $activity['ip_address'] ? 'Source: ' . $activity['ip_address'] : ucwords(str_replace(['_', '-'], ' ', (string) $activity['entity_type']));
                                 ?>
                                 <li class="timeline-item"><span class="timeline-dot"><i class="bi <?= $activityIcon ?>" aria-hidden="true"></i></span><span><strong><?= htmlspecialchars($activityLabel, ENT_QUOTES, 'UTF-8') ?></strong><small><?= htmlspecialchars($activitySource, ENT_QUOTES, 'UTF-8') ?></small></span><time datetime="<?= htmlspecialchars(date(DATE_ATOM, strtotime((string) $activity['created_at'])), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('M j, g:i A', strtotime((string) $activity['created_at'])), ENT_QUOTES, 'UTF-8') ?></time></li>
                                 <?php endforeach; ?>

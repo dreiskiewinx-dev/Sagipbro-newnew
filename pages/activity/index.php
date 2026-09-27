@@ -24,7 +24,7 @@ try {
         $details = trim((string) ($row['details'] ?? ''));
         $logs[] = [
             'LOG-' . str_pad((string) $row['id'], 5, '0', STR_PAD_LEFT), $actor, $initials ?: 'S', $action,
-            ucfirst(str_replace('_', ' ', (string) $row['entity_type'])),
+            ucwords(str_replace(['_', '-'], ' ', (string) $row['entity_type'])),
             $details !== '' ? $details : ($row['entity_id'] ? 'Record #' . $row['entity_id'] : 'No additional details'),
             (string) ($row['ip_address'] ?: 'Local'), date('M j, Y', strtotime((string) $row['created_at'])),
             date('g:i:s A', strtotime((string) $row['created_at'])),
