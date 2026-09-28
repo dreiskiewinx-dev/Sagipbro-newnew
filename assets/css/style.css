@@ -806,6 +806,10 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .table-secondary-text { display: block; margin-top: .12rem; color: var(--ink-500); font-size: .72rem; }
 .table-avatar { width: 36px; height: 36px; display: inline-grid; place-items: center; margin-right: .55rem; border-radius: .65rem; color: var(--green-800); background: var(--green-100); font-size: .75rem; font-weight: 850; }
 .table-actions { display: inline-flex; gap: .3rem; }
+.message-row-unread > td { background: #fffcf4; }
+.message-row-unread > td:first-child { box-shadow: inset 3px 0 #d49324; }
+.message-row-unread .table-primary-text { font-weight: 850; }
+.message-row-unread:hover > td { background: #fff8e7 !important; }
 
 .pagination { gap: .25rem; margin: 0; }
 .page-link { min-width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: .5rem !important; padding: 0 .5rem; color: var(--ink-600); background: transparent; font-size: .76rem; font-weight: 700; }
@@ -818,6 +822,8 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .modal-title { font-size: 1.05rem; }
 .modal-body { padding: 1.35rem; }
 .modal-footer { padding: 1rem 1.35rem; border-color: var(--line); background: #fafcfa; }
+.admin-body .modal-dialog-scrollable .modal-content { max-height: calc(100dvh - 2rem); }
+.admin-body .modal-dialog-scrollable .modal-body { overscroll-behavior: contain; scrollbar-gutter: stable; }
 .logout-confirm-modal .modal-dialog { max-width: 430px; }
 .logout-confirm-modal .modal-content { border: 1px solid rgba(166, 51, 51, .12); }
 .logout-confirm-modal .modal-body { padding: 2rem 1.75rem 1.45rem; text-align: center; }

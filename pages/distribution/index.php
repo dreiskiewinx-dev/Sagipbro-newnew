@@ -28,7 +28,7 @@ include '../../includes/header.php';
                     <p>Maintain a traceable record of every resource released, recipient served, and distribution point.</p>
                 </div>
                 <div class="page-actions">
-                    <button class="btn btn-outline-brand" type="button" data-confirm-action="Distribution register prepared for export."><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> Export register</button>
+                    <a class="btn btn-outline-brand" href="<?= htmlspecialchars(appUrl('api/distribution.php?export=csv'), ENT_QUOTES, 'UTF-8') ?>" download><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> Export register</a>
                     <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#addDistributionModal"><i class="bi bi-plus-lg" aria-hidden="true"></i> Record distribution</button>
                 </div>
             </header>
@@ -60,7 +60,7 @@ include '../../includes/header.php';
                 </div>
                 <div class="table-responsive">
                     <table class="table app-table align-middle" id="distributionsTable" data-table>
-                        <thead><tr><th scope="col">Reference / resource</th><th scope="col">Recipient</th><th scope="col">Quantity</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Distributed by</th><th scope="col">Status</th><th scope="col" class="text-end">Actions</th></tr></thead>
+                        <thead><tr><th scope="col">Reference / resource</th><th scope="col">Recipient</th><th scope="col">Quantity</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Distributed by</th><th scope="col">Status</th><th scope="col" class="text-end" data-export-ignore>Actions</th></tr></thead>
                         <tbody>
                             <?php foreach ($distributions as $distribution): ?>
                                 <tr data-row data-category="<?= htmlspecialchars($distribution['category'], ENT_QUOTES, 'UTF-8') ?>" data-status="<?= htmlspecialchars($distribution['status'], ENT_QUOTES, 'UTF-8') ?>" data-period="<?= $distribution['date'] === 'Sep 10, 2026' ? 'today' : 'previous' ?>">

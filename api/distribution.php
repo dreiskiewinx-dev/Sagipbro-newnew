@@ -6,13 +6,58 @@ requireApiLogin();
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $stmt = $conn->query(
         'SELECT d.*, d.recipient_reference AS household_id, r.name AS resource_name,
-                r.unit AS resource_unit, u.full_name AS distributed_by_name
+                r.category AS resource_category, r.unit AS resource_unit,
+                u.full_name AS distributed_by_name
          FROM distributions d
          JOIN resources r ON r.id = d.resource_id
          JOIN users u ON u.id = d.distributed_by
          ORDER BY d.distributed_at DESC'
     );
-    jsonResponse(['data' => $stmt->fetchAll()]);
+    $rows = $stmt->fetchAll();
+
+    if (($_GET['export'] ?? '') === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="sagipbro-distribution-register-' . date('Y-m-d') . '.csv"');
+        header('Cache-Control: no-store, max-age=0');
+
+        $output = fopen('php://output', 'wb');
+        if ($output === false) {
+            http_response_code(500);
+            exit('Unable to prepare the distribution export.');
+        }
+
+        fwrite($output, "\xEF\xBB\xBF");
+        fputcsv($output, [
+            'Reference', 'Resource', 'Category', 'Recipient', 'Resident / household ID',
+            'Quantity', 'Unit', 'Location', 'Distributed at', 'Distributed by', 'Status', 'Notes',
+        ], ',', '"', '');
+
+        $safeCell = static function ($value): string {
+            $value = (string) ($value ?? '');
+            return preg_match('/^[=+\-@]/', $value) ? "'{$value}" : $value;
+        };
+
+        foreach ($rows as $row) {
+            fputcsv($output, [
+                'DST-' . str_pad((string) $row['id'], 6, '0', STR_PAD_LEFT),
+                $safeCell($row['resource_name']),
+                $safeCell($row['resource_category']),
+                $safeCell($row['recipient_name']),
+                $safeCell($row['recipient_reference']),
+                (string) $row['quantity'],
+                $safeCell($row['resource_unit']),
+                $safeCell($row['location']),
+                (string) $row['distributed_at'],
+                $safeCell($row['distributed_by_name']),
+                $safeCell($row['status']),
+                $safeCell($row['remarks']),
+            ], ',', '"', '');
+        }
+        fclose($output);
+        exit;
+    }
+
+    jsonResponse(['data' => $rows]);
 }
 
 requireApiLogin(['admin', 'official', 'volunteer']);

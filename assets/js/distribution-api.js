@@ -64,7 +64,7 @@
                 <td>${escapeHtml(date)}</td>
                 <td>${escapeHtml(distribution.distributed_by_name || '')}</td>
                 <td><span class="status-badge ${statusClass(status)}">${escapeHtml(status)}</span></td>
-                <td class="text-end"><div class="table-actions">
+                <td class="text-end" data-export-ignore><div class="table-actions">
                     <button class="btn btn-light btn-icon" type="button" title="View" aria-label="View distribution" data-record-json="${escapeHtml(JSON.stringify(distribution))}" data-bs-toggle="modal" data-bs-target="#viewDistributionModal"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit distribution" data-distribution-edit="${distribution.id}" data-bs-toggle="modal" data-bs-target="#editDistributionModal"><i class="bi bi-pencil"></i></button>
                     <button class="btn btn-light btn-icon text-danger" type="button" title="Reverse" aria-label="Reverse distribution" data-distribution-delete="${distribution.id}" data-bs-toggle="modal" data-bs-target="#deleteDistributionModal"><i class="bi bi-arrow-counterclockwise"></i></button>

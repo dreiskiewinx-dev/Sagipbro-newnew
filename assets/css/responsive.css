@@ -148,6 +148,11 @@
     .distribution-bar-row { grid-template-columns: 1fr auto; }
     .distribution-bar-row .bar-track { grid-column: 1 / -1; grid-row: 2; }
     .admin-footer { align-items: flex-start; flex-direction: column; }
+    .admin-body .modal-dialog-scrollable .modal-content { max-height: 100dvh; border-radius: 0; }
+    .admin-body .modal-header, .admin-body .modal-body, .admin-body .modal-footer { padding-right: 1rem; padding-left: 1rem; }
+    .admin-body .modal-footer { display: grid; grid-template-columns: 1fr; gap: .55rem; }
+    .admin-body .modal-footer .btn { width: 100%; justify-content: center; margin: 0; }
+    .admin-body .logout-confirm-modal .modal-footer { grid-template-columns: 1fr 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

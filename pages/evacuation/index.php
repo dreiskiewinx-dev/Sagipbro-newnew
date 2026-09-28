@@ -38,7 +38,7 @@ include '../../includes/header.php';
                     <p>Keep facility readiness, occupancy, and responsible contact details up to date.</p>
                 </div>
                 <div class="page-actions">
-                    <button class="btn btn-outline-brand" type="button" data-confirm-action="Occupancy sheet prepared for printing."><i class="bi bi-printer" aria-hidden="true"></i> Print occupancy</button>
+                    <button class="btn btn-outline-brand" type="button" data-print="#centersTable"><i class="bi bi-printer" aria-hidden="true"></i> Print occupancy</button>
                     <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#addCenterModal"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add center</button>
                 </div>
             </header>

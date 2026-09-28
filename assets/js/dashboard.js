@@ -7,6 +7,19 @@
     const closeButton = document.querySelector('.sidebar-close');
     const backdrop = document.querySelector('.sidebar-backdrop');
 
+    // Bootstrap appends its backdrop directly to <body>. Admin page modals are
+    // rendered inside .admin-main, which has a named view-transition stacking
+    // context. In supporting browsers that can leave the backdrop above the
+    // dialog and intercept every click/keystroke. Keep dialogs at the same DOM
+    // level as their backdrop so all admin forms remain interactive.
+    document.querySelectorAll('.admin-main .modal').forEach((modal) => {
+        const dialog = modal.querySelector('.modal-dialog');
+        if (dialog) {
+            dialog.classList.add('modal-dialog-centered', 'modal-dialog-scrollable', 'modal-fullscreen-sm-down');
+        }
+        document.body.appendChild(modal);
+    });
+
     const setSidebar = (open) => {
         body.classList.toggle('sidebar-open', open);
         openButton?.setAttribute('aria-expanded', String(open));
@@ -154,14 +167,23 @@
             const filename = `${button.dataset.exportName || 'sagipbro-report'}.csv`;
             if (table) {
                 const rows = [...table.querySelectorAll('tr')].filter((row) => !row.hidden);
-                const csv = rows.map((row) => [...row.querySelectorAll('th,td')].map((cell) => `"${cell.innerText.trim().replaceAll('"', '""')}"`).join(',')).join('\r\n');
+                const csv = rows.map((row) => [...row.querySelectorAll('th,td')]
+                    .filter((cell) => !cell.matches('[data-export-ignore]'))
+                    .map((cell) => {
+                        let value = cell.innerText.trim().replaceAll('"', '""');
+                        // Prevent spreadsheet programs from treating user-entered
+                        // recipient/location values as formulas when opening CSV.
+                        if (/^[=+\-@]/.test(value)) value = `'${value}`;
+                        return `"${value}"`;
+                    }).join(',')).join('\r\n');
                 const link = document.createElement('a');
-                link.href = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+                const objectUrl = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
+                link.href = objectUrl;
                 link.download = filename;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-                window.setTimeout(() => URL.revokeObjectURL(link.href), 500);
+                window.setTimeout(() => URL.revokeObjectURL(objectUrl), 500);
                 window.sagipbroToast?.(`${filename} has been prepared.`, 'Export ready');
                 return;
             }
