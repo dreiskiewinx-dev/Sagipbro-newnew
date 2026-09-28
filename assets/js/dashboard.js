@@ -7,11 +7,8 @@
     const closeButton = document.querySelector('.sidebar-close');
     const backdrop = document.querySelector('.sidebar-backdrop');
 
-    // Bootstrap appends its backdrop directly to <body>. Admin page modals are
-    // rendered inside .admin-main, which has a named view-transition stacking
-    // context. In supporting browsers that can leave the backdrop above the
-    // dialog and intercept every click/keystroke. Keep dialogs at the same DOM
-    // level as their backdrop so all admin forms remain interactive.
+    // Keep admin dialogs at the same DOM level as Bootstrap's body-level
+    // backdrop so forms remain interactive in every browser and viewport.
     document.querySelectorAll('.admin-main .modal').forEach((modal) => {
         const dialog = modal.querySelector('.modal-dialog');
         if (dialog) {
@@ -38,62 +35,6 @@
     window.addEventListener('resize', () => {
         if (window.innerWidth >= 992) setSidebar(false);
     });
-
-    const sidebarNav = sidebar?.querySelector('.sidebar-nav');
-    if (sidebarNav) {
-        const storageKey = `sagipbro:sidebar-scroll:${sidebar.dataset.sidebarRole || 'default'}`;
-        let savedPosition = null;
-
-        try {
-            const storedPosition = window.sessionStorage.getItem(storageKey);
-            if (storedPosition !== null) {
-                const parsedPosition = Number.parseInt(storedPosition, 10);
-                if (Number.isFinite(parsedPosition) && parsedPosition >= 0) {
-                    savedPosition = parsedPosition;
-                    if (sidebarNav.dataset.scrollRestored !== 'true') {
-                        sidebarNav.scrollTop = parsedPosition;
-                    }
-                }
-            }
-        } catch (error) {
-            // Navigation still works when browser storage is unavailable.
-        }
-
-        if (savedPosition === null) {
-            const activeLink = sidebarNav.querySelector('.sidebar-link.active');
-            if (activeLink) {
-                const navBounds = sidebarNav.getBoundingClientRect();
-                const linkBounds = activeLink.getBoundingClientRect();
-                if (linkBounds.top < navBounds.top) {
-                    sidebarNav.scrollTop -= navBounds.top - linkBounds.top;
-                } else if (linkBounds.bottom > navBounds.bottom) {
-                    sidebarNav.scrollTop += linkBounds.bottom - navBounds.bottom;
-                }
-            }
-        }
-
-        let saveFrame = null;
-        const saveSidebarPosition = () => {
-            try {
-                window.sessionStorage.setItem(storageKey, String(Math.round(sidebarNav.scrollTop)));
-            } catch (error) {
-                // Ignore storage errors without affecting sidebar navigation.
-            }
-        };
-        const scheduleSidebarSave = () => {
-            if (saveFrame !== null) return;
-            saveFrame = window.requestAnimationFrame(() => {
-                saveFrame = null;
-                saveSidebarPosition();
-            });
-        };
-
-        sidebarNav.addEventListener('scroll', scheduleSidebarSave, { passive: true });
-        sidebarNav.querySelectorAll('a.sidebar-link').forEach((link) => {
-            link.addEventListener('click', saveSidebarPosition);
-        });
-        window.addEventListener('pagehide', saveSidebarPosition);
-    }
 
     const normalize = (value) => String(value || '').trim().toLowerCase();
     const searchInputs = document.querySelectorAll('[data-table-search]');
