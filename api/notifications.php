@@ -11,7 +11,20 @@ session_write_close();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = requestData();
-    if (($data['action'] ?? '') !== 'mark_all_read') {
+    $action = (string) ($data['action'] ?? '');
+    if ($action === 'mark_read') {
+        $notificationId = trim((string) ($data['notification_id'] ?? ''));
+        if (!preg_match('/^(activity|message)-[1-9][0-9]*$/', $notificationId)) {
+            jsonResponse(['error' => 'Invalid notification.'], 422);
+        }
+        $statement = $conn->prepare(
+            'INSERT INTO user_notification_reads (user_id, notification_id) VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE read_at = read_at'
+        );
+        $statement->execute([$userId, $notificationId]);
+        jsonResponse(['success' => true]);
+    }
+    if ($action !== 'mark_all_read') {
         jsonResponse(['error' => 'Invalid notification action.'], 422);
     }
     $statement = $conn->prepare(
@@ -19,6 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
          ON DUPLICATE KEY UPDATE last_seen_at = VALUES(last_seen_at)'
     );
     $statement->execute([$userId]);
+    $deleteStatement = $conn->prepare('DELETE FROM user_notification_reads WHERE user_id = ?');
+    $deleteStatement->execute([$userId]);
     jsonResponse(['success' => true, 'unread' => 0]);
 }
 
@@ -30,6 +45,10 @@ try {
     $stateStatement = $conn->prepare('SELECT last_seen_at FROM user_notification_state WHERE user_id = ?');
     $stateStatement->execute([$userId]);
     $lastSeenAt = $stateStatement->fetchColumn() ?: '1970-01-01 00:00:00';
+
+    $readStatement = $conn->prepare('SELECT notification_id FROM user_notification_reads WHERE user_id = ?');
+    $readStatement->execute([$userId]);
+    $readNotifications = array_fill_keys($readStatement->fetchAll(PDO::FETCH_COLUMN), true);
 
     $activitySql = "SELECT l.id, l.action, l.entity_type, l.entity_id, l.details, l.created_at,
             COALESCE(u.full_name, u.username, 'System') AS actor
@@ -60,21 +79,11 @@ try {
         'evacuation_center' => 'bi-buildings', 'evacuee' => 'bi-person-check', 'resident' => 'bi-people',
         'volunteer' => 'bi-person-heart', 'user' => 'bi-person-gear',
     ];
-    $urls = [
-        'announcement' => appUrl('pages/announcements/index.php'),
-        'distribution' => appUrl('pages/distribution/index.php'),
-        'resource' => appUrl('pages/resources/index.php'),
-        'evacuation_center' => appUrl('pages/evacuation/index.php'),
-        'evacuee' => appUrl('pages/evacuation/index.php'),
-        'resident' => appUrl('pages/residents/index.php'),
-        'volunteer' => appUrl('pages/volunteers/index.php'),
-        'user' => appUrl('pages/users/index.php'),
-    ];
-
     $notifications = [];
     foreach ($activityStatement->fetchAll() as $activity) {
         $entityType = (string) $activity['entity_type'];
         $action = (string) $activity['action'];
+        $entityId = (int) ($activity['entity_id'] ?? 0);
         $entityName = $entityNames[$entityType] ?? str_replace('_', ' ', $entityType);
         $verb = $actionNames[$action] ?? ucwords(str_replace(['-', '_'], ' ', $action));
         $details = json_decode((string) ($activity['details'] ?? ''), true);
@@ -84,15 +93,29 @@ try {
             if (!empty($details['quantity'])) $detailParts[] = 'Quantity ' . $details['quantity'];
             if (!empty($details['reason'])) $detailParts[] = (string) $details['reason'];
         }
-        if (!$detailParts && !empty($activity['entity_id'])) $detailParts[] = 'Record #' . $activity['entity_id'];
+        if (!$detailParts && $entityId > 0) $detailParts[] = 'Record #' . $entityId;
+        if (in_array($role, ['admin', 'official'], true)) {
+            $activityId = (int) $activity['id'];
+            $targetUrl = appUrl('pages/activity/index.php')
+                . '?view=' . $activityId
+                . '#activity-log-target-' . $activityId;
+        } else {
+            $targetUrl = $entityType === 'distribution'
+                ? appUrl('pages/distribution/index.php')
+                : appUrl('dashboard/volunteer.php');
+            if ($entityType === 'distribution' && $entityId > 0 && $action !== 'delete') {
+                $targetUrl .= '?view=' . $entityId;
+            }
+        }
         $notifications[] = [
             'id' => 'activity-' . $activity['id'],
             'title' => $verb . ' ' . $entityName,
             'description' => (string) $activity['actor'] . ($detailParts ? ' · ' . implode(' · ', $detailParts) : ''),
             'icon' => $icons[$entityType] ?? 'bi-activity',
-            'url' => $urls[$entityType] ?? appUrl('pages/activity/index.php'),
+            'url' => $targetUrl,
             'created_at' => (string) $activity['created_at'],
-            'unread' => (string) $activity['created_at'] > (string) $lastSeenAt,
+            'unread' => (string) $activity['created_at'] > (string) $lastSeenAt
+                && !isset($readNotifications['activity-' . $activity['id']]),
         ];
     }
 
@@ -106,9 +129,10 @@ try {
                 'title' => 'New contact message',
                 'description' => (string) $message['name'] . ' · ' . (string) $message['subject'],
                 'icon' => 'bi-envelope',
-                'url' => appUrl('pages/messages/index.php'),
+                'url' => appUrl('pages/messages/index.php') . '?view=' . (int) $message['id'],
                 'created_at' => (string) $message['created_at'],
-                'unread' => (string) $message['created_at'] > (string) $lastSeenAt,
+                'unread' => (string) $message['created_at'] > (string) $lastSeenAt
+                    && !isset($readNotifications['message-' . $message['id']]),
             ];
         }
     }

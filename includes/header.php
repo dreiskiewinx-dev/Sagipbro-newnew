@@ -10,7 +10,7 @@ $bodyClass = trim(($bodyClass ?? '') . ($isAdmin ? ' admin-body' : ' public-body
 $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information System' : 'SAGIPBRO';
 ?>
 <!doctype html>
-<html lang="en" class="app-loading">
+<html lang="en" class="app-loading<?= $isAdmin ? ' admin-document' : '' ?>">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -31,9 +31,9 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
     <link rel="preload" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/fonts/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.min.css?v=5.3.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/bootstrap-icons.min.css?v=1.11.3">
-    <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=2">
+    <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=3">
     <?php if ($isAdmin): ?>
-        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=6">
+        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=11">
     <?php endif; ?>
     <?php if (!empty($useLoginStyles)): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/login.css">

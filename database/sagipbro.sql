@@ -139,6 +139,14 @@ CREATE TABLE IF NOT EXISTS user_notification_state (
 	CONSTRAINT fk_notification_state_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS user_notification_reads (
+	user_id INT UNSIGNED NOT NULL,
+	notification_id VARCHAR(191) NOT NULL,
+	read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (user_id, notification_id),
+	CONSTRAINT fk_notification_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS user_sessions (
 	session_hash CHAR(64) PRIMARY KEY,
 	user_id INT UNSIGNED NOT NULL,

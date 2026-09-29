@@ -18,6 +18,10 @@ function jsonResponse($data, int $status = 200): void
 
 function requestData(): array
 {
+    if ($_POST) {
+        return $_POST;
+    }
+
     $raw = file_get_contents('php://input');
     if ($raw === false || trim($raw) === '') {
         return $_POST;

@@ -56,6 +56,16 @@ function migrateAdminCrud(PDO $db): void
     );
 
     $db->exec(
+        'CREATE TABLE IF NOT EXISTS user_notification_reads (
+            user_id INT UNSIGNED NOT NULL,
+            notification_id VARCHAR(191) NOT NULL,
+            read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, notification_id),
+            CONSTRAINT fk_notification_reads_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB'
+    );
+
+    $db->exec(
         'CREATE TABLE IF NOT EXISTS user_sessions (
             session_hash CHAR(64) NOT NULL PRIMARY KEY,
             user_id INT UNSIGNED NOT NULL,

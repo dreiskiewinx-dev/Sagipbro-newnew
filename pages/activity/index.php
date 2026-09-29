@@ -30,6 +30,7 @@ try {
             date('g:i:s A', strtotime((string) $row['created_at'])),
             str_contains(strtolower((string) $row['action']), 'block') ? 'danger' : (str_contains(strtolower((string) $row['action']), 'fail') ? 'warning' : 'success'),
             'bi-activity',
+            (int) $row['id'],
         ];
     }
     $activityStats = $conn->query("SELECT
@@ -79,21 +80,21 @@ include '../../includes/header.php';
 
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="activityHistoryHeading">System activity history</h2><p>Security, data changes, announcements, distributions, and report events.</p></div><span class="status-badge status-success">Logging active</span></div>
-                    <div class="table-responsive">
+                    <div class="table-responsive activity-table-responsive">
                         <table class="table app-table" id="activityLogsTable">
                             <caption class="visually-hidden">Recent SAGIPBRO system activity</caption>
                             <thead><tr><th scope="col">Event</th><th scope="col">User</th><th scope="col">Module</th><th scope="col">Details</th><th scope="col">Source</th><th scope="col">Date &amp; time</th><th scope="col" class="text-end">Review</th></tr></thead>
                             <tbody>
                                 <?php foreach ($logs as $log): ?>
                                     <?php $badgeClass = $log[9] === 'danger' ? 'status-danger' : ($log[9] === 'warning' ? 'status-warning' : ($log[9] === 'info' ? 'status-info' : 'status-success')); ?>
-                                    <tr data-row data-action="<?= htmlspecialchars($log[3], ENT_QUOTES, 'UTF-8') ?>">
-                                        <td><div class="activity-cell"><span class="activity-icon <?= $log[9] === 'warning' ? 'warning' : ($log[9] === 'info' ? 'info' : '') ?>"><i class="bi <?= htmlspecialchars($log[10], ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i></span><span><span class="table-primary-text"><?= htmlspecialchars($log[3], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text"><?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?></span></span></div></td>
+                                    <tr id="activity-log-<?= $log[11] ?>" data-row data-activity-id="<?= $log[11] ?>" data-action="<?= htmlspecialchars($log[3], ENT_QUOTES, 'UTF-8') ?>">
+                                        <td class="position-relative"><span class="activity-log-target" id="activity-log-target-<?= $log[11] ?>" aria-hidden="true"></span><div class="activity-cell"><span class="activity-icon <?= $log[9] === 'warning' ? 'warning' : ($log[9] === 'info' ? 'info' : '') ?>"><i class="bi <?= htmlspecialchars($log[10], ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i></span><span><span class="table-primary-text"><?= htmlspecialchars($log[3], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text"><?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?></span></span></div></td>
                                         <td><span class="table-avatar" aria-hidden="true"><?= htmlspecialchars($log[2], ENT_QUOTES, 'UTF-8') ?></span><span class="table-primary-text d-inline"><?= htmlspecialchars($log[1], ENT_QUOTES, 'UTF-8') ?></span></td>
                                         <td><span class="status-badge <?= $badgeClass ?>"><?= htmlspecialchars($log[4], ENT_QUOTES, 'UTF-8') ?></span></td>
                                         <td><?= htmlspecialchars($log[5], ENT_QUOTES, 'UTF-8') ?></td>
                                         <td><code class="small text-body-secondary"><?= htmlspecialchars($log[6], ENT_QUOTES, 'UTF-8') ?></code></td>
                                         <td><span class="table-primary-text"><?= htmlspecialchars($log[7], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text"><?= htmlspecialchars($log[8], ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td class="text-end"><button class="btn btn-light btn-icon" type="button" title="Review event" aria-label="Review activity <?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?>" data-record-json="<?= htmlspecialchars(json_encode(['reference' => $log[0], 'event' => $log[3], 'user' => $log[1], 'module' => $log[4], 'details' => $log[5], 'source' => $log[6], 'date' => $log[7], 'time' => $log[8]], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#activityDetailModal"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
+                                        <td class="text-end"><button class="btn btn-light btn-icon" type="button" title="Review event" aria-label="Review activity <?= htmlspecialchars($log[0], ENT_QUOTES, 'UTF-8') ?>" data-record-json="<?= htmlspecialchars(json_encode(['id' => $log[11], 'reference' => $log[0], 'event' => $log[3], 'user' => $log[1], 'module' => $log[4], 'details' => $log[5], 'source' => $log[6], 'date' => $log[7], 'time' => $log[8]], JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8') ?>" data-activity-review data-bs-toggle="modal" data-bs-target="#activityDetailModal"><i class="bi bi-eye" aria-hidden="true"></i></button></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -106,7 +107,7 @@ include '../../includes/header.php';
     </div>
 </div>
 
-<div class="modal fade" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
+<div class="modal" id="activityDetailModal" tabindex="-1" aria-labelledby="activityDetailModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
     <div class="modal-header"><div><h2 class="modal-title" id="activityDetailModalLabel">Activity event details</h2><p class="mb-0 mt-1 small text-body-secondary">Select an activity record to review it.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
     <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-activity"></i><h3>No event selected</h3><p>Event details are loaded from the activity log.</p></div></div>
     <div class="modal-footer"><button class="btn btn-brand" type="button" data-bs-dismiss="modal">Done</button></div>

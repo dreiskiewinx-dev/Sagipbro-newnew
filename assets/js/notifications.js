@@ -11,6 +11,7 @@
 
     let timer = null;
     let busy = false;
+    let unreadCount = 0;
 
     const relativeTime = (value) => {
         const date = new Date(String(value).replace(' ', 'T') + '+08:00');
@@ -23,8 +24,9 @@
         return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
     };
 
-    const request = async (method = 'GET', body = null) => {
+    const request = async (method = 'GET', body = null, keepalive = false) => {
         const options = { method, credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } };
+        options.keepalive = keepalive;
         if (body) {
             options.headers['Content-Type'] = 'application/json';
             options.headers['X-CSRF-Token'] = config.csrfToken;
@@ -34,6 +36,15 @@
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Unable to load notifications.');
         return payload;
+    };
+
+    const updateUnreadDisplay = (unread) => {
+        unreadCount = Math.max(0, unread);
+        count.hidden = unreadCount === 0;
+        count.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+        toggle.setAttribute('aria-label', unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications, none unread');
+        summary.textContent = unreadCount ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'You are all caught up';
+        readAll.hidden = unreadCount === 0;
     };
 
     const emptyState = (icon, message) => {
@@ -49,11 +60,7 @@
     };
 
     const render = (notifications, unread) => {
-        count.hidden = unread === 0;
-        count.textContent = unread > 99 ? '99+' : String(unread);
-        toggle.setAttribute('aria-label', unread ? `Notifications, ${unread} unread` : 'Notifications, none unread');
-        summary.textContent = unread ? `${unread} unread update${unread === 1 ? '' : 's'}` : 'You are all caught up';
-        readAll.hidden = unread === 0;
+        updateUnreadDisplay(unread);
         list.replaceChildren();
 
         if (!notifications.length) {
@@ -63,6 +70,7 @@
                 const link = document.createElement('a');
                 link.className = `notification-item${notification.unread ? ' is-unread' : ''}`;
                 link.href = notification.url;
+                link.dataset.notificationId = notification.id;
 
                 const icon = document.createElement('span');
                 icon.className = 'notification-icon';
@@ -95,6 +103,14 @@
         list.setAttribute('aria-busy', 'false');
     };
 
+    const markItemRead = (link) => {
+        if (!link.classList.contains('is-unread')) return false;
+        link.classList.remove('is-unread');
+        link.querySelector('.notification-unread-dot')?.remove();
+        updateUnreadDisplay(unreadCount - 1);
+        return true;
+    };
+
     const refresh = async () => {
         if (busy || document.hidden) return;
         busy = true;
@@ -121,6 +137,24 @@
             window.sagipbroToast?.(error.message, 'Notifications');
         } finally {
             readAll.disabled = false;
+        }
+    });
+    list.addEventListener('click', (event) => {
+        const link = event.target.closest('[data-notification-id]');
+        if (!link || !markItemRead(link)) return;
+
+        const beaconData = new FormData();
+        beaconData.set('action', 'mark_read');
+        beaconData.set('notification_id', link.dataset.notificationId);
+        beaconData.set('csrf_token', config.csrfToken);
+        const queued = typeof navigator.sendBeacon === 'function'
+            && navigator.sendBeacon(config.endpoint, beaconData);
+        if (!queued) {
+            request(
+                'POST',
+                { action: 'mark_read', notification_id: link.dataset.notificationId },
+                true
+            ).catch(() => {});
         }
     });
     toggle.addEventListener('show.bs.dropdown', refresh);

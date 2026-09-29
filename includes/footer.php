@@ -88,9 +88,9 @@ window.sagipbroPresence = {
 <?php endif; ?>
 <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.bundle.min.js?v=5.3.3"></script>
 <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/script.js"></script>
-<?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/crud-view.js"></script><?php endif; ?>
+<?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/crud-view.js?v=8"></script><?php endif; ?>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/dashboard.js"></script><?php endif; ?>
-<?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/notifications.js"></script><?php endif; ?>
+<?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/notifications.js?v=4"></script><?php endif; ?>
 <script>
 window.requestAnimationFrame(() => {
     window.requestAnimationFrame(() => document.documentElement.classList.remove('app-loading'));

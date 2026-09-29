@@ -1,4 +1,16 @@
 /* Administration shell and operational components */
+html { scroll-behavior: auto; }
+
+.admin-document {
+    scrollbar-width: thin;
+    scrollbar-color: #65b98a #edf5f0;
+}
+.admin-document::-webkit-scrollbar { width: 12px; }
+.admin-document::-webkit-scrollbar-track { background: #edf5f0; }
+.admin-document::-webkit-scrollbar-thumb { min-height: 48px; border: 3px solid #edf5f0; border-radius: 999px; background: #65b98a; }
+.admin-document::-webkit-scrollbar-thumb:hover { background: #398f62; }
+.admin-document::-webkit-scrollbar-button { width: 0; height: 0; display: none; }
+
 .admin-body {
     min-height: 100vh;
     overflow-x: hidden;
@@ -106,8 +118,7 @@
     gap: 1rem;
     padding: .75rem 1.65rem;
     border-bottom: 1px solid var(--line);
-    background: rgba(255,255,255,.95);
-    backdrop-filter: blur(12px);
+    background: #fff;
 }
 
 .admin-greeting { line-height: 1.25; }
@@ -155,6 +166,10 @@
 .notification-empty i { color: var(--green-600); font-size: 1.35rem; }
 .notification-footer { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .72rem 1rem; color: var(--green-700); background: #fbfcfb; font-size: .68rem; font-weight: 750; text-decoration: none; }
 .notification-footer:hover { color: var(--green-800); background: var(--green-50); }
+.notification-target-row > * { background: #fff4f2 !important; }
+.notification-target-row > *:first-child { box-shadow: inset 4px 0 #d14c41; }
+.activity-log-target { width: 1px; height: 1px; position: absolute; top: 0; left: 0; scroll-margin-top: 94px; pointer-events: none; }
+.activity-table-responsive { overflow-y: hidden; overscroll-behavior-y: auto; }
 .profile-menu { min-height: 44px; display: flex; align-items: center; gap: .55rem; border: 0; border-radius: .7rem; padding: .28rem .45rem; background: transparent; text-align: left; }
 .profile-menu:hover { background: var(--green-50); }
 .avatar { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; border-radius: .65rem; color: #fff; background: var(--green-700); font-size: .74rem; font-weight: 850; }
