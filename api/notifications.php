@@ -7,7 +7,6 @@ header('Cache-Control: no-store, private');
 
 $userId = (int) currentUserId();
 $role = (string) ($_SESSION['role'] ?? '');
-session_write_close();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data = requestData();

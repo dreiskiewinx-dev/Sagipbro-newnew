@@ -4,7 +4,6 @@ requireApiLogin(['admin', 'official']);
 header('Cache-Control: no-store, private');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    session_write_close();
     try {
         $messages = $conn->query('SELECT id, name, email, phone, sitio, subject, message, status, created_at FROM contact_messages ORDER BY created_at DESC, id DESC')->fetchAll();
         jsonResponse(['data' => $messages]);

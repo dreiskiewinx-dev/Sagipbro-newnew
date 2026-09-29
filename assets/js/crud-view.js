@@ -75,8 +75,12 @@
             if (isActivityTarget) {
                 const tableScroller = row?.closest('.table-responsive');
                 if (tableScroller) tableScroller.scrollLeft = 0;
-                if (document.readyState === 'complete') consumeRequestedRecord();
-                else window.addEventListener('load', consumeRequestedRecord, { once: true });
+                document.getElementById(`activity-log-target-${requestedRecordId}`)?.scrollIntoView({
+                    behavior: 'auto',
+                    block: 'start',
+                    inline: 'nearest'
+                });
+                consumeRequestedRecord();
             } else {
                 consumeRequestedRecord();
                 if (row) scrollVerticallyTo(row);

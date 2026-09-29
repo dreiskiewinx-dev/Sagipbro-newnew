@@ -61,6 +61,15 @@ function requireLogin()
         header('Location: ' . appUrl('login.php'));
         exit;
     }
+
+    // Read-only page requests do not need to hold PHP's exclusive session-file
+    // lock while queries and HTML render. Releasing it here prevents background
+    // notification/presence calls from queueing rapid page refreshes.
+    if (in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true)
+        && session_status() === PHP_SESSION_ACTIVE) {
+        csrfToken();
+        session_write_close();
+    }
 }
 
 function requireRole($roles)

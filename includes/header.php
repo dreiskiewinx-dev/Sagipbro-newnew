@@ -27,6 +27,84 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
             transition: none !important;
         }
     </style>
+    <script>
+    (() => {
+        const currentUrl = new URL(window.location.href);
+        const hasNotificationTarget = currentUrl.searchParams.has('view');
+        currentUrl.searchParams.delete('view');
+        currentUrl.hash = '';
+        const storageKey = `sagipbro:page-scroll:${currentUrl.pathname}${currentUrl.search}`;
+        const navigation = performance.getEntriesByType?.('navigation')?.[0];
+        const shouldRestore = !hasNotificationTarget && ['reload', 'back_forward'].includes(navigation?.type);
+        let savedPosition = null;
+        if (shouldRestore) {
+            try {
+                const value = Number.parseInt(window.sessionStorage.getItem(storageKey) || '', 10);
+                if (Number.isFinite(value) && value >= 0) savedPosition = value;
+            } catch (_) {}
+        }
+
+        if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
+
+        let userInteracted = false;
+        const markInteraction = () => { userInteracted = true; };
+        window.addEventListener('wheel', markInteraction, { passive: true, once: true });
+        window.addEventListener('touchstart', markInteraction, { passive: true, once: true });
+        window.addEventListener('pointerdown', markInteraction, { passive: true, once: true });
+        window.addEventListener('keydown', markInteraction, { passive: true, once: true });
+
+        const savePosition = () => {
+            try { window.sessionStorage.setItem(storageKey, String(Math.max(0, Math.round(window.scrollY)))); } catch (_) {}
+        };
+        let saveFrame = null;
+        window.addEventListener('scroll', () => {
+            if (saveFrame !== null) return;
+            saveFrame = window.requestAnimationFrame(() => {
+                saveFrame = null;
+                savePosition();
+            });
+        }, { passive: true });
+        window.addEventListener('pagehide', savePosition);
+        window.addEventListener('beforeunload', savePosition);
+
+        window.sagipbroRestorePagePosition = () => {
+            if (savedPosition === null || userInteracted) return;
+            const root = document.documentElement;
+            const previous = root.style.getPropertyValue('scroll-behavior');
+            const priority = root.style.getPropertyPriority('scroll-behavior');
+            root.style.setProperty('scroll-behavior', 'auto', 'important');
+            window.scrollTo(0, savedPosition);
+            if (previous) root.style.setProperty('scroll-behavior', previous, priority);
+            else root.style.removeProperty('scroll-behavior');
+        };
+
+        // Discard data left by the old refresh-overlay implementation. Native
+        // rendering is intentionally used so fresh text is never hidden.
+        try {
+            for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+                const key = window.sessionStorage.key(index);
+                if (key?.startsWith('sagipbro:refresh-snapshot:')) {
+                    window.sessionStorage.removeItem(key);
+                }
+            }
+        } catch (_) {}
+
+        // Remove the earlier service-worker refresh experiment immediately so
+        // reloads use the server response instead of a stale cached document.
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+                registrations
+                    .filter((registration) => registration.active?.scriptURL.endsWith('/service-worker.js'))
+                    .forEach((registration) => registration.unregister());
+            }).catch(() => {});
+        }
+        window.addEventListener('pageshow', (event) => {
+            if (!event.persisted) return;
+            userInteracted = false;
+            window.requestAnimationFrame(() => window.sagipbroRestorePagePosition?.());
+        });
+    })();
+    </script>
     <link rel="icon" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/images/sagipbro-mark.svg" type="image/svg+xml">
     <link rel="preload" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/fonts/bootstrap-icons.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.min.css?v=5.3.3">

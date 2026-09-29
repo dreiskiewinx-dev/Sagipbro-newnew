@@ -45,6 +45,9 @@ function requireApiLogin(array $roles = []): void
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         verifyCsrf();
     }
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
 }
 
 function requiredString(array $data, string $key, int $maxLength = 255): string

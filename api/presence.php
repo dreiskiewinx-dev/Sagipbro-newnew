@@ -11,7 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $userId = (int) currentUserId();
 $sessionHash = hash('sha256', session_id());
-session_write_close();
 
 try {
     $statement = $conn->prepare(
