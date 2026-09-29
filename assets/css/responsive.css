@@ -30,11 +30,12 @@
     .trust-grid { grid-template-columns: repeat(2, 1fr); }
     .trust-item:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
     .trust-item:nth-child(4) { border-top: 1px solid var(--line); }
-    .process-grid { gap: 1.25rem; }
-    .process-step { padding-left: 3.7rem; }
     .cta-panel { padding: 2.25rem; }
     .mission-panel { grid-template-columns: 1fr; gap: 2rem; }
     .mission-visual { min-height: 350px; }
+    .service-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .service-row, .service-row:nth-last-child(-n + 2) { grid-column: auto; }
+    .service-row:last-child { grid-column: 1 / -1; }
     .icon-card-grid, .public-resource-grid { grid-template-columns: repeat(2, 1fr); }
     .contact-layout { grid-template-columns: 1fr; }
 
@@ -65,8 +66,6 @@
     .emergency-message span { white-space: normal; }
     .quick-grid, .icon-card-grid, .public-resource-grid { grid-template-columns: 1fr; }
     .quick-card, .quick-card:last-child { grid-column: auto; min-height: 220px; }
-    .process-grid { grid-template-columns: 1fr; }
-    .process-step:not(:last-child)::after { width: 1px; height: 1.25rem; top: 3rem; left: 1.5rem; border-top: 0; border-left: 1px dashed var(--green-200); }
     .cta-panel { align-items: flex-start; flex-direction: column; padding: 1.7rem; }
     .cta-actions { width: 100%; flex-wrap: wrap; }
     .cta-actions .btn { flex: 1 1 180px; }
@@ -85,9 +84,11 @@
     .stat-band { grid-template-columns: repeat(2, 1fr); }
     .public-stat:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
     .public-stat:nth-child(4) { border-top: 1px solid var(--line); }
-    .service-row { grid-template-columns: 54px minmax(0,1fr); gap: 1rem; }
-    .service-row-icon { width: 52px; height: 52px; }
-    .service-row .service-number { display: none; }
+    .service-list { grid-template-columns: 1fr; }
+    .service-row, .service-row:nth-last-child(-n + 2), .service-row:last-child { grid-column: auto; }
+    .service-row-link { padding: 1.25rem; }
+    .service-row-icon { width: 52px; height: 52px; flex-basis: 52px; }
+    .service-row-copy { margin-top: 1rem; }
     .footer-grid { grid-template-columns: repeat(2, 1fr); }
     .footer-about { grid-column: 1 / -1; }
     .footer-emergency { grid-template-columns: 1fr; }

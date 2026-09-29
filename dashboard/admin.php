@@ -70,7 +70,7 @@ require __DIR__ . '/../includes/header.php';
                 </div>
             </section>
 
-            <section class="stat-grid" aria-label="Key operational totals">
+            <section class="stat-grid dashboard-stat-grid" aria-label="Key operational totals">
                 <article class="stat-card">
                     <div class="stat-card-top"><span class="stat-card-label">Total resources</span><span class="stat-card-icon"><i class="bi bi-box-seam" aria-hidden="true"></i></span></div>
                     <strong class="stat-value" data-dashboard-stat="resources"><?= (int) $dashboardStats['resources'] ?></strong>
@@ -137,7 +137,7 @@ require __DIR__ . '/../includes/header.php';
                                 <?php foreach ($lowStockItems as $item): ?>
                                     <li><span class="warning-icon"><i class="bi bi-exclamation-triangle"></i></span><span><strong><?= htmlspecialchars((string) $item['resource_name'], ENT_QUOTES, 'UTF-8') ?></strong><small>Threshold: <?= (int) $item['minimum_stock'] ?> <?= htmlspecialchars((string) $item['unit'], ENT_QUOTES, 'UTF-8') ?></small></span><span class="stock-count"><?= (int) $item['quantity'] ?> left</span></li>
                                 <?php endforeach; ?>
-                                <?php if (!$lowStockItems): ?><li class="text-body-secondary">No low-stock items.</li><?php endif; ?>
+                                <?php if (!$lowStockItems): ?><li class="stock-warning-empty text-body-secondary">No low-stock items.</li><?php endif; ?>
                             </ul>
                         </div>
                     </section>

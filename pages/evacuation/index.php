@@ -127,20 +127,20 @@ include '../../includes/header.php';
             </section>
 
             <div class="modal fade" id="addCenterModal" tabindex="-1" aria-labelledby="addCenterTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="addCenterForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="addCenterForm">
                     <div class="modal-header"><h2 class="modal-title" id="addCenterTitle">Add evacuation center</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Register a verified facility and its designated point of contact.</p><div class="row g-3">
                         <div class="col-md-8"><label class="form-label" for="addCenterName">Center name</label><input class="form-control" id="addCenterName" name="name" required></div>
                         <div class="col-md-4"><label class="form-label" for="addCenterStatus">Status</label><select class="form-select" id="addCenterStatus" name="status"><option>Open</option><option>Closed</option></select></div>
                         <div class="col-12"><label class="form-label" for="addCenterLocation">Complete location</label><input class="form-control" id="addCenterLocation" name="location" placeholder="Street or sitio, barangay, city" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="addCenterCapacity">Maximum capacity</label><input class="form-control" id="addCenterCapacity" name="capacity" type="number" min="1" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="addCenterOccupants">Current occupants</label><input class="form-control" id="addCenterOccupants" name="occupants" type="number" min="0" value="0" required></div>
-                        <div class="col-md-7"><label class="form-label" for="addCenterContact">Contact person</label><input class="form-control" id="addCenterContact" name="contact_person" required></div>
-                        <div class="col-md-5"><label class="form-label" for="addCenterPhone">Contact number</label><input class="form-control" id="addCenterPhone" name="contact_number" type="tel" placeholder="09XX XXX XXXX" required></div>
+                        <div class="col-md-8"><label class="form-label" for="addCenterCapacity">Maximum capacity</label><input class="form-control" id="addCenterCapacity" name="capacity" type="number" min="1" required></div>
+                        <div class="col-md-4"><label class="form-label" for="addCenterOccupants">Current occupants</label><input class="form-control" id="addCenterOccupants" name="occupants" type="number" min="0" value="0" required></div>
+                        <div class="col-md-8"><label class="form-label" for="addCenterContact">Contact person</label><input class="form-control" id="addCenterContact" name="contact_person" required></div>
+                        <div class="col-md-4"><label class="form-label" for="addCenterPhone">Contact number</label><input class="form-control" id="addCenterPhone" name="contact_number" type="tel" placeholder="09XX XXX XXXX" required></div>
                         <div class="col-12"><label class="form-label" for="addCenterNotes">Facilities and accessibility notes</label><textarea class="form-control" id="addCenterNotes" name="notes" rows="3" placeholder="Water access, accessible entrance, medical area, generator, or restrictions"></textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-plus-lg"></i> Add center</button></div>
-                </form></div></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="viewCenterModal" tabindex="-1" aria-labelledby="viewCenterTitle" aria-hidden="true">
@@ -152,20 +152,20 @@ include '../../includes/header.php';
             </div>
 
             <div class="modal fade" id="editCenterModal" tabindex="-1" aria-labelledby="editCenterTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="editCenterForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="editCenterForm">
                     <div class="modal-header"><h2 class="modal-title" id="editCenterTitle">Edit evacuation center</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Update occupancy only after confirming the latest registration count.</p><div class="row g-3">
                         <div class="col-md-8"><label class="form-label" for="editCenterName">Center name</label><input class="form-control" id="editCenterName" name="name" required></div>
                         <div class="col-md-4"><label class="form-label" for="editCenterStatus">Status</label><select class="form-select" id="editCenterStatus" name="status"><option>Open</option><option>Closed</option></select></div>
                         <div class="col-12"><label class="form-label" for="editCenterLocation">Complete location</label><input class="form-control" id="editCenterLocation" name="location" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="editCenterCapacity">Maximum capacity</label><input class="form-control" id="editCenterCapacity" name="capacity" type="number" min="1" required></div>
-                        <div class="col-sm-6"><label class="form-label" for="editCenterOccupants">Current occupants</label><input class="form-control" id="editCenterOccupants" name="occupants" type="number" min="0" required></div>
-                        <div class="col-md-7"><label class="form-label" for="editCenterContact">Contact person</label><input class="form-control" id="editCenterContact" name="contact_person" required></div>
-                        <div class="col-md-5"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" required></div>
+                        <div class="col-md-8"><label class="form-label" for="editCenterCapacity">Maximum capacity</label><input class="form-control" id="editCenterCapacity" name="capacity" type="number" min="1" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editCenterOccupants">Current occupants</label><input class="form-control" id="editCenterOccupants" name="occupants" type="number" min="0" required></div>
+                        <div class="col-md-8"><label class="form-label" for="editCenterContact">Contact person</label><input class="form-control" id="editCenterContact" name="contact_person" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" required></div>
                         <div class="col-12"><label class="form-label" for="editCenterNotes">Facilities and accessibility notes</label><textarea class="form-control" id="editCenterNotes" name="notes" rows="3"></textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
-                </form></div></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="deleteCenterModal" tabindex="-1" aria-labelledby="deleteCenterTitle" aria-hidden="true">

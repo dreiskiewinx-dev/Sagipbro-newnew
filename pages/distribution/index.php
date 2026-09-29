@@ -85,21 +85,29 @@ include '../../includes/header.php';
             </section>
 
             <div class="modal fade" id="addDistributionModal" tabindex="-1" aria-labelledby="addDistributionTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="addDistributionForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="addDistributionForm">
                     <div class="modal-header"><h2 class="modal-title" id="addDistributionTitle">Record relief distribution</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Confirm recipient details and available stock before releasing supplies.</p><div class="row g-3">
-                        <div class="col-md-8"><label class="form-label" for="addDistributionResource">Resource</label><select class="form-select" id="addDistributionResource" name="resource" required><option value="">Loading available resources…</option></select></div>
-                        <div class="col-md-4"><label class="form-label" for="addDistributionQuantity">Quantity</label><input class="form-control" id="addDistributionQuantity" name="quantity" type="number" min="1" required></div>
+                        <div class="col-md-8"><label class="form-label" for="addDistributionResource">Resource</label><select class="form-select" id="addDistributionResource" name="resource" aria-describedby="addDistributionResourceHelp" required><option value="">Loading available resources…</option></select><div class="form-text" id="addDistributionResourceHelp" aria-live="polite">Loading current inventory…</div></div>
+                        <div class="col-md-4"><label class="form-label" for="addDistributionQuantity">Quantity</label><input class="form-control" id="addDistributionQuantity" name="quantity" type="number" min="1" inputmode="numeric" aria-describedby="addDistributionQuantityHelp" required disabled><div class="form-text" id="addDistributionQuantityHelp" aria-live="polite">Select an in-stock resource first.</div></div>
                         <div class="col-md-8"><label class="form-label" for="addDistributionRecipient">Recipient or household</label><input class="form-control" id="addDistributionRecipient" name="recipient" placeholder="Search resident, household, or response unit" required></div>
                         <div class="col-md-4"><label class="form-label" for="addDistributionRecipientId">Resident / household ID</label><input class="form-control" id="addDistributionRecipientId" name="recipient_id" placeholder="Optional reference"></div>
-                        <div class="col-md-7"><label class="form-label" for="addDistributionLocation">Distribution location</label><input class="form-control" id="addDistributionLocation" name="location" required></div>
-                        <div class="col-md-5"><label class="form-label" for="addDistributionDate">Date and time</label><input class="form-control" id="addDistributionDate" name="distributed_at" type="datetime-local" value="<?= htmlspecialchars(date('Y-m-d\TH:i'), ENT_QUOTES, 'UTF-8') ?>" required></div>
-                        <div class="col-md-7"><label class="form-label" for="addDistributedBy">Distributed by</label><input class="form-control" id="addDistributedBy" name="distributed_by" value="<?= htmlspecialchars((string) ($_SESSION['full_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" readonly></div>
-                        <div class="col-md-5"><label class="form-label" for="addDistributionStatus">Verification status</label><select class="form-select" id="addDistributionStatus" name="status"><option>Completed</option><option>Pending review</option></select></div>
+                        <div class="col-md-8"><label class="form-label" for="addDistributionLocation">Distribution location</label><input class="form-control" id="addDistributionLocation" name="location" required></div>
+                        <div class="col-md-4"><label class="form-label" for="addDistributionDate">Date and time</label><input class="form-control" id="addDistributionDate" name="distributed_at" type="datetime-local" value="<?= htmlspecialchars(date('Y-m-d\TH:i'), ENT_QUOTES, 'UTF-8') ?>" required></div>
+                        <div class="col-md-8"><label class="form-label" for="addDistributedBy">Distributed by</label><input class="form-control" id="addDistributedBy" name="distributed_by" value="<?= htmlspecialchars((string) ($_SESSION['full_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" readonly></div>
+                        <div class="col-md-4">
+                            <span class="form-label d-block" id="addDistributionStatusLabel">Verification status</span>
+                            <div class="distribution-status-toggle" role="radiogroup" aria-labelledby="addDistributionStatusLabel">
+                                <input class="btn-check" id="addDistributionCompleted" name="status" type="radio" value="Completed" checked>
+                                <label class="distribution-status-option" for="addDistributionCompleted"><i class="bi bi-check2-circle" aria-hidden="true"></i> Completed</label>
+                                <input class="btn-check" id="addDistributionPending" name="status" type="radio" value="Pending review">
+                                <label class="distribution-status-option" for="addDistributionPending"><i class="bi bi-clock-history" aria-hidden="true"></i> Pending review</label>
+                            </div>
+                        </div>
                         <div class="col-12"><label class="form-label" for="addDistributionNotes">Notes</label><textarea class="form-control" id="addDistributionNotes" name="notes" rows="3" placeholder="Household circumstances, authorization, or release notes"></textarea></div>
-                    </div><div class="info-callout mt-3"><i class="bi bi-box-seam"></i><div><strong>Stock control</strong><span>Submitting this record will deduct the issued quantity from available stock in a connected build.</span></div></div></div>
-                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check2-circle"></i> Record distribution</button></div>
-                </form></div></div>
+                    </div><div class="info-callout mt-3"><i class="bi bi-box-seam"></i><div><strong>Stock control</strong><span>Submitting this record deducts the issued quantity from available stock. <a href="../resources/index.php">Manage inventory</a></span></div></div></div>
+                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><a class="btn btn-brand d-none" href="../resources/index.php" data-add-inventory-action><i class="bi bi-plus-lg" aria-hidden="true"></i> Add inventory</a><button class="btn btn-brand" type="submit" data-record-distribution-action disabled><i class="bi bi-check2-circle" aria-hidden="true"></i> Record distribution</button></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="viewDistributionModal" tabindex="-1" aria-labelledby="viewDistributionTitle" aria-hidden="true">
@@ -111,21 +119,29 @@ include '../../includes/header.php';
             </div>
 
             <div class="modal fade" id="editDistributionModal" tabindex="-1" aria-labelledby="editDistributionTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="editDistributionForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="editDistributionForm">
                     <div class="modal-header"><h2 class="modal-title" id="editDistributionTitle">Edit distribution</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Changes to quantity should be reconciled against inventory and the activity log.</p><div class="row g-3">
                         <div class="col-md-8"><label class="form-label" for="editDistributionResource">Resource</label><select class="form-select" id="editDistributionResource" name="resource"><option value="">Loading resources…</option></select></div>
                         <div class="col-md-4"><label class="form-label" for="editDistributionQuantity">Quantity</label><input class="form-control" id="editDistributionQuantity" name="quantity" type="number" min="1" required></div>
                         <div class="col-md-8"><label class="form-label" for="editDistributionRecipient">Recipient</label><input class="form-control" id="editDistributionRecipient" name="recipient" required></div>
                         <div class="col-md-4"><label class="form-label" for="editDistributionRecipientId">Household ID</label><input class="form-control" id="editDistributionRecipientId" name="recipient_id"></div>
-                        <div class="col-md-7"><label class="form-label" for="editDistributionLocation">Location</label><input class="form-control" id="editDistributionLocation" name="location" required></div>
-                        <div class="col-md-5"><label class="form-label" for="editDistributionDate">Date and time</label><input class="form-control" id="editDistributionDate" name="distributed_at" type="datetime-local" required></div>
-                        <div class="col-md-7"><label class="form-label" for="editDistributedBy">Distributed by</label><input class="form-control" id="editDistributedBy" name="distributed_by" readonly></div>
-                        <div class="col-md-5"><label class="form-label" for="editDistributionStatus">Verification</label><select class="form-select" id="editDistributionStatus" name="status"><option>Completed</option><option>Pending review</option></select></div>
+                        <div class="col-md-8"><label class="form-label" for="editDistributionLocation">Location</label><input class="form-control" id="editDistributionLocation" name="location" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editDistributionDate">Date and time</label><input class="form-control" id="editDistributionDate" name="distributed_at" type="datetime-local" required></div>
+                        <div class="col-md-8"><label class="form-label" for="editDistributedBy">Distributed by</label><input class="form-control" id="editDistributedBy" name="distributed_by" readonly></div>
+                        <div class="col-md-4">
+                            <span class="form-label d-block" id="editDistributionStatusLabel">Verification status</span>
+                            <div class="distribution-status-toggle" role="radiogroup" aria-labelledby="editDistributionStatusLabel">
+                                <input class="btn-check" id="editDistributionCompleted" name="status" type="radio" value="Completed" checked>
+                                <label class="distribution-status-option" for="editDistributionCompleted"><i class="bi bi-check2-circle" aria-hidden="true"></i> Completed</label>
+                                <input class="btn-check" id="editDistributionPending" name="status" type="radio" value="Pending review">
+                                <label class="distribution-status-option" for="editDistributionPending"><i class="bi bi-clock-history" aria-hidden="true"></i> Pending review</label>
+                            </div>
+                        </div>
                         <div class="col-12"><label class="form-label" for="editDistributionNotes">Notes</label><textarea class="form-control" id="editDistributionNotes" name="notes" rows="3">Four-person household; priority lane.</textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
-                </form></div></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="deleteDistributionModal" tabindex="-1" aria-labelledby="deleteDistributionTitle" aria-hidden="true">

@@ -31,12 +31,82 @@
     const fillResourceOptions = () => {
         document.querySelectorAll('select[name="resource"], select[name="resource_id"]').forEach((select) => {
             const selected = select.value;
-            select.innerHTML = '<option value="">Select resource</option>' + resources.map((resource) =>
-                `<option value="${resource.id}">${escapeHtml(resource.name)} (${Number(resource.stock).toLocaleString()} ${escapeHtml(resource.unit)})</option>`
-            ).join('');
+            const isAddForm = select.form === addForm;
+            if (!resources.length) {
+                select.innerHTML = '<option value="">No resources available - add inventory first</option>';
+                select.disabled = false;
+                return;
+            }
+            select.disabled = false;
+            select.innerHTML = '<option value="">Select resource</option>' + resources.map((resource) => {
+                const stock = Number(resource.stock);
+                const unavailable = isAddForm && stock < 1 ? ' disabled' : '';
+                const stockLabel = stock > 0 ? `${stock.toLocaleString()} ${escapeHtml(resource.unit)}` : 'Out of stock';
+                return `<option value="${resource.id}"${unavailable}>${escapeHtml(resource.name)} (${stockLabel})</option>`;
+            }).join('');
             select.value = selected;
         });
+        syncAddFormState();
     };
+    const syncAddFormState = () => {
+        const resourceSelect = addForm.elements.resource;
+        const quantity = addForm.elements.quantity;
+        const submitButton = addForm.querySelector('[data-record-distribution-action]');
+        const inventoryAction = addForm.querySelector('[data-add-inventory-action]');
+        const resourceHelp = document.getElementById('addDistributionResourceHelp');
+        const quantityHelp = document.getElementById('addDistributionQuantityHelp');
+        const hasStockedResource = resources.some((resource) => Number(resource.stock) > 0);
+        const selectedResource = resources.find((resource) => String(resource.id) === String(resourceSelect?.value || ''));
+        const availableStock = selectedResource ? Number(selectedResource.stock) : 0;
+        const canEnterQuantity = Boolean(selectedResource && Number.isFinite(availableStock) && availableStock > 0);
+
+        inventoryAction?.classList.toggle('d-none', hasStockedResource);
+        submitButton?.classList.toggle('d-none', !hasStockedResource);
+
+        if (resourceHelp) {
+            resourceHelp.textContent = !resources.length
+                ? 'No inventory records yet. Add a resource to continue.'
+                : (!hasStockedResource
+                    ? 'All resources are out of stock. Update inventory to continue.'
+                    : 'Choose an in-stock resource for this release.');
+        }
+
+        if (quantity) {
+            quantity.disabled = !canEnterQuantity;
+            if (canEnterQuantity) {
+                quantity.max = String(availableStock);
+            } else {
+                quantity.value = '';
+                quantity.removeAttribute('max');
+            }
+        }
+
+        const enteredQuantity = quantity?.value.trim() || '';
+        const quantityValue = Number(enteredQuantity);
+        const validQuantity = canEnterQuantity
+            && enteredQuantity !== ''
+            && Number.isInteger(quantityValue)
+            && quantityValue >= 1
+            && quantityValue <= availableStock;
+
+        if (quantityHelp) {
+            if (!resources.length) {
+                quantityHelp.textContent = 'Add inventory before entering a quantity.';
+            } else if (!hasStockedResource) {
+                quantityHelp.textContent = 'Restock a resource before entering a quantity.';
+            } else if (!selectedResource) {
+                quantityHelp.textContent = 'Select an in-stock resource first.';
+            } else if (quantityValue > availableStock) {
+                quantityHelp.textContent = `Only ${availableStock.toLocaleString()} ${selectedResource.unit} available.`;
+            } else {
+                quantityHelp.textContent = `Available stock: ${availableStock.toLocaleString()} ${selectedResource.unit}.`;
+            }
+        }
+
+        if (submitButton) submitButton.disabled = !validQuantity;
+    };
+    addForm.elements.resource?.addEventListener('change', syncAddFormState);
+    addForm.elements.quantity?.addEventListener('input', syncAddFormState);
     const payload = (form) => {
         const data = Object.fromEntries(new FormData(form).entries());
         return {
@@ -95,7 +165,10 @@
         editForm.elements.location.value = distribution.location || '';
         editForm.elements.distributed_at.value = localDateTime(distribution.distributed_at);
         editForm.elements.distributed_by.value = distribution.distributed_by_name || '';
-        editForm.elements.status.value = distribution.status || 'Completed';
+        const status = distribution.status || 'Completed';
+        editForm.querySelectorAll('input[name="status"]').forEach((input) => {
+            input.checked = input.value === status;
+        });
         editForm.elements.notes.value = distribution.remarks || '';
     };
     const submit = async (form, method, body) => {
@@ -110,7 +183,8 @@
         } catch (error) {
             window.sagipbroToast?.(error.message, 'Request failed');
         } finally {
-            if (button) button.disabled = false;
+            if (form === addForm) syncAddFormState();
+            else if (button) button.disabled = false;
         }
     };
     document.addEventListener('sagipbro:record-viewed', (event) => {

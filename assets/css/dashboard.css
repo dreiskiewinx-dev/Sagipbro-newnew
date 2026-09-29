@@ -199,6 +199,7 @@
 .dashboard-date strong { display: block; color: #fff; font-size: .78rem; }
 
 .stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.dashboard-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .stat-card { position: relative; overflow: hidden; padding: 1.15rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }
 .stat-card-top { display: flex; align-items: start; justify-content: space-between; gap: .7rem; }
 .stat-card-label { color: var(--ink-500); font-size: .69rem; font-weight: 700; }
@@ -226,6 +227,7 @@
 .warning-card .data-card-header h2 { color: #79521a; }
 .stock-warning-list { display: grid; gap: .8rem; margin: 0; padding: 0; list-style: none; }
 .stock-warning-list li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: .65rem; }
+.stock-warning-list li.stock-warning-empty { min-height: 4.5rem; display: flex; align-items: center; justify-content: center; width: 100%; text-align: center; }
 .stock-warning-list .warning-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: .6rem; color: var(--amber-700); background: var(--amber-100); }
 .stock-warning-list strong, .stock-warning-list small { display: block; }
 .stock-warning-list strong { color: var(--ink-900); font-size: .74rem; }
@@ -274,10 +276,17 @@
 .record-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .record-summary span { color: var(--ink-500); font-size: .67rem; }
 
+.distribution-status-toggle { min-height: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .2rem; padding: .2rem; border: 1px solid #ccdcd3; border-radius: .65rem; background: var(--surface-soft); }
+.distribution-status-option { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .3rem; margin: 0; border-radius: .45rem; padding: .45rem .35rem; color: var(--ink-600); font-size: .67rem; font-weight: 750; line-height: 1.15; text-align: center; white-space: nowrap; cursor: pointer; transition: color .15s ease, background-color .15s ease, box-shadow .15s ease; }
+.distribution-status-toggle .btn-check:checked + .distribution-status-option { color: #fff; background: var(--green-700); box-shadow: 0 2px 6px rgba(11, 93, 59, .18); }
+.distribution-status-toggle .btn-check[value="Pending review"]:checked + .distribution-status-option { color: #79521a; background: var(--amber-100); box-shadow: 0 2px 6px rgba(154, 94, 8, .12); }
+.distribution-status-toggle .btn-check:focus-visible + .distribution-status-option { outline: 3px solid rgba(32, 135, 91, .34); outline-offset: 2px; }
+
 .info-callout { display: flex; align-items: flex-start; gap: .7rem; padding: .8rem .9rem; border: 1px solid #cce2ef; border-radius: .72rem; color: #275a79; background: #edf7fc; font-size: .7rem; }
 .info-callout i { flex: 0 0 auto; font-size: .9rem; }
 .info-callout strong, .info-callout span { display: block; }
 .info-callout strong { margin-bottom: .12rem; }
+.info-callout a { color: inherit; font-weight: 800; }
 
 .report-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .report-card { display: flex; flex-direction: column; padding: 1.15rem; border: 1px solid var(--line); border-radius: var(--radius-md); background: #fff; box-shadow: var(--shadow-sm); }

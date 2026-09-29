@@ -85,7 +85,7 @@ include '../../includes/header.php';
             </section>
 
             <div class="modal fade" id="addAnnouncementModal" tabindex="-1" aria-labelledby="addAnnouncementTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="addAnnouncementForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="addAnnouncementForm">
                     <div class="modal-header"><h2 class="modal-title" id="addAnnouncementTitle">Create announcement</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Use plain language, state the affected area, and include only confirmed instructions.</p><div class="row g-3">
                         <div class="col-12"><label class="form-label" for="addAnnouncementHeading">Title</label><input class="form-control" id="addAnnouncementHeading" name="title" maxlength="180" placeholder="Clear and specific announcement title" required></div>
@@ -96,8 +96,8 @@ include '../../includes/header.php';
                         <div class="col-md-6"><label class="form-label" for="addAnnouncementDate">Publish date and time</label><input class="form-control" id="addAnnouncementDate" name="published_at" type="datetime-local" value="<?= htmlspecialchars(date('Y-m-d\TH:i'), ENT_QUOTES, 'UTF-8') ?>"></div>
                         <div class="col-md-6"><label class="form-label" for="addAnnouncementAuthor">Author</label><input class="form-control" id="addAnnouncementAuthor" name="author" value="<?= htmlspecialchars((string) ($_SESSION['full_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" readonly></div>
                     </div><div class="info-callout mt-3"><i class="bi bi-shield-check"></i><div><strong>Verification reminder</strong><span>Emergency announcements should be approved by the incident lead before publication.</span></div></div></div>
-                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-outline-brand" type="submit" name="intent" value="draft"><i class="bi bi-file-earmark"></i> Save draft</button><button class="btn btn-brand" type="submit" name="intent" value="publish"><i class="bi bi-send"></i> Publish</button></div>
-                </form></div></div>
+                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg" aria-hidden="true"></i> Confirm announcement</button></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="viewAnnouncementModal" tabindex="-1" aria-labelledby="viewAnnouncementTitle" aria-hidden="true">
@@ -109,7 +109,7 @@ include '../../includes/header.php';
             </div>
 
             <div class="modal fade" id="editAnnouncementModal" tabindex="-1" aria-labelledby="editAnnouncementTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form id="editAnnouncementForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="editAnnouncementForm">
                     <div class="modal-header"><h2 class="modal-title" id="editAnnouncementTitle">Edit announcement</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="modal-intro">Editing a published announcement will create a new activity-log entry.</p><div class="row g-3">
                         <div class="col-12"><label class="form-label" for="editAnnouncementHeading">Title</label><input class="form-control" id="editAnnouncementHeading" name="title" maxlength="180" required></div>
@@ -121,7 +121,7 @@ include '../../includes/header.php';
                         <div class="col-md-6"><label class="form-label" for="editAnnouncementRevision">Revision note</label><input class="form-control" id="editAnnouncementRevision" name="revision_note" placeholder="Brief reason for this update"></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
-                </form></div></div>
+                </form></div>
             </div>
 
             <div class="modal fade" id="deleteAnnouncementModal" tabindex="-1" aria-labelledby="deleteAnnouncementTitle" aria-hidden="true">
