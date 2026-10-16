@@ -49,7 +49,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare('UPDATE users SET password_hash = ?, force_password_change = 0, password_changed_at = NOW() WHERE id = ?');
             $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $profileUserId]);
             $recordProfileActivity('change-password');
-            $profileRedirect('success', 'Password changed successfully.');
+            try {
+                $sessionHash = hash('sha256', session_id());
+                $sessionStatement = $conn->prepare('UPDATE user_sessions SET signed_out_at = NOW(), last_seen_at = NOW() WHERE session_hash = ?');
+                $sessionStatement->execute([$sessionHash]);
+            } catch (Throwable $e) {
+                error_log('Session presence could not be closed after password change (' . get_class($e) . ').');
+            }
+
+            $cookieParams = session_get_cookie_params();
+            $_SESSION = [];
+            if (ini_get('session.use_cookies')) {
+                setcookie(session_name(), '', [
+                    'expires' => time() - 42000,
+                    'path' => $cookieParams['path'],
+                    'domain' => $cookieParams['domain'],
+                    'secure' => $cookieParams['secure'],
+                    'httponly' => $cookieParams['httponly'],
+                    'samesite' => $cookieParams['samesite'] ?? 'Lax',
+                ]);
+            }
+            session_destroy();
+            header('Location: ' . appUrl('login.php') . '?' . http_build_query([
+                'success' => 'Password changed successfully. Sign in using your new password.',
+            ]));
+            exit;
         }
         $profileRedirect('error', 'Unknown profile action.');
     } catch (Throwable $e) {
