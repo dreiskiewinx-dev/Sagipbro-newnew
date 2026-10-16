@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $position = trim((string) ($_POST['position'] ?? ''));
             $contact = trim((string) ($_POST['contact'] ?? ''));
             $language = in_array($_POST['language'] ?? '', ['English', 'Filipino'], true) ? $_POST['language'] : 'English';
-            if ($fullName === '' || strlen($fullName) > 150 || $email === false || strlen($contact) > 30 || strlen($position) > 150) {
+            if ($fullName === '' || strlen($fullName) > 150 || $email === false || strlen($contact) > 11 || strlen($position) > 150) {
                 $profileRedirect('error', 'Enter valid profile information.');
             }
             $stmt = $conn->prepare('UPDATE users SET full_name = ?, email = ?, position = ?, contact = ?, language = ? WHERE id = ?');
@@ -161,7 +161,7 @@ include '../../includes/header.php';
                                     <div class="col-md-6"><label class="form-label" for="profileFullName">Full name <span class="required-mark">*</span></label><input class="form-control" id="profileFullName" name="full_name" value="<?= htmlspecialchars($profileName, ENT_QUOTES, 'UTF-8') ?>" required autocomplete="name"></div>
                                     <div class="col-md-6"><label class="form-label" for="profilePosition">Barangay position</label><input class="form-control" id="profilePosition" name="position" value="<?= htmlspecialchars((string) ($profile['position'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"></div>
                                     <div class="col-md-6"><label class="form-label" for="profileEmail">Email address <span class="required-mark">*</span></label><input class="form-control" id="profileEmail" name="email" type="email" value="<?= htmlspecialchars((string) ($profile['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" required autocomplete="email"></div>
-                                    <div class="col-md-6"><label class="form-label" for="profileContact">Contact number</label><input class="form-control" id="profileContact" name="contact" type="tel" value="<?= htmlspecialchars((string) ($profile['contact'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" autocomplete="tel"></div>
+                                    <div class="col-md-6"><label class="form-label" for="profileContact">Contact number</label><input class="form-control" id="profileContact" name="contact" type="tel" maxlength="11" value="<?= htmlspecialchars((string) ($profile['contact'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" autocomplete="tel"></div>
                                     <div class="col-md-6"><label class="form-label" for="profileUsername">Username</label><input class="form-control" id="profileUsername" value="<?= htmlspecialchars((string) $profile['username'], ENT_QUOTES, 'UTF-8') ?>" disabled aria-describedby="usernameLockedHelp"><div class="form-text" id="usernameLockedHelp">Contact a system administrator to change your username.</div></div>
                                     <div class="col-md-6"><label class="form-label" for="profileLanguage">Interface language</label><select class="form-select" id="profileLanguage" name="language"><option<?= $profile['language'] === 'English' ? ' selected' : '' ?>>English</option><option<?= $profile['language'] === 'Filipino' ? ' selected' : '' ?>>Filipino</option></select></div>
                                 </div>

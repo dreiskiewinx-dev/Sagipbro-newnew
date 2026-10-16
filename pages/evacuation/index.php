@@ -136,7 +136,7 @@ include '../../includes/header.php';
                         <div class="col-md-8"><label class="form-label" for="addCenterCapacity">Maximum capacity</label><input class="form-control" id="addCenterCapacity" name="capacity" type="number" min="1" required></div>
                         <div class="col-md-4"><label class="form-label" for="addCenterOccupants">Current occupants</label><input class="form-control" id="addCenterOccupants" name="occupants" type="number" min="0" value="0" required></div>
                         <div class="col-md-8"><label class="form-label" for="addCenterContact">Contact person</label><input class="form-control" id="addCenterContact" name="contact_person" required></div>
-                        <div class="col-md-4"><label class="form-label" for="addCenterPhone">Contact number</label><input class="form-control" id="addCenterPhone" name="contact_number" type="tel" placeholder="09XX XXX XXXX" required></div>
+                        <div class="col-md-4"><label class="form-label" for="addCenterPhone">Contact number</label><input class="form-control" id="addCenterPhone" name="contact_number" type="tel" maxlength="11" placeholder="09XXXXXXXXX" required></div>
                         <div class="col-12"><label class="form-label" for="addCenterNotes">Facilities and accessibility notes</label><textarea class="form-control" id="addCenterNotes" name="notes" rows="3" placeholder="Water access, accessible entrance, medical area, generator, or restrictions"></textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-plus-lg"></i> Add center</button></div>
@@ -161,7 +161,7 @@ include '../../includes/header.php';
                         <div class="col-md-8"><label class="form-label" for="editCenterCapacity">Maximum capacity</label><input class="form-control" id="editCenterCapacity" name="capacity" type="number" min="1" required></div>
                         <div class="col-md-4"><label class="form-label" for="editCenterOccupants">Current occupants</label><input class="form-control" id="editCenterOccupants" name="occupants" type="number" min="0" required></div>
                         <div class="col-md-8"><label class="form-label" for="editCenterContact">Contact person</label><input class="form-control" id="editCenterContact" name="contact_person" required></div>
-                        <div class="col-md-4"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" required></div>
+                        <div class="col-md-4"><label class="form-label" for="editCenterPhone">Contact number</label><input class="form-control" id="editCenterPhone" name="contact_number" type="tel" maxlength="11" required></div>
                         <div class="col-12"><label class="form-label" for="editCenterNotes">Facilities and accessibility notes</label><textarea class="form-control" id="editCenterNotes" name="notes" rows="3"></textarea></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>

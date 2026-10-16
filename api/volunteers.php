@@ -23,12 +23,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 requireApiLogin(['admin', 'official']);
 $data = requestData();
+$email = trim((string) ($data['email'] ?? ''));
+if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+    jsonResponse(['error' => 'Enter a valid email address.'], 422);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt = $conn->prepare('INSERT INTO volunteers (full_name, contact, email, availability, skills, assignment, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, \'Active\')');
     $stmt->execute([
-        requiredString($data, 'full_name', 150), requiredString($data, 'contact', 30),
-        $data['email'] ?? null, requiredString($data, 'availability', 80), requiredString($data, 'skills', 255),
+        requiredString($data, 'full_name', 150), requiredString($data, 'contact', 11),
+        $email ?: null, requiredString($data, 'availability', 80), requiredString($data, 'skills', 255),
         $data['assignment'] ?? null, $data['notes'] ?? null
     ]);
     $id = (int) $conn->lastInsertId();
@@ -44,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     if (!$exists->fetchColumn()) jsonResponse(['error' => 'Volunteer not found.'], 404);
     $stmt = $conn->prepare('UPDATE volunteers SET full_name = ?, contact = ?, email = ?, availability = ?, skills = ?, assignment = ?, notes = ?, status = ? WHERE id = ?');
     $stmt->execute([
-        requiredString($data, 'full_name', 150), requiredString($data, 'contact', 30), $data['email'] ?? null,
+        requiredString($data, 'full_name', 150), requiredString($data, 'contact', 11), $email ?: null,
         requiredString($data, 'availability', 80), requiredString($data, 'skills', 255), $data['assignment'] ?? null,
         $data['notes'] ?? null, $status, $id
     ]);

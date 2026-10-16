@@ -18,6 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 }
 requireApiLogin(['admin', 'official']);
 $data = requestData();
+$contactNumber = trim((string) ($data['contact'] ?? $data['contact_number'] ?? ''));
+if (strlen($contactNumber) > 11) {
+	jsonResponse(['error' => 'Contact number must be 11 characters or fewer.'], 422);
+}
 $resolveHouseholdId = static function ($value, ?string $address = null, bool $create = false) use ($conn): ?int {
 	if ($value === null || $value === '') {
 	return null;
@@ -68,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$lastName,
 	trim((string) ($data['birth_date'] ?? '')) ?: null,
 	$gender,
-	$data['contact'] ?? $data['contact_number'] ?? null,
+	$contactNumber ?: null,
 	$address,
 	$data['priority_group'] ?? $data['vulnerable_group'] ?? 'None'
 	]);
@@ -108,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 	$lastName,
 	$sex,
 	trim((string) ($data['birth_date'] ?? '')) ?: null,
-	$data['contact'] ?? $data['contact_number'] ?? null,
+	$contactNumber ?: null,
 	$address,
 	$data['priority_group'] ?? $data['vulnerable_group'] ?? 'None',
 	$status,

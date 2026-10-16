@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ($contactValues as $field => $value) {
         $contactValues[$field] = is_string($_POST[$field] ?? null) ? trim($_POST[$field]) : '';
     }
-    $limits = ['name' => 120, 'email' => 160, 'phone' => 30, 'sitio' => 100, 'message' => 1500];
+    $limits = ['name' => 120, 'email' => 160, 'phone' => 11, 'sitio' => 100, 'message' => 1500];
     foreach ($limits as $field => $limit) {
         if (($field !== 'phone' && $contactValues[$field] === '') || mb_strlen($contactValues[$field]) > $limit) {
             $contactError = 'Please complete the required fields within the allowed lengths.';
@@ -134,15 +134,15 @@ include __DIR__ . '/includes/navbar.php';
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label" for="contactName">Full name <span class="required-mark" aria-hidden="true">*</span></label>
-                                <input class="form-control" id="contactName" name="name" type="text" autocomplete="name" maxlength="120" required aria-required="true">
+                                <input class="form-control" id="contactName" name="name" type="text" autocomplete="name" maxlength="120" placeholder="e.g. Juan Dela Cruz" required aria-required="true">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="contactEmail">Email address <span class="required-mark" aria-hidden="true">*</span></label>
-                                <input class="form-control" id="contactEmail" name="email" type="email" autocomplete="email" maxlength="160" required aria-required="true">
+                                <input class="form-control" id="contactEmail" name="email" type="email" autocomplete="email" maxlength="160" placeholder="e.g. juan@example.com" required aria-required="true">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="contactPhone">Contact number</label>
-                                <input class="form-control" id="contactPhone" name="phone" type="tel" autocomplete="tel" maxlength="30" inputmode="tel" placeholder="09XX XXX XXXX">
+                                <input class="form-control" id="contactPhone" name="phone" type="tel" autocomplete="tel" maxlength="11" inputmode="tel" placeholder="09XXXXXXXXX">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="contactSitio">Sitio <span class="required-mark" aria-hidden="true">*</span></label>
