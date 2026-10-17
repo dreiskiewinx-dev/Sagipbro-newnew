@@ -4,12 +4,14 @@ require_once __DIR__ . '/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 	requireApiLogin();
+	$showArchived = ($_GET['view'] ?? '') === 'archived';
 	$stmt = $conn->query(
 		"SELECT id, name, category, unit, stock, low_stock_threshold, location, notes, status, created_at, updated_at,
+				(status = 'Inactive') AS is_archived,
 				CASE WHEN stock = 0 THEN 'Out of stock'
 					 WHEN stock <= low_stock_threshold THEN 'Low stock'
 					 ELSE 'In stock' END AS stock_status
-		 FROM resources WHERE status <> 'Inactive' ORDER BY name"
+		 FROM resources WHERE status " . ($showArchived ? "= 'Inactive'" : "<> 'Inactive'") . " ORDER BY name"
 	);
 	jsonResponse(['data' => $stmt->fetchAll()]);
 }
@@ -36,6 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $id = positiveInt($data, 'id');
 if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+	if (($data['action'] ?? '') === 'restore') {
+		$stmt = $conn->prepare("UPDATE resources SET status = 'Available' WHERE id = ? AND status = 'Inactive'");
+		$stmt->execute([$id]);
+		if (!$stmt->rowCount()) jsonResponse(['error' => 'Archived resource not found.'], 404);
+		logActivity($conn, 'restore', 'resource', $id);
+		jsonResponse(['message' => 'Resource restored to active inventory.']);
+	}
 	$name = requiredString($data, 'name', 120);
 	$category = requiredString($data, 'category', 80);
 	$unit = requiredString($data, 'unit', 30);
@@ -59,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 	if (!$stmt->rowCount()) {
 		jsonResponse(['error' => 'Resource not found.'], 404);
 	}
-	logActivity($conn, 'delete', 'resource', $id);
+	logActivity($conn, 'archive', 'resource', $id);
 	jsonResponse(['message' => 'Resource archived.']);
 }
 

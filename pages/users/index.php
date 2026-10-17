@@ -48,7 +48,7 @@ include '../../includes/header.php';
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="userAccountsHeading">System users</h2><p>Account identities, roles, status, and recent access.</p></div><span class="status-badge status-success">Access controls active</span></div>
                     <div class="table-responsive">
-                        <table class="table app-table" id="usersTable">
+                        <table class="table app-table" id="usersTable" data-pagination="users">
                             <caption class="visually-hidden">SAGIPBRO user accounts</caption>
                             <thead><tr><th scope="col">User</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Email</th><th scope="col">Last login</th><th scope="col">Sign-in status</th><th scope="col">Account access</th><th scope="col" class="text-end">Actions</th></tr></thead>
                             <tbody>

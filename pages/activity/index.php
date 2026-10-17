@@ -81,7 +81,7 @@ include '../../includes/header.php';
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="activityHistoryHeading">System activity history</h2><p>Security, data changes, announcements, distributions, and report events.</p></div><span class="status-badge status-success">Logging active</span></div>
                     <div class="table-responsive activity-table-responsive">
-                        <table class="table app-table" id="activityLogsTable">
+                        <table class="table app-table" id="activityLogsTable" data-pagination="activity events">
                             <caption class="visually-hidden">Recent SAGIPBRO system activity</caption>
                             <thead><tr><th scope="col">Event</th><th scope="col">User</th><th scope="col">Module</th><th scope="col">Details</th><th scope="col">Source</th><th scope="col">Date &amp; time</th><th scope="col" class="text-end">Review</th></tr></thead>
                             <tbody>

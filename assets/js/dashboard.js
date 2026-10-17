@@ -37,6 +37,77 @@
     });
 
     const normalize = (value) => String(value || '').trim().toLowerCase();
+    const paginatedTables = new Map();
+    const tableSearchRunners = new Map();
+    const paginatedRows = (table) => [...table.tBodies].flatMap((tbody) => [...tbody.rows])
+        .filter((row) => row.matches('[data-row], [data-report-history], [data-message-id]'));
+
+    document.querySelectorAll('table[data-pagination]').forEach((table) => {
+        const pageSize = Math.max(1, Number(table.dataset.pageSize) || 10);
+        const card = table.closest('.data-card') || table.parentElement;
+        let footer = card.querySelector('.data-card-footer');
+        if (!footer) {
+            footer = document.createElement('div');
+            footer.className = 'data-card-footer record-summary';
+            card.appendChild(footer);
+        }
+        footer.querySelector('nav[aria-label$="pagination"], nav[aria-label*="pages"]')?.remove();
+        const nav = document.createElement('nav');
+        nav.setAttribute('aria-label', `${table.dataset.pagination} pagination`);
+        nav.className = 'data-pagination-nav';
+        const list = document.createElement('ul');
+        list.className = 'pagination pagination-sm';
+        nav.appendChild(list);
+        footer.replaceChildren(nav);
+
+        const state = { page: 1, pageSize, table, list, footer, nav };
+        paginatedTables.set(table, state);
+        const refresh = (reset = false) => {
+            const rows = paginatedRows(table);
+            const filtered = rows.filter((row) => row.dataset.filterHidden !== 'true');
+            const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (reset) state.page = 1;
+            state.page = Math.min(state.page, pageCount);
+            rows.forEach((row) => { row.hidden = row.dataset.filterHidden === 'true'; });
+            filtered.slice((state.page - 1) * pageSize, state.page * pageSize).forEach((row) => { row.hidden = false; });
+
+            list.replaceChildren();
+            const addButton = (label, page, disabled = false, ariaLabel = '') => {
+                const item = document.createElement('li');
+                item.className = `page-item${disabled ? ' disabled' : ''}`;
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'page-link';
+                button.innerHTML = label;
+                if (ariaLabel) button.setAttribute('aria-label', ariaLabel);
+                button.disabled = disabled;
+                button.addEventListener('click', () => { state.page = page; refresh(); });
+                item.appendChild(button);
+                list.appendChild(item);
+            };
+            addButton('<i class="bi bi-chevron-left" aria-hidden="true"></i>', Math.max(1, state.page - 1), state.page === 1, 'Previous page');
+            const pageIndicator = document.createElement('li');
+            pageIndicator.className = 'page-item';
+            const pageLabel = document.createElement('span');
+            pageLabel.className = 'page-link pagination-page-indicator';
+            pageLabel.textContent = `Page ${state.page} of ${pageCount}`;
+            pageLabel.setAttribute('aria-live', 'polite');
+            pageIndicator.appendChild(pageLabel);
+            list.appendChild(pageIndicator);
+            addButton('<i class="bi bi-chevron-right" aria-hidden="true"></i>', Math.min(pageCount, state.page + 1), state.page === pageCount, 'Next page');
+            nav.hidden = pageCount <= 1;
+            footer.hidden = pageCount <= 1;
+        };
+        state.refresh = refresh;
+        refresh();
+        const observer = new MutationObserver(() => {
+            const runSearch = tableSearchRunners.get(table);
+            if (runSearch) runSearch();
+            else refresh(true);
+        });
+        table.tBodies.forEach((tbody) => observer.observe(tbody, { childList: true, subtree: true }));
+    });
+
     const searchInputs = document.querySelectorAll('[data-table-search]');
     searchInputs.forEach((input) => {
         const selector = input.dataset.tableSearch;
@@ -61,13 +132,15 @@
                     return field ? normalize(row.dataset[field]) === value : normalize(row.textContent).includes(value);
                 });
                 const visible = searchMatch && filterMatch;
-                row.hidden = !visible;
+                row.dataset.filterHidden = String(!visible);
                 shown += visible ? 1 : 0;
             });
             if (counter) counter.textContent = `${shown} of ${rows.length} records`;
             if (empty) empty.hidden = shown !== 0;
+            paginatedTables.get(table)?.refresh(true);
         };
 
+        tableSearchRunners.set(table, run);
         input.addEventListener('input', run);
         relatedFilters.forEach((filter) => filter.addEventListener('change', run));
     });

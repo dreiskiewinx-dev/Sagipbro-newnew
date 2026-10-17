@@ -290,6 +290,7 @@ html { scroll-behavior: auto; }
 
 .record-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .record-summary span { color: var(--ink-500); font-size: .67rem; }
+.data-pagination-nav { flex: 0 0 auto; }
 
 .distribution-status-toggle { min-height: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .2rem; padding: .2rem; border: 1px solid #ccdcd3; border-radius: .65rem; background: var(--surface-soft); }
 .distribution-status-option { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .3rem; margin: 0; border-radius: .45rem; padding: .45rem .35rem; color: var(--ink-600); font-size: .67rem; font-weight: 750; line-height: 1.15; text-align: center; white-space: nowrap; cursor: pointer; transition: color .15s ease, background-color .15s ease, box-shadow .15s ease; }

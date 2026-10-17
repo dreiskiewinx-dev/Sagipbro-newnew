@@ -814,6 +814,7 @@ textarea.form-control { min-height: 120px; resize: vertical; }
 .page-link:hover { color: var(--green-800); background: var(--green-50); }
 .page-item.active .page-link { color: #fff; background: var(--green-700); }
 .page-item.disabled .page-link { color: #a5b1ac; background: transparent; }
+.pagination-page-indicator { min-width: auto; padding-right: .35rem; padding-left: .35rem; color: var(--ink-500); cursor: default; }
 
 .modal-content { overflow: hidden; border: 0; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); }
 .modal-header { padding: 1.2rem 1.35rem; border-color: var(--line); }

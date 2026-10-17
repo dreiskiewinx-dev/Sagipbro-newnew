@@ -80,7 +80,7 @@ include '../../includes/header.php';
                     <span class="status-badge status-danger">1 center at full capacity</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table app-table align-middle" id="centersTable" data-table>
+                    <table class="table app-table align-middle" id="centersTable" data-table data-pagination="centers">
                         <thead>
                             <tr>
                                 <th scope="col">Center</th>

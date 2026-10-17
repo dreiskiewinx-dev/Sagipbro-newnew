@@ -60,7 +60,7 @@ include '../../includes/header.php';
                     <span class="status-badge status-info" data-announcement-published>0 currently published</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table app-table align-middle" id="announcementsTable" data-table>
+                    <table class="table app-table align-middle" id="announcementsTable" data-table data-pagination="announcements">
                         <thead><tr><th scope="col">Title and content</th><th scope="col">Category</th><th scope="col">Audience</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Author</th><th scope="col" class="text-end">Actions</th></tr></thead>
                         <tbody>
                             <?php foreach ($announcements as $announcement): ?>
@@ -81,7 +81,7 @@ include '../../includes/header.php';
                         </tbody>
                     </table>
                 </div>
-                <div class="data-card-footer record-summary"><span data-announcement-summary>Showing 0 of 0 announcements</span><nav aria-label="Announcement pagination"><ul class="pagination pagination-sm"><li class="page-item disabled"><button class="page-link" type="button" aria-label="Previous page"><i class="bi bi-chevron-left"></i></button></li><li class="page-item active" aria-current="page"><button class="page-link" type="button">1</button></li><li class="page-item"><button class="page-link" type="button" aria-label="Next page"><i class="bi bi-chevron-right"></i></button></li></ul></nav></div>
+                <div class="data-card-footer record-summary"><span data-pagination-summary data-announcement-summary>Showing 0 announcements</span></div>
             </section>
 
             <div class="modal fade" id="addAnnouncementModal" tabindex="-1" aria-labelledby="addAnnouncementTitle" aria-hidden="true">

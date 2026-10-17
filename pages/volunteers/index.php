@@ -59,7 +59,7 @@ include '../../includes/header.php';
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="volunteerRosterHeading">Volunteer roster</h2><p>Verified personnel available for preparedness and disaster response assignments.</p></div><span class="status-badge status-success">Roster verified</span></div>
                     <div class="table-responsive">
-                        <table class="table app-table" id="volunteersTable">
+                        <table class="table app-table" id="volunteersTable" data-pagination="volunteers">
                             <caption class="visually-hidden">Barangay Binloc disaster response volunteer roster</caption>
                             <thead><tr><th scope="col">Volunteer</th><th scope="col">Skills</th><th scope="col">Current assignment</th><th scope="col">Contact</th><th scope="col">Availability</th><th scope="col">Status</th><th scope="col" class="text-end">Actions</th></tr></thead>
                             <tbody>

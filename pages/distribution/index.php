@@ -59,7 +59,7 @@ include '../../includes/header.php';
                     <span class="status-badge status-warning">2 awaiting review</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table app-table align-middle" id="distributionsTable" data-table>
+                    <table class="table app-table align-middle" id="distributionsTable" data-table data-pagination="distributions">
                         <thead><tr><th scope="col">Reference / resource</th><th scope="col">Recipient</th><th scope="col">Quantity</th><th scope="col">Location</th><th scope="col">Date</th><th scope="col">Distributed by</th><th scope="col">Status</th><th scope="col" class="text-end" data-export-ignore>Actions</th></tr></thead>
                         <tbody>
                             <?php foreach ($distributions as $distribution): ?>

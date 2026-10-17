@@ -75,6 +75,13 @@ include '../../includes/header.php';
                         <option>Out of stock</option>
                     </select>
                 </div>
+                <div class="filter-field">
+                    <label for="resourceArchiveView">Inventory records</label>
+                    <select class="form-select" id="resourceArchiveView" aria-label="Choose active or archived resources">
+                        <option value="active">Active resources</option>
+                        <option value="archived">Archived resources</option>
+                    </select>
+                </div>
                 <span class="filter-results" aria-live="polite" data-filter-results><?= count($resources) ?> resource records</span>
             </section>
 
@@ -87,7 +94,7 @@ include '../../includes/header.php';
                     <span class="status-badge status-warning"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> 3 need attention</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table app-table align-middle" id="resourcesTable" data-table>
+                    <table class="table app-table align-middle" id="resourcesTable" data-table data-pagination="resources">
                         <thead>
                             <tr>
                                 <th scope="col">Resource</th>
@@ -165,7 +172,7 @@ include '../../includes/header.php';
                     <div class="modal-content">
                         <div class="modal-header"><h2 class="modal-title" id="viewResourceTitle">Resource details</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                         <div class="modal-body"><div class="empty-state py-4"><i class="bi bi-box-seam"></i><h3>No resource selected</h3><p>Resource details are loaded from the database.</p></div></div>
-                        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-outline-brand" type="button" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editResourceModal"><i class="bi bi-pencil"></i> Edit record</button></div>
+                        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Close</button><button class="btn btn-outline-brand" type="button" data-edit-resource-from-view data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editResourceModal"><i class="bi bi-pencil"></i> Edit record</button></div>
                     </div>
                 </div>
             </div>

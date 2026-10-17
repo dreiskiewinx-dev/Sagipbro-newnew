@@ -89,7 +89,7 @@ include '../../includes/header.php';
                         <span class="status-badge status-success">Data current</span>
                     </div>
                     <div class="table-responsive">
-                        <table class="table app-table align-middle" id="residentsTable">
+                        <table class="table app-table align-middle" id="residentsTable" data-pagination="residents">
                             <caption class="visually-hidden">Barangay Binloc resident directory</caption>
                             <thead>
                                 <tr>
@@ -131,17 +131,7 @@ include '../../includes/header.php';
 
                         </table>
                     </div>
-                    <div class="data-card-footer record-summary">
-                        <span>Showing 0 of 0 residents</span>
-                        <nav aria-label="Resident table pages">
-                            <ul class="pagination">
-                                <li class="page-item disabled"><button class="page-link" type="button" disabled aria-label="Previous page"><i class="bi bi-chevron-left" aria-hidden="true"></i></button></li>
-                                <li class="page-item active"><button class="page-link" type="button" aria-current="page">1</button></li>
-                                <li class="page-item"><button class="page-link" type="button" aria-label="Page 2">2</button></li>
-                                <li class="page-item"><button class="page-link" type="button" aria-label="Next page"><i class="bi bi-chevron-right" aria-hidden="true"></i></button></li>
-                            </ul>
-                        </nav>
-                    </div>
+                    <div class="data-card-footer record-summary"><span data-pagination-summary>Showing 0 residents</span></div>
                 </div>
             </section>
         </main>
