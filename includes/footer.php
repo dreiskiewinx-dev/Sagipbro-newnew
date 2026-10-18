@@ -26,6 +26,7 @@
                 <ul class="footer-links">
                     <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>about.php#about-barangay">About SAGIPBRO</a></li>
                     <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>services.php#services-list">Our services</a></li>
+                    <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>announcements.php#announcement-directory">Announcements</a></li>
                     <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>resources.php#resource-directory">Available resources</a></li>
                     <li><a href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>contact.php#send-message">Contact the barangay</a></li>
                 </ul>

@@ -51,7 +51,15 @@ All directories work without login or JavaScript. Search and filters use GET for
 - `announcements.php`: published, non-future, unexpired announcements only; urgent first, searchable, filterable by priority.
 - `reports.php`: public supply and evacuation availability, recent completed distributions, print and CSV export. Exports never include residents, recipients, staff names or private notes.
 
-Records are queried again on every request. Retrieval time is shown separately from each record's update time. Times are Philippine time (UTC+8). Planned quantities are not presented as guaranteed remaining stock. Historical date-only distributions explicitly say that the time was not recorded.
+Public directories use database-level pagination: 6 records by default, with 10, 25, 50, and 100-record options. Search and filters apply before counting and paging. Reports paginate their three tables independently; print and CSV include all matching records. Admin pagination remains at 10 records by default. Run `php tests/public_pagination_http.php` for isolated HTTP regression checks.
+
+The Services landing page uses a compact Disaster Relief Services hero and four existing service cards beside the announcement panel in an approximately 70/30 desktop layout. The panel stays in normal page flow at every screen size and does not follow scrolling or stretch to the Reports card. In two-column layouts its height is limited to 30rem (or the available viewport height, if smaller); long notices scroll internally while the header and View All link remain inside the card. On mobile it takes its natural height above the service cards. It displays up to five current publications, urgent first, with an urgent count across all current publications. Selecting a notice shows its full text in the panel; Back restores the list and reading position. Native expandable details remain available without JavaScript. The four service tabs omit Announcements; the panel and footer link to the full searchable, filterable, paginated `announcements.php` page.
+
+The homepage advisory and Latest Announcements section share one database query for three current publications, urgent first. Read Guidance opens the latest active urgent notice; without one, the original preparedness reminder remains. Cards link to `announcements.php?view=ID#announcement-ID`, which shows the complete published notice regardless of its directory page. Hidden, expired, scheduled, archived, and missing notices return a safe unavailable response. Back returns to the announcement directory; its search, priorities, and pagination remain available. Homepage Quick Information cards, navigation, footer, and readiness calculations are preserved.
+
+Announcement priorities support Urgent (red), High (orange), Medium (yellow), and Low (green), while retaining existing Normal records. The admin create/edit forms support priority and optional expiry. On existing installations run `php database/migrate_public_services.php` to extend the priority enum without replacing records. Published notices must have reached their publication time and must not have expired. Archiving or deleting a notice removes it from the public panel on refresh.
+
+Records are queried again on every request. The directories omit introductory headings and successful database-retrieval notices; database error messages and record timestamps remain available. Times are Philippine time (UTC+8). Planned quantities are not presented as guaranteed remaining stock. Historical date-only distributions explicitly say that the time was not recorded.
 
 ### Existing XAMPP setup
 
@@ -73,10 +81,10 @@ For a **new installation**, import `database/sagipbro.sql` into MySQL, set `$env
 
 ### Maintaining public records
 
-The public directories are read-only. Maintain the selected MySQL database through authorized database tooling (for example local phpMyAdmin) or a backend writer. Existing admin preview forms have not been converted into working save/publish forms by this Services task.
+The public directories are read-only. Authorized staff can maintain publications through the existing admin Announcements create/edit/archive forms, including priority and expiry. The administrative APIs target the original schema; installations using alternate legacy columns need the admin compatibility migration noted below or authorized database tooling.
 
 - In the existing `sagipbro` schema, supplies use `resources.resource_name`, `quantity`, `minimum_stock`, `category`, `unit`; centers use `center_name`, `location`, `current_occupants`, `capacity`, `status`. The original repository equivalents are also supported. Closed/under-maintenance/full centers report zero available spaces.
-- Announcements use `content` (or original `body`), `status=published`, `published_at` at or before the current time, `priority=Normal` or `Urgent`, and optional `expires_at`. Draft, archived, future-dated, expired, and undated publications stay hidden.
+- Announcements use `content` (or original `body`), `status=published`, `published_at` at or before the current time, `priority=Urgent`, `High`, `Medium`, `Low`, or legacy `Normal`, and optional `expires_at`. Draft, archived, future-dated, expired, and undated publications stay hidden.
 - Create public schedules in `distribution_events`: `title`, `location`, `details` (public text only), `starts_at`, optional `ends_at`, `status` (Upcoming/Active/Completed/Cancelled), `publication_status` (Draft/Published). Only Published events appear. Staff explicitly controls active status; an elapsed end time removes stale active/upcoming notices by displaying Completed.
 - Link planned supplies in `distribution_event_resources` (`event_id`, `resource_id`, `planned_quantity`). Link actual recipient transactions through `distributions.event_id`; public totals are calculated from transaction quantities. No transaction recipients or staff identifiers are returned to public pages. Private transaction `notes` are never public.
 - Existing unlinked transactions appear as completed summaries grouped by day and location, with resource totals. Missing locations/times are explicitly labeled rather than invented.
@@ -90,6 +98,16 @@ The public directories are read-only. Maintain the selected MySQL database throu
 
 Tests create and remove a uniquely named `sagipbro_test_*` database; they never select or overwrite your application database. Run on a healthy local test MySQL server with CREATE/DROP DATABASE permissions. Set `SAGIPBRO_DB_PORT` to use an isolated test server. The suite covers both schemas, repeat migrations, empty states, status boundaries, literal searches, SQL injection input, publication rules, anonymous totals, and report counts.
 
-## Remaining UI previews
+Run `php tests/public_announcements_panel_http.php` for isolated announcement-panel and admin publishing checks. Set `$env:SAGIPBRO_PANEL_BROWSER = '1'` to include Chrome checks for compact non-sticky service layout, in-panel details, Back, and desktop/tablet/mobile responsiveness.
 
-The admin/volunteer/resident management screens still include presentation data and preview forms; these are separate from the database-backed public Services implemented here. Preview forms do not persist changes. The older authenticated API handlers target the original repository schema and are not the public directory endpoints. Connecting all administrative CRUD workflows to the alternate existing schema is separate work.
+Run `php tests/homepage_announcements_http.php` for isolated homepage announcement, advisory, deep-link, visibility, refresh, and fallback checks. Set `$env:SAGIPBRO_HOMEPAGE_BROWSER = '1'` to include desktop/tablet/mobile Chrome checks.
+
+## Admin table pagination
+
+The admin registers, dashboard activity table, report history, and resource report preview use MySQL `LIMIT` / `OFFSET` pagination. They show 10 rows by default, with 25, 50, and 100-row options. Search and filters run before counting and paging; record changes preserve the current selection and clamp pages that become empty. CSV exports and print views include every matching record.
+
+Authenticated list endpoints accept `paginate=1`, `page`, `per_page`, and `q`, plus the table's filter fields. Responses include `data` and `pagination` (`page`, `per_page`, `total`, `total_pages`, `from`, `to`). Existing unpaginated lookups remain compatible. Shared code lives in `api/pagination.php` and `assets/js/admin-pagination.js`.
+
+Run `php tests/admin_pagination_http.php` to exercise all registers with over 100 fixtures per list in an isolated temporary database. Set `$env:SAGIPBRO_PAGINATION_BROWSER = '1'` to include Chrome checks for the actual desktop/mobile controls. The test never selects the application's database for fixture writes.
+
+The authenticated administrative APIs target the original schema in `database/sagipbro.sql`. Installations using the alternate legacy schema described above need an admin compatibility migration; pagination does not rename existing tables or columns.

@@ -25,7 +25,8 @@
             return result;
         };
         const initials = (resident) => `${resident.first_name?.[0] || ''}${resident.last_name?.[0] || ''}`.toUpperCase();
-        const render = () => {
+        const render = (result) => {
+            residents = result.data || [];
             tableBody.innerHTML = residents.map((resident) => {
                 const fullName = `${resident.first_name} ${resident.last_name}`.trim();
                 const priority = resident.vulnerability || 'None';
@@ -47,17 +48,11 @@
             tableBody.querySelectorAll('[data-resident-edit]').forEach((button) => button.addEventListener('click', () => fillEditForm(Number(button.dataset.residentEdit))));
             tableBody.querySelectorAll('[data-resident-delete]').forEach((button) => button.addEventListener('click', () => deactivate(Number(button.dataset.residentDelete))));
             const values = document.querySelectorAll('.stat-grid .stat-value');
-            const active = residents.filter((resident) => resident.status === 'Active');
-            const households = new Set(residents.map((resident) => resident.household_no).filter(Boolean));
-            const priority = active.filter((resident) => resident.vulnerability && resident.vulnerability !== 'None').length;
-            if (values[0]) values[0].textContent = residents.length;
-            if (values[1]) values[1].textContent = households.size;
-            if (values[2]) values[2].textContent = priority;
-            if (values[3]) values[3].textContent = residents.length ? `${Math.round(active.length / residents.length * 100)}%` : '0%';
-            const resultCount = document.querySelector('.filter-results');
-            const summary = document.querySelector('#residentsTable')?.closest('.data-card')?.querySelector('.record-summary > span');
-            if (resultCount) resultCount.textContent = `Showing ${residents.length} records`;
-            if (summary) summary.textContent = `Showing ${residents.length} of ${residents.length} residents`;
+            const stats = result.stats || {};
+            if (values[0]) values[0].textContent = stats.total ?? 0;
+            if (values[1]) values[1].textContent = stats.households ?? 0;
+            if (values[2]) values[2].textContent = stats.priority ?? 0;
+            if (values[3]) values[3].textContent = Number(stats.total) ? `${Math.round(Number(stats.active) / Number(stats.total) * 100)}%` : '0%';
         };
         const fillEditForm = (id) => {
             const resident = residents.find((item) => Number(item.id) === id);
@@ -110,15 +105,23 @@
             event.preventDefault();
             if (editForm.reportValidity()) save(editForm, 'PUT', { ...formData(editForm), id: editForm.dataset.residentId });
         });
-        const load = async () => {
-            try {
-                residents = (await request()).data || [];
-                render();
-            } catch (error) {
-                window.sagipbroToast?.(error.message, 'Unable to load residents');
+        const pager = window.SagipbroPagination.create({ table: '#residentsTable', endpoint: config.endpoint, render, autoLoad: false });
+        const load = () => pager.load();
+        const initialize = async () => {
+            const requestedId = new URLSearchParams(window.location.search).get('view');
+            if (requestedId && /^\d+$/.test(requestedId)) {
+                try {
+                    const url = new URL(config.endpoint, window.location.href);
+                    url.searchParams.set('id', requestedId);
+                    url.searchParams.set('per_page', String(pager.state.perPage));
+                    const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                    const result = await response.json();
+                    if (response.ok && result.record_page) pager.state.page = result.record_page;
+                } catch (_) { /* The normal request below reports connection failures. */ }
             }
+            await load();
         };
-        load();
+        initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load residents'));
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();

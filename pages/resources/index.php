@@ -37,9 +37,9 @@ include '../../includes/header.php';
                     <p>Monitor relief inventory, storage locations, and items that require immediate replenishment.</p>
                 </div>
                 <div class="page-actions">
-                    <button class="btn btn-outline-brand" type="button" data-confirm-action="Resource inventory prepared for export." aria-label="Export resource inventory">
+                    <a class="btn btn-outline-brand" href="<?= htmlspecialchars(appUrl('api/resources.php?export=csv'), ENT_QUOTES, 'UTF-8') ?>" download data-resource-export aria-label="Export resource inventory">
                         <i class="bi bi-download" aria-hidden="true"></i> Export list
-                    </button>
+                    </a>
                     <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#addResourceModal">
                         <i class="bi bi-plus-lg" aria-hidden="true"></i> Add resource
                     </button>
@@ -77,7 +77,7 @@ include '../../includes/header.php';
                 </div>
                 <div class="filter-field">
                     <label for="resourceArchiveView">Inventory records</label>
-                    <select class="form-select" id="resourceArchiveView" aria-label="Choose active or archived resources">
+                    <select class="form-select" id="resourceArchiveView" aria-label="Choose active or archived resources" data-filter-select="#resourcesTable" data-filter-field="view">
                         <option value="active">Active resources</option>
                         <option value="archived">Archived resources</option>
                     </select>
@@ -178,9 +178,8 @@ include '../../includes/header.php';
             </div>
 
             <div class="modal fade" id="editResourceModal" tabindex="-1" aria-labelledby="editResourceTitle" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content">
-                        <form id="editResourceForm">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                        <form class="modal-content" id="editResourceForm">
                             <div class="modal-header"><h2 class="modal-title" id="editResourceTitle">Edit resource</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                             <div class="modal-body">
                                 <p class="modal-intro">Update resource details and current physical stock.</p>
@@ -197,7 +196,6 @@ include '../../includes/header.php';
                             </div>
                             <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
                         </form>
-                    </div>
                 </div>
             </div>
 

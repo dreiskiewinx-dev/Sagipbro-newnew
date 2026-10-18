@@ -28,7 +28,7 @@ include '../../includes/header.php';
                     <p>Maintain a traceable record of every resource released, recipient served, and distribution point.</p>
                 </div>
                 <div class="page-actions">
-                    <a class="btn btn-outline-brand" href="<?= htmlspecialchars(appUrl('api/distribution.php?export=csv'), ENT_QUOTES, 'UTF-8') ?>" download><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> Export register</a>
+                    <a class="btn btn-outline-brand" href="<?= htmlspecialchars(appUrl('api/distribution.php?export=csv'), ENT_QUOTES, 'UTF-8') ?>" download data-distribution-export><i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i> Export register</a>
                     <button class="btn btn-brand" type="button" data-bs-toggle="modal" data-bs-target="#addDistributionModal"><i class="bi bi-plus-lg" aria-hidden="true"></i> Record distribution</button>
                 </div>
             </header>

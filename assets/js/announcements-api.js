@@ -7,8 +7,7 @@
     const editForm = document.getElementById('editAnnouncementForm');
     const deleteForm = document.getElementById('deleteAnnouncementForm');
     const publishedCount = document.querySelector('[data-announcement-published]');
-    const summary = document.querySelector('[data-announcement-summary]');
-    if (!config || !tableBody || !addForm || !editForm || !deleteForm) return;
+    if (!config || !tableBody || !addForm || !editForm || !deleteForm || !window.SagipbroPagination) return;
 
     let announcements = [];
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -27,13 +26,10 @@
         return result;
     };
     const statusClass = (status) => status === 'Published' ? 'status-success' : (status === 'Draft' ? 'status-warning' : 'status-neutral');
-    const render = () => {
-        const published = announcements.filter((announcement) => announcement.status === 'Published').length;
+    const render = (result) => {
+        announcements = result.data || [];
+        const published = result.summary?.published || 0;
         if (publishedCount) publishedCount.textContent = `${published} currently published`;
-        if (summary) summary.textContent = `Showing ${announcements.length} of ${announcements.length} announcements`;
-        const resultCount = document.querySelector('[data-filter-results]');
-        if (resultCount) resultCount.textContent = `${announcements.length} announcements`;
-        if (summary) summary.textContent = `Showing ${announcements.length ? 1 : 0}–${announcements.length} of ${announcements.length} announcements`;
         tableBody.innerHTML = announcements.map((announcement) => {
             const sourceDate = announcement.published_at || announcement.created_at;
             const date = sourceDate ? new Date(sourceDate.replace(' ', 'T')) : null;
@@ -46,7 +42,7 @@
                 <td>${escapeHtml(announcement.author)}</td>
                 <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(announcement.title)}"><button class="btn btn-light btn-icon" type="button" title="View" data-record-json="${escapeHtml(JSON.stringify(announcement))}" data-bs-toggle="modal" data-bs-target="#viewAnnouncementModal"><i class="bi bi-eye"></i></button><button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit ${escapeHtml(announcement.title)}" data-announcement-edit="${announcement.id}" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal"><i class="bi bi-pencil"></i></button><button class="btn btn-light btn-icon text-danger" type="button" title="Archive" aria-label="Archive ${escapeHtml(announcement.title)}" data-announcement-delete="${announcement.id}" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal"><i class="bi bi-archive"></i></button></div></td>
             </tr>`;
-        }).join('');
+        }).join('') || '<tr><td colspan="7" class="text-center text-body-secondary py-4">No announcements match your search or filters.</td></tr>';
         tableBody.querySelectorAll('[data-announcement-edit]').forEach((button) => button.addEventListener('click', () => fillEdit(Number(button.dataset.announcementEdit))));
         tableBody.querySelectorAll('[data-announcement-delete]').forEach((button) => button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.announcementDelete; }));
     };
@@ -60,6 +56,8 @@
         editForm.elements.audience.value = announcement.audience;
         editForm.elements.status.value = announcement.status;
         editForm.elements.published_at.value = announcement.published_at ? announcement.published_at.replace(' ', 'T').slice(0, 16) : '';
+        editForm.elements.priority.value = announcement.priority || 'Normal';
+        editForm.elements.expires_at.value = announcement.expires_at ? announcement.expires_at.replace(' ', 'T').slice(0, 16) : '';
     };
     const submit = async (form, method, body) => {
         const button = form.querySelector('[type="submit"]');
@@ -84,25 +82,35 @@
         if (!addForm.reportValidity()) return;
         const data = Object.fromEntries(new FormData(addForm).entries());
         const status = event.submitter?.value === 'publish' ? 'Published' : (event.submitter?.value === 'draft' ? 'Draft' : data.status);
-        submit(addForm, 'POST', { title: data.title, body: data.content, category: data.category, audience: data.audience, status, published_at: data.published_at });
+        submit(addForm, 'POST', { title: data.title, body: data.content, category: data.category, audience: data.audience, status, published_at: data.published_at, priority: data.priority, expires_at: data.expires_at });
     });
     editForm.addEventListener('submit', (event) => {
         event.preventDefault();
         if (!editForm.reportValidity()) return;
         const data = Object.fromEntries(new FormData(editForm).entries());
-        submit(editForm, 'PUT', { id: editForm.dataset.id, title: data.title, body: data.content, category: data.category, audience: data.audience, status: data.status, published_at: data.published_at });
+        submit(editForm, 'PUT', { id: editForm.dataset.id, title: data.title, body: data.content, category: data.category, audience: data.audience, status: data.status, published_at: data.published_at, priority: data.priority, expires_at: data.expires_at });
     });
     deleteForm.addEventListener('submit', (event) => {
         event.preventDefault();
         submit(deleteForm, 'DELETE', { id: deleteForm.dataset.id });
     });
-    const load = async () => {
-        try {
-            announcements = (await request()).data || [];
-            render();
-        } catch (error) {
-            window.sagipbroToast?.(error.message, 'Unable to load announcements');
+    const pagination = window.SagipbroPagination.create({
+        table: '#announcementsTable', endpoint: config.endpoint, render, autoLoad: false
+    });
+    const load = () => pagination.load();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', '10');
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pagination.state.page = result.record_page;
+            } catch (_) { /* The normal request below reports connection failures. */ }
         }
+        await load();
     };
-    load();
+    initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load announcements'));
 })();

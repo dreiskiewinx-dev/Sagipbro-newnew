@@ -36,6 +36,15 @@ function publicQuantity($value): string
     return rtrim(rtrim(number_format((float) $value, 2), '0'), '.');
 }
 
+function publicExcerpt(string $value, int $limit = 160): string
+{
+    $text = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+    $limit = min(1000, max(2, $limit));
+    preg_match('/\A.{0,' . ($limit - 1) . '}/us', $text, $match);
+    $preview = $match[0] ?? '';
+    return $preview === $text ? $text : rtrim($preview) . '…';
+}
+
 function publicLoad(callable $query): array
 {
     header('Cache-Control: no-store, max-age=0');
@@ -64,7 +73,8 @@ function publicStatus(string $label): void
 {
     $tones = ['Available' => 'success', 'Active' => 'success', 'Low Stock' => 'warning',
         'Upcoming' => 'info', 'Out of Stock' => 'danger', 'Urgent' => 'danger',
-        'Full' => 'warning', 'Closed' => 'neutral', 'Completed' => 'neutral', 'Cancelled' => 'neutral', 'Normal' => 'info'];
+        'Full' => 'warning', 'Closed' => 'neutral', 'Completed' => 'neutral', 'Cancelled' => 'neutral',
+        'High' => 'priority-high', 'Medium' => 'priority-medium', 'Low' => 'success', 'Normal' => 'info'];
     echo '<span class="status-badge status-' . ($tones[$label] ?? 'neutral') . '">' . publicEscape($label) . '</span>';
 }
 
@@ -74,7 +84,6 @@ function publicServiceLinks(): array
         'centers' => ['evacuation-centers.php#center-directory', 'Evacuation Centers', 'bi-buildings'],
         'resources' => ['resources.php#resource-directory', 'Relief Resources', 'bi-box-seam'],
         'distributions' => ['distributions.php#distribution-directory', 'Relief Distribution', 'bi-truck'],
-        'announcements' => ['announcements.php#announcement-directory', 'Emergency Announcements', 'bi-megaphone'],
         'reports' => ['reports.php#public-reports', 'Reports', 'bi-file-earmark-bar-graph'],
     ];
 }
@@ -95,7 +104,7 @@ function publicServiceHero(string $title, string $description, string $active): 
 {
     $links = publicServiceLinks();
     ?>
-    <section class="page-hero public-service-hero<?= $active === 'resources' ? ' photo-hero resources-hero' : '' ?>" aria-labelledby="public-service-title">
+    <section class="page-hero public-service-hero" aria-labelledby="public-service-title">
         <div class="container">
             <nav aria-label="Breadcrumb"><ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.php">Home</a></li>
@@ -144,6 +153,7 @@ function publicFilterForm(string $action, array $filters, array $statuses, ?arra
 {
     ?>
     <form class="filter-panel no-print" action="<?= publicEscape($action) ?>" method="get" role="search" aria-label="Search and filter records">
+        <input type="hidden" name="per_page" value="<?= publicPageRequest($_GET)['per_page'] ?>">
         <div class="filter-search">
             <label for="directory-search">Search</label>
             <input class="form-control" id="directory-search" name="q" type="search" maxlength="200" value="<?= publicEscape($filters['q'] ?? '') ?>" placeholder="Search names, locations or details">
@@ -171,5 +181,48 @@ function publicFilterForm(string $action, array $filters, array $statuses, ?arra
         <button class="btn btn-brand" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Apply filters</button>
         <a class="btn btn-outline-brand" href="<?= publicEscape($action) ?>">Clear filters</a>
     </form>
+    <?php
+}
+
+function publicPagination(array $metadata, string $action, array $query = [], string $pageKey = 'page', string $sizeKey = 'per_page'): void
+{
+    $page = (int) $metadata['page'];
+    $pages = (int) $metadata['total_pages'];
+    $size = (int) $metadata['per_page'];
+    $query[$sizeKey] = $size;
+    $query[$pageKey] = $page;
+    $id = 'public-page-size-' . preg_replace('/[^a-zA-Z0-9_-]/', '-', $pageKey . '-' . $action);
+    $visible = [1, $pages];
+    for ($number = max(1, $page - 1); $number <= min($pages, $page + 1); $number++) $visible[] = $number;
+    if ($page <= 3) for ($number = 2; $number <= min(4, $pages); $number++) $visible[] = $number;
+    if ($page >= $pages - 2) for ($number = max(1, $pages - 3); $number <= $pages; $number++) $visible[] = $number;
+    $visible = array_unique($visible);
+    sort($visible, SORT_NUMERIC);
+    $url = static fn (int $number): string => publicPaginationUrl($action, array_merge($query, [$pageKey => $number]));
+    ?>
+    <div class="public-pagination no-print" data-public-pagination="<?= publicEscape($pageKey) ?>">
+        <p class="public-pagination-summary mb-0" role="status">Showing <?= number_format((int) $metadata['from']) ?>–<?= number_format((int) $metadata['to']) ?> of <?= number_format((int) $metadata['total']) ?> records</p>
+        <form class="public-pagination-size" method="get" action="<?= publicEscape($action) ?>">
+            <?php foreach ($query as $key => $value): if ($key === $pageKey || $key === $sizeKey || !is_scalar($value) || (string) $value === '') continue; ?>
+                <input type="hidden" name="<?= publicEscape($key) ?>" value="<?= publicEscape($value) ?>">
+            <?php endforeach; ?>
+            <input type="hidden" name="<?= publicEscape($pageKey) ?>" value="1">
+            <label for="<?= publicEscape($id) ?>">Records per page</label>
+            <select class="form-select form-select-sm" id="<?= publicEscape($id) ?>" name="<?= publicEscape($sizeKey) ?>">
+                <?php foreach ([6, 10, 25, 50, 100] as $option): ?><option value="<?= $option ?>" <?= $option === $size ? 'selected' : '' ?>><?= $option ?></option><?php endforeach; ?>
+            </select>
+            <button class="btn btn-sm btn-outline-brand" type="submit">Apply</button>
+        </form>
+        <nav aria-label="<?= publicEscape($pageKey === 'page' ? 'Directory pages' : str_replace('_page', '', $pageKey) . ' pages') ?>">
+            <ul class="pagination pagination-sm">
+                <li class="page-item<?= $page <= 1 ? ' disabled' : '' ?>"><?php if ($page <= 1): ?><span class="page-link" aria-disabled="true">Previous</span><?php else: ?><a class="page-link" href="<?= publicEscape($url($page - 1)) ?>" rel="prev">Previous</a><?php endif; ?></li>
+                <?php $previous = 0; foreach ($visible as $number): ?>
+                    <?php if ($previous && $number > $previous + 1): ?><li class="page-item disabled"><span class="page-link" aria-hidden="true">…</span></li><?php endif; ?>
+                    <li class="page-item<?= $number === $page ? ' active' : '' ?>"><?php if ($number === $page): ?><span class="page-link" aria-current="page"><?= $number ?></span><?php else: ?><a class="page-link" aria-label="Page <?= $number ?>" href="<?= publicEscape($url($number)) ?>"><?= $number ?></a><?php endif; ?></li>
+                <?php $previous = $number; endforeach; ?>
+                <li class="page-item<?= $page >= $pages ? ' disabled' : '' ?>"><?php if ($page >= $pages): ?><span class="page-link" aria-disabled="true">Next</span><?php else: ?><a class="page-link" href="<?= publicEscape($url($page + 1)) ?>" rel="next">Next</a><?php endif; ?></li>
+            </ul>
+        </nav>
+    </div>
     <?php
 }

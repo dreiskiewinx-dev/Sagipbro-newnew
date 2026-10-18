@@ -120,13 +120,13 @@
             remarks: data.notes || data.remarks || '',
         };
     };
-    const render = () => {
+    const render = (result) => {
+        distributions = result.data || [];
         const today = new Date().toISOString().slice(0, 10);
         tableBody.innerHTML = distributions.map((distribution) => {
-            const resource = resources.find((item) => Number(item.id) === Number(distribution.resource_id));
             const status = distribution.status || 'Completed';
             const date = distribution.distributed_at || '';
-            return `<tr data-row data-category="${escapeHtml(resource?.category || '')}" data-status="${escapeHtml(status)}" data-period="${date.slice(0, 10) === today ? 'today' : 'previous'}" data-search="${escapeHtml(`${distribution.resource_name} ${distribution.recipient_name} ${distribution.recipient_reference || ''} ${distribution.location || ''}`)}">
+            return `<tr data-row data-category="${escapeHtml(distribution.resource_category || '')}" data-status="${escapeHtml(status)}" data-period="${date.slice(0, 10) === today ? 'today' : 'previous'}" data-search="${escapeHtml(`${distribution.resource_name} ${distribution.recipient_name} ${distribution.recipient_reference || ''} ${distribution.location || ''}`)}">
                 <td><span class="table-primary-text">${escapeHtml(distribution.resource_name)}</span><span class="table-secondary-text">DST-${String(distribution.id).padStart(6, '0')}</span></td>
                 <td><span class="table-primary-text">${escapeHtml(distribution.recipient_name)}</span><span class="table-secondary-text">${escapeHtml(distribution.recipient_reference || 'No reference')}</span></td>
                 <td><strong>${Number(distribution.quantity).toLocaleString()} ${escapeHtml(distribution.resource_unit || '')}</strong></td>
@@ -146,18 +146,19 @@
             button.addEventListener('click', () => fillEdit(Number(button.dataset.distributionEdit))));
         tableBody.querySelectorAll('[data-distribution-delete]').forEach((button) =>
             button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.distributionDelete; }));
-        const pending = distributions.filter((item) => item.status === 'Pending review').length;
+        const pending = Number(result.stats?.pending || 0);
         const badge = document.querySelector('#distributionsTable')?.closest('.data-card')?.querySelector('.data-card-header .status-badge');
-        const summary = document.querySelector('#distributionsTable')?.closest('.data-card')?.querySelector('.record-summary > span');
         const resultCount = document.querySelector('[data-filter-results]');
         if (badge) badge.textContent = `${pending} awaiting review`;
-        if (summary) summary.textContent = `Showing ${distributions.length} of ${distributions.length} distributions`;
-        if (resultCount) resultCount.textContent = `${distributions.length} distribution records`;
+        if (resultCount) resultCount.textContent = `${Number(result.pagination?.total || 0).toLocaleString()} distribution records`;
     };
     const fillEdit = (id) => {
         const distribution = distributions.find((item) => Number(item.id) === id);
         if (!distribution) return;
         editForm.dataset.id = id;
+        if (!Array.from(editForm.elements.resource.options).some((option) => String(option.value) === String(distribution.resource_id))) {
+            editForm.elements.resource.add(new Option(`${distribution.resource_name} (archived resource)`, distribution.resource_id));
+        }
         editForm.elements.resource.value = distribution.resource_id;
         editForm.elements.quantity.value = distribution.quantity;
         editForm.elements.recipient.value = distribution.recipient_name;
@@ -204,18 +205,36 @@
         const data = Object.fromEntries(new FormData(deleteForm).entries());
         submit(deleteForm, 'DELETE', { id: deleteForm.dataset.id, reason: data.reason });
     });
+    const pager = window.SagipbroPagination.create({
+        table: '#distributionsTable', endpoint: config.endpoint, render, autoLoad: false,
+    });
+    document.querySelector('[data-distribution-export]')?.addEventListener('click', (event) => {
+        event.currentTarget.href = pager.url({ export: 'csv', paginate: null, page: null, per_page: null });
+    });
     const load = async () => {
         try {
-            const [distributionResult, resourceResult] = await Promise.all([
-                request(config.endpoint), request(config.resourcesEndpoint),
+            const [, resourceResult] = await Promise.all([
+                pager.load(), request(`${config.resourcesEndpoint}?lookup=distribution`),
             ]);
-            distributions = distributionResult.data || [];
             resources = resourceResult.data || [];
             fillResourceOptions();
-            render();
         } catch (error) {
             window.sagipbroToast?.(error.message, 'Unable to load distributions');
         }
     };
-    load();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', String(pager.state.perPage));
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pager.state.page = result.record_page;
+            } catch (_) { /* The normal request below reports connection failures. */ }
+        }
+        await load();
+    };
+    initialize();
 })();

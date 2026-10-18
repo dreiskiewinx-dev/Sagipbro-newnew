@@ -30,9 +30,9 @@ include '../../includes/header.php';
             </header>
 
             <section class="stat-grid" aria-label="Volunteer overview">
-                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Registered volunteers</span><span class="stat-card-icon"><i class="bi bi-person-hearts" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No volunteer records yet</span></article>
-                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Ready for deployment</span><span class="stat-card-icon"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No available volunteers yet</span></article>
-                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Currently deployed</span><span class="stat-card-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">No active assignments yet</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Registered volunteers</span><span class="stat-card-icon"><i class="bi bi-person-hearts" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Live volunteer records</span></article>
+                <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Ready for deployment</span><span class="stat-card-icon"><i class="bi bi-lightning-charge-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Active volunteer records</span></article>
+                <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Currently deployed</span><span class="stat-card-icon"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0</strong><span class="stat-meta">Volunteers with deployed status</span></article>
                 <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Operationally available</span><span class="stat-card-icon"><i class="bi bi-award-fill" aria-hidden="true"></i></span></div><strong class="stat-value">0%</strong><span class="stat-meta">Active or deployed roster share</span></article>
             </section>
 
@@ -53,13 +53,13 @@ include '../../includes/header.php';
                             <option value="">All statuses</option><option value="Active">Active</option><option value="Deployed">Deployed</option><option value="Inactive">Inactive</option>
                         </select>
                     </div>
-                    <span class="filter-results" aria-live="polite">Showing 0 volunteer records</span>
+                    <span class="filter-results" data-filter-results aria-live="polite">Loading volunteers…</span>
                 </div>
 
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="volunteerRosterHeading">Volunteer roster</h2><p>Verified personnel available for preparedness and disaster response assignments.</p></div><span class="status-badge status-success">Roster verified</span></div>
                     <div class="table-responsive">
-                        <table class="table app-table" id="volunteersTable" data-pagination="volunteers">
+                        <table class="table app-table" id="volunteersTable" data-pagination="volunteers" data-server-pagination="true">
                             <caption class="visually-hidden">Barangay Binloc disaster response volunteer roster</caption>
                             <thead><tr><th scope="col">Volunteer</th><th scope="col">Skills</th><th scope="col">Current assignment</th><th scope="col">Contact</th><th scope="col">Availability</th><th scope="col">Status</th><th scope="col" class="text-end">Actions</th></tr></thead>
                             <tbody>
@@ -78,7 +78,7 @@ include '../../includes/header.php';
                             </tbody>
                         </table>
                     </div>
-                    <div class="data-card-footer record-summary"><span>Showing 0 of 0 volunteers</span><span>No volunteer records yet</span></div>
+                    <div class="data-card-footer record-summary"><span>Loading volunteer records…</span><span>Live database records</span></div>
                 </div>
             </section>
         </main>

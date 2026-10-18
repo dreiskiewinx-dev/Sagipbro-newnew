@@ -5,27 +5,17 @@ $activePage = 'resources';
 $basePath = '';
 
 require_once __DIR__ . '/includes/public_service_helpers.php';
-$resources = [];
+$statuses = ['Available', 'Low Stock', 'Out of Stock'];
+$filters = ['q' => publicInput('q'), 'category' => publicInput('category'), 'status' => publicChoice('status', $statuses)];
+$paging = publicPageRequest($_GET);
+$result = publicLoad(static fn(PDO $database): array => publicResources($database, $filters, $paging));
 $resourceIcons = ['Food' => 'bi-basket2', 'Water' => 'bi-droplet', 'Hygiene' => 'bi-handbag', 'Medical' => 'bi-bandaid', 'Shelter' => 'bi-grid'];
-try {
-    $liveResources = publicResources(sagipbroDatabase())['rows'];
-    foreach ($liveResources as $resource) {
-        $status = $resource['availability'];
-        $resources[] = [
-            'name' => $resource['name'], 'category' => $resource['category'], 'quantity' => (int) $resource['stock'],
-            'unit' => $resource['unit'], 'status' => $status, 'tone' => $status === 'Available' ? 'success' : ($status === 'Low Stock' ? 'warning' : 'danger'),
-            'icon' => $resourceIcons[$resource['category']] ?? 'bi-box-seam'
-        ];
-    }
-} catch (Throwable $e) {
-    error_log('Public resources unavailable (' . get_class($e) . ').');
-}
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/navbar.php';
 ?>
 <main id="main-content">
-    <section class="page-hero photo-hero resources-hero" aria-labelledby="resources-page-title">
+    <section class="page-hero public-service-hero" aria-labelledby="resources-page-title">
         <div class="container">
             <nav aria-label="Breadcrumb">
                 <ol class="breadcrumb">
@@ -41,77 +31,37 @@ include __DIR__ . '/includes/navbar.php';
 
     <?php publicServiceNavigation('resources'); ?>
 
-    <section class="section-space section-soft" id="resource-directory" data-scroll-target aria-labelledby="resource-directory-title">
+    <section class="section-space section-soft" id="resource-directory" data-scroll-target aria-label="Relief resource directory">
         <div class="container">
-            <div class="section-heading">
-                <span class="section-kicker">Live inventory</span>
-                <h2 id="resource-directory-title">Relief supply overview</h2>
-                <p>Current public resource names, categories, quantities, units, and stock conditions.</p>
-            </div>
-
-            <?php if (!$resources): ?><div class="alert alert-info app-alert mb-4" role="status">
-                <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-                <div>
-                    <strong>No resources recorded yet</strong>
-                    <span>Authorized administrators can add current inventory from the admin Resources page.</span>
-                </div>
-                <span class="status-badge status-neutral">Empty</span>
-            </div><?php endif; ?>
-
-            <div class="filter-panel" role="search" aria-label="Filter relief resources">
-                <div class="filter-search">
-                    <label for="resourceSearch">Search supplies</label>
-                    <div class="input-icon">
-                        <i class="bi bi-search" aria-hidden="true"></i>
-                        <input class="form-control" id="resourceSearch" type="search" placeholder="Search by resource name..." autocomplete="off" aria-controls="resourceGrid" data-resource-search>
-                    </div>
-                </div>
-                <div class="filter-field">
-                    <label for="resourceCategory">Category</label>
-                    <select class="form-select" id="resourceCategory" aria-controls="resourceGrid" data-resource-filter>
-                        <option value="all">All categories</option>
-                        <option value="food">Food</option>
-                        <option value="water">Water</option>
-                        <option value="hygiene">Hygiene</option>
-                        <option value="medical">Medical</option>
-                        <option value="shelter">Shelter</option>
-                    </select>
-                </div>
-                <p class="mb-2 ms-auto small text-secondary" aria-live="polite"><strong data-resource-count><?= count($resources) ?></strong> resources shown</p>
-            </div>
-
+            <?php if ($result['error']) publicDataNotice($result); ?>
+            <?php if (!$result['error']): $directory = $result['data']; ?>
+            <?php publicFilterForm('resources.php#resource-directory', $filters, $statuses, $directory['categories']); ?>
+            <p class="public-record-meta"><?= number_format($directory['total']) ?> resource<?= $directory['total'] === 1 ? '' : 's' ?> found</p>
+            <?php if (!$directory['rows']): publicEmpty('No resources found', 'No supplies match these filters, or inventory has not been recorded yet. Try another search term or category.'); else: ?>
             <div class="public-resource-grid" id="resourceGrid">
-                <?php foreach ($resources as $resource): ?>
-                    <article
-                        class="resource-card"
-                        data-resource-card
-                        data-resource-name="<?= htmlspecialchars(strtolower($resource['name']), ENT_QUOTES, 'UTF-8') ?>"
-                        data-resource-category="<?= htmlspecialchars(strtolower($resource['category']), ENT_QUOTES, 'UTF-8') ?>"
-                    >
+                <?php foreach ($directory['rows'] as $resource): ?>
+                    <article class="resource-card">
                         <div class="resource-card-top">
                             <div>
-                                <div class="resource-mini-icon"><i class="bi <?= htmlspecialchars($resource['icon'], ENT_QUOTES, 'UTF-8') ?>" aria-hidden="true"></i></div>
+                                <div class="resource-mini-icon"><i class="bi <?= publicEscape($resourceIcons[$resource['category']] ?? 'bi-box-seam') ?>" aria-hidden="true"></i></div>
                                 <h2><?= htmlspecialchars($resource['name'], ENT_QUOTES, 'UTF-8') ?></h2>
                                 <span class="category"><?= htmlspecialchars($resource['category'], ENT_QUOTES, 'UTF-8') ?></span>
                             </div>
-                            <span class="status-badge status-<?= htmlspecialchars($resource['tone'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($resource['status'], ENT_QUOTES, 'UTF-8') ?></span>
+                            <?php publicStatus($resource['availability']); ?>
                         </div>
                         <div class="resource-stock">
                             <div>
                                 <small>Available quantity</small>
-                                <strong><?= number_format($resource['quantity']) ?></strong>
+                                <strong><?= publicQuantity($resource['stock']) ?></strong>
                             </div>
                             <small><?= htmlspecialchars($resource['unit'], ENT_QUOTES, 'UTF-8') ?></small>
                         </div>
                     </article>
                 <?php endforeach; ?>
             </div>
-
-            <div class="empty-state surface-card mt-3" data-resource-empty hidden aria-live="polite">
-                <i class="bi bi-search" aria-hidden="true"></i>
-                <h3>No resources match</h3>
-                <p>Try another search term or choose a different category.</p>
-            </div>
+            <?php endif; ?>
+            <?php publicPagination($directory['pagination'], 'resources.php#resource-directory', $filters); ?>
+            <?php endif; ?>
         </div>
     </section>
 

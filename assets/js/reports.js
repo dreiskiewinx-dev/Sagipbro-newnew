@@ -4,92 +4,9 @@
     const config = window.sagipbroReports || {};
     const tableBody = document.querySelector('#recentReportsTable tbody');
     const countBadge = document.querySelector('[data-report-count]');
-    const maxHistory = Number(config.maxHistory) || 20;
 
     if (!tableBody || !countBadge) return;
 
-    const formatDate = (value) => new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-    }).format(new Date(`${value}T00:00:00`));
-
-    const formatDateTime = (value) => new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-    }).format(value);
-
-    const setCount = () => {
-        const count = tableBody.querySelectorAll('[data-report-history]').length;
-        countBadge.textContent = `${count} ${count === 1 ? 'file' : 'files'}`;
-    };
-
-    const makeCell = (text, className = '') => {
-        const cell = document.createElement('td');
-        if (className) cell.className = className;
-        if (text !== undefined) cell.textContent = text;
-        return cell;
-    };
-
-    const addHistoryRow = (exportUrl, title) => {
-        const url = new URL(exportUrl, window.location.href);
-        const downloadUrl = new URL(url);
-        downloadUrl.searchParams.set('track', '0');
-
-        tableBody.querySelector('[data-report-empty]')?.remove();
-
-        const row = document.createElement('tr');
-        row.dataset.reportHistory = '';
-
-        const reportCell = makeCell();
-        const primary = document.createElement('span');
-        primary.className = 'table-primary-text';
-        primary.textContent = title;
-        const secondary = document.createElement('span');
-        secondary.className = 'table-secondary-text';
-        secondary.textContent = url.searchParams.get('coverage') || 'All categories';
-        reportCell.append(primary, secondary);
-
-        const from = url.searchParams.get('from');
-        const to = url.searchParams.get('to');
-        const period = from && to ? `${formatDate(from)}–${formatDate(to)}` : 'Current data';
-
-        const formatCell = makeCell();
-        const formatBadge = document.createElement('span');
-        formatBadge.className = 'status-badge status-info';
-        formatBadge.textContent = 'CSV';
-        formatCell.append(formatBadge);
-
-        const actionsCell = makeCell(undefined, 'text-end');
-        const download = document.createElement('a');
-        download.className = 'btn btn-light btn-icon';
-        download.href = downloadUrl.toString();
-        download.title = `Download ${title}`;
-        download.setAttribute('aria-label', `Download ${title}`);
-        download.setAttribute('download', '');
-        const icon = document.createElement('i');
-        icon.className = 'bi bi-download';
-        icon.setAttribute('aria-hidden', 'true');
-        download.append(icon);
-        actionsCell.append(download);
-
-        row.append(
-            reportCell,
-            makeCell(period),
-            makeCell(config.generatedBy || 'System user'),
-            makeCell(formatDateTime(new Date())),
-            formatCell,
-            actionsCell
-        );
-        tableBody.prepend(row);
-
-        const rows = [...tableBody.querySelectorAll('[data-report-history]')];
-        rows.slice(maxHistory).forEach((oldRow) => oldRow.remove());
-        setCount();
-    };
 
     const responseError = async (response) => {
         try {
@@ -200,7 +117,7 @@
                 return;
             }
             await recordSavedExport(exportUrl, title);
-            addHistoryRow(exportUrl, title);
+            await window.sagipbroReportHistoryPager?.load();
             if (modal && window.bootstrap) window.bootstrap.Modal.getOrCreateInstance(modal).hide();
             window.sagipbroToast?.('The saved report was added to Recent Reports.', 'Report ready');
         } catch (error) {

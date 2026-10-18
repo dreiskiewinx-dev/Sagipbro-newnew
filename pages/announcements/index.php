@@ -60,7 +60,7 @@ include '../../includes/header.php';
                     <span class="status-badge status-info" data-announcement-published>0 currently published</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table app-table align-middle" id="announcementsTable" data-table data-pagination="announcements">
+                    <table class="table app-table align-middle" id="announcementsTable" data-table data-pagination="announcements" data-server-pagination="true">
                         <thead><tr><th scope="col">Title and content</th><th scope="col">Category</th><th scope="col">Audience</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Author</th><th scope="col" class="text-end">Actions</th></tr></thead>
                         <tbody>
                             <?php foreach ($announcements as $announcement): ?>
@@ -95,6 +95,8 @@ include '../../includes/header.php';
                         <div class="col-md-4"><label class="form-label" for="addAnnouncementStatus">Status</label><select class="form-select" id="addAnnouncementStatus" name="status"><option>Draft</option><option>Published</option></select></div>
                         <div class="col-md-6"><label class="form-label" for="addAnnouncementDate">Publish date and time</label><input class="form-control" id="addAnnouncementDate" name="published_at" type="datetime-local" value="<?= htmlspecialchars(date('Y-m-d\TH:i'), ENT_QUOTES, 'UTF-8') ?>"></div>
                         <div class="col-md-6"><label class="form-label" for="addAnnouncementAuthor">Author</label><input class="form-control" id="addAnnouncementAuthor" name="author" value="<?= htmlspecialchars((string) ($_SESSION['full_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>" readonly></div>
+                        <div class="col-md-6"><label class="form-label" for="addAnnouncementPriority">Priority</label><select class="form-select" id="addAnnouncementPriority" name="priority"><option>Normal</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+                        <div class="col-md-6"><label class="form-label" for="addAnnouncementExpiry">Expires at (optional)</label><input class="form-control" id="addAnnouncementExpiry" name="expires_at" type="datetime-local"></div>
                     </div><div class="info-callout mt-3"><i class="bi bi-shield-check"></i><div><strong>Verification reminder</strong><span>Emergency announcements should be approved by the incident lead before publication.</span></div></div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg" aria-hidden="true"></i> Confirm announcement</button></div>
                 </form></div>
@@ -119,6 +121,8 @@ include '../../includes/header.php';
                         <div class="col-md-4"><label class="form-label" for="editAnnouncementStatus">Status</label><select class="form-select" id="editAnnouncementStatus" name="status"><option>Draft</option><option>Published</option></select></div>
                         <div class="col-md-6"><label class="form-label" for="editAnnouncementDate">Publish date and time</label><input class="form-control" id="editAnnouncementDate" name="published_at" type="datetime-local"></div>
                         <div class="col-md-6"><label class="form-label" for="editAnnouncementRevision">Revision note</label><input class="form-control" id="editAnnouncementRevision" name="revision_note" placeholder="Brief reason for this update"></div>
+                        <div class="col-md-6"><label class="form-label" for="editAnnouncementPriority">Priority</label><select class="form-select" id="editAnnouncementPriority" name="priority"><option>Normal</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+                        <div class="col-md-6"><label class="form-label" for="editAnnouncementExpiry">Expires at (optional)</label><input class="form-control" id="editAnnouncementExpiry" name="expires_at" type="datetime-local"></div>
                     </div></div>
                     <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-check-lg"></i> Save changes</button></div>
                 </form></div>
@@ -149,5 +153,5 @@ include '../../includes/header.php';
         csrfToken: <?= json_encode(csrfToken()) ?>
     };
 </script>
-<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js?v=2"></script>
 <?php include '../../includes/footer.php'; ?>

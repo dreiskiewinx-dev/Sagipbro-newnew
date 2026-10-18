@@ -111,6 +111,42 @@ function checkPublicFailure(array $response, string $databaseName): void
     }
 }
 
+function checkCompactPublicDirectory(string $route, string $body): void
+{
+    $directories = [
+        'resources.php' => ['resource-directory', 'resource-directory-title', ['Live inventory', 'Relief supply overview', 'Current public resource names, categories, quantities, units, and stock conditions.']],
+        'evacuation-centers.php' => ['center-directory', 'center-directory-title', ['Evacuation directory', 'Find a center with space', 'Available centers appear first and are highlighted in green.']],
+        'distributions.php' => ['distribution-directory', 'distribution-directory-title', ['Published operations', 'Relief distribution schedules and records', 'Active and upcoming schedules appear first.']],
+        'announcements.php' => ['announcement-directory', 'announcement-directory-title', ['Community advisories', 'Current announcements', 'Published announcements remain visible until they expire or are archived.']],
+        'reports.php' => ['public-reports', null, []],
+    ];
+    [$anchor, $removedHeading, $removedCopy] = $directories[$route];
+    $document = new DOMDocument();
+    $previous = libxml_use_internal_errors(true);
+    $document->loadHTML('<?xml encoding="UTF-8">' . $body);
+    libxml_clear_errors();
+    libxml_use_internal_errors($previous);
+    $xpath = new DOMXPath($document);
+    $section = $xpath->query('//section[@id="' . $anchor . '"]')->item(0);
+    httpCheck($section instanceof DOMElement && trim($section->getAttribute('aria-label')) !== '', 'Directory must retain its anchor and an accessible name: ' . $route);
+    httpCheck(!str_contains($body, 'Barangay database records') && $xpath->query('//*[contains(concat(" ", normalize-space(@class), " "), " public-data-notice--success ")]')->length === 0, 'Successful data retrieval must not add the removed database notice: ' . $route);
+    if ($removedHeading !== null) {
+        httpCheck($xpath->query('//*[@id="' . $removedHeading . '" or @aria-labelledby="' . $removedHeading . '"]')->length === 0, 'Removed intro heading must leave no dangling accessible-name reference: ' . $route);
+        $hasRemovedCopy = false;
+        foreach ($removedCopy as $text) $hasRemovedCopy = $hasRemovedCopy || str_contains($body, $text);
+        httpCheck(!$hasRemovedCopy, 'Removed directory intro text must not return: ' . $route);
+        $action = $route . '#' . $anchor;
+        httpCheck($xpath->query('//section[@id="' . $anchor . '"]//form[@role="search" and @method="get" and @action="' . $action . '"]//input[@name="q"]')->length === 1, 'Directory search must keep its GET action and result anchor: ' . $route);
+        httpCheck($xpath->query('//section[@id="' . $anchor . '"]//form[@role="search"]//select[@name="' . ($route === 'announcements.php' ? 'priority' : 'status') . '"]')->length === 1, 'Directory filter must remain available: ' . $route);
+        httpCheck($xpath->query('//section[@id="' . $anchor . '"]//*[@data-public-pagination="page"]//form[@action="' . $action . '"]//select[@name="per_page"]')->length === 1, 'Directory pagination must keep its page-size control and result anchor: ' . $route);
+    } else {
+        foreach (['resources', 'centers', 'distributions'] as $kind) {
+            httpCheck($xpath->query('//section[@aria-labelledby="report-' . $kind . '"]//h2[@id="report-' . $kind . '"]')->length === 1, 'Report subsection heading must remain: ' . $kind);
+            httpCheck($xpath->query('//section[@aria-labelledby="report-' . $kind . '"]//*[@data-public-pagination="' . $kind . '_page"]//form[@action="reports.php#report-' . $kind . '"]//select[@name="' . $kind . '_per_page"]')->length === 1, 'Independent report pagination and anchor must remain: ' . $kind);
+        }
+    }
+}
+
 try {
     foreach ($routes as $route) {
         httpCheck(is_file($project . '/' . $route), 'A required public page has not been created yet: ' . $route);
@@ -158,10 +194,11 @@ try {
         httpCheck($empty['status'] === 200, 'Public empty page must load without authentication: ' . $route);
         httpCheck(str_contains($empty['body'], 'empty-state'), 'Empty database must render a genuine empty state: ' . $route);
         httpCheck(!str_contains($empty['body'], 'Interface preview only') && !str_contains($empty['body'], 'Sample snapshot'), 'Public database pages must not fall back to demo records.');
+        checkCompactPublicDirectory($route, $empty['body']);
     }
     $services = testGet('services.php');
     httpCheck($services['status'] === 200, 'Services page must be public.');
-    foreach ($routes as $route) httpCheck(str_contains($services['body'], 'href="' . $route . '"'), 'Service link does not target its functional public page: ' . $route);
+    foreach ($routes as $route) httpCheck((bool) preg_match('/href="' . preg_quote($route, '/') . '(?:\?[^"#]*)?(?:#[^"]*)?"/', $services['body']), 'Service link does not target its functional public page: ' . $route);
     fwrite(STDOUT, "PASS: public service links, unauthenticated access, and empty states.\n");
 
     $staffId = httpFixture($database, 'users', ['full_name' => 'TEST_PRIVATE_STAFF_DO_NOT_PUBLISH', 'username' => 'test_http_staff', 'password_hash' => 'TEST-NOT-A-LOGIN-HASH', 'role' => 'admin']);
@@ -220,9 +257,11 @@ try {
         httpCheck(str_contains(strtolower($response['headers']), 'cache-control: no-store'), 'Public data pages must not serve stale cached availability.');
         httpCheck(!str_contains($response['body'], 'TEST_PRIVATE_'), 'Public page exposed hidden records or personal information: ' . $route);
         httpCheck(!str_contains($response['body'], $resourceXss) && !str_contains($response['body'], $announcementXss), 'Database text was rendered as raw executable HTML: ' . $route);
+        checkCompactPublicDirectory($route, $response['body']);
         $snapshots[$route] = $response['body'];
     }
-    httpCheck(str_contains($snapshots['resources.php'], '&lt;img src=x onerror=alert(1)&gt;'), 'Resource HTML must be escaped and still visible as text.');
+    $escapedResource = testGet('resources.php', ['q' => $resourceXss]);
+    httpCheck($escapedResource['status'] === 200 && !str_contains($escapedResource['body'], $resourceXss) && str_contains($escapedResource['body'], '&lt;img src=x onerror=alert(1)&gt;'), 'Resource HTML must be escaped and still visible as text, independently of its page position.');
     httpCheck(str_contains($snapshots['announcements.php'], '&lt;script&gt;'), 'Announcement HTML must be escaped and still visible as text.');
     httpCheck(strpos($snapshots['announcements.php'], 'TEST HTTP Urgent Announcement') < strpos($snapshots['announcements.php'], 'TEST HTTP Normal Announcement'), 'Urgent announcements must appear first.');
 

@@ -3,6 +3,11 @@ $pageTitle = 'Services';
 $pageDescription = 'Explore the disaster-relief information services presented by SAGIPBRO for Barangay Bonuan Binloc, Dagupan City.';
 $activePage = 'services';
 $basePath = '';
+$bodyClass = 'services-page';
+
+require_once __DIR__ . '/includes/public_service_helpers.php';
+require_once __DIR__ . '/includes/public_announcements_panel.php';
+$announcementPanel = publicAnnouncementPanelLoad();
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/navbar.php';
@@ -16,20 +21,16 @@ include __DIR__ . '/includes/navbar.php';
                     <li class="breadcrumb-item active" aria-current="page">Services</li>
                 </ol>
             </nav>
-            <span class="hero-chip"><span aria-hidden="true"></span> What SAGIPBRO provides</span>
-            <h1 id="services-page-title">Essential relief information, organized around real decisions.</h1>
-            <p>From supply visibility to reports, SAGIPBRO brings the main information areas of barangay disaster-relief coordination into one consistent experience.</p>
+            <span class="hero-chip"><span aria-hidden="true"></span> Barangay Bonuan Binloc</span>
+            <h1 id="services-page-title">Disaster Relief Services</h1>
+            <p>Access essential relief resources, evacuation centers, distribution updates, and public reports in Barangay Bonuan Binloc.</p>
         </div>
     </section>
 
-    <section class="section-space section-soft" id="services-list" data-scroll-target aria-labelledby="services-list-title">
-        <div class="container">
-            <div class="section-heading">
-                <span class="section-kicker">Core services</span>
-                <h2 id="services-list-title">A clearer view of every response area</h2>
-                <p>Public information stays easy to read, while authorized staff can work with more detailed operational records after signing in.</p>
-            </div>
-
+    <?php publicServiceNavigation(''); ?>
+    <section class="section-space section-soft" id="services-list" data-scroll-target aria-label="Public services">
+        <div class="container public-services-layout">
+            <div class="public-services-main">
             <div class="service-list">
                 <article class="service-row">
                     <a class="service-row-link" href="resources.php#resource-directory">
@@ -67,18 +68,6 @@ include __DIR__ . '/includes/navbar.php';
                         <span class="quick-link">View distributions <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </a>
                 </article>
-                <article class="service-row" id="announcements">
-                    <a class="service-row-link" href="announcements.php#announcement-directory">
-                        <span class="service-row-top">
-                            <span class="service-row-icon"><i class="bi bi-megaphone" aria-hidden="true"></i></span>
-                        </span>
-                        <div class="service-row-copy">
-                            <h3>Emergency Announcements</h3>
-                            <p>Gives urgent advisories and community updates a prominent, readable location across the public experience.</p>
-                        </div>
-                        <span class="quick-link">Read current announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
-                    </a>
-                </article>
                 <article class="service-row">
                     <a class="service-row-link" href="reports.php#public-reports">
                         <span class="service-row-top">
@@ -92,6 +81,8 @@ include __DIR__ . '/includes/navbar.php';
                     </a>
                 </article>
             </div>
+            </div>
+            <?php publicAnnouncementsPanel($announcementPanel); ?>
         </div>
     </section>
 
@@ -110,4 +101,5 @@ include __DIR__ . '/includes/navbar.php';
         </div>
     </section>
 </main>
+<script src="assets/js/public-announcements.js?v=3" defer></script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

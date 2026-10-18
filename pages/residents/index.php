@@ -41,22 +41,22 @@ include '../../includes/header.php';
                 <article class="stat-card">
                     <div class="stat-card-top"><span class="stat-card-label">Registered residents</span><span class="stat-card-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span></div>
                     <strong class="stat-value">0</strong>
-                    <span class="stat-meta">No resident records yet</span>
+                    <span class="stat-meta">Live resident records</span>
                 </article>
                 <article class="stat-card info">
                     <div class="stat-card-top"><span class="stat-card-label">Households</span><span class="stat-card-icon"><i class="bi bi-house-door-fill" aria-hidden="true"></i></span></div>
                     <strong class="stat-value">0</strong>
-                    <span class="stat-meta">No household records yet</span>
+                    <span class="stat-meta">Households linked to residents</span>
                 </article>
                 <article class="stat-card warning">
                     <div class="stat-card-top"><span class="stat-card-label">Priority residents</span><span class="stat-card-icon"><i class="bi bi-heart-pulse-fill" aria-hidden="true"></i></span></div>
                     <strong class="stat-value">0</strong>
-                    <span class="stat-meta">No priority records yet</span>
+                    <span class="stat-meta">Active residents with priority needs</span>
                 </article>
                 <article class="stat-card">
                     <div class="stat-card-top"><span class="stat-card-label">Records verified</span><span class="stat-card-icon"><i class="bi bi-patch-check-fill" aria-hidden="true"></i></span></div>
                     <strong class="stat-value">0%</strong>
-                    <span class="stat-meta">No verified records yet</span>
+                    <span class="stat-meta">Active share of resident records</span>
                 </article>
             </section>
 
@@ -77,7 +77,7 @@ include '../../includes/header.php';
                             <option value="Inactive">Inactive</option>
                         </select>
                     </div>
-                    <span class="filter-results" aria-live="polite">Showing 0 records</span>
+                    <span class="filter-results" data-filter-results aria-live="polite">Loading residents…</span>
                 </div>
 
                 <div class="data-card">
@@ -89,7 +89,7 @@ include '../../includes/header.php';
                         <span class="status-badge status-success">Data current</span>
                     </div>
                     <div class="table-responsive">
-                        <table class="table app-table align-middle" id="residentsTable" data-pagination="residents">
+                        <table class="table app-table align-middle" id="residentsTable" data-pagination="residents" data-server-pagination="true">
                             <caption class="visually-hidden">Barangay Binloc resident directory</caption>
                             <thead>
                                 <tr>

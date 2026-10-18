@@ -40,7 +40,25 @@ function migratePublicServices(PDO $db): void
     }
     $announcementColumns = $tableColumns('announcements');
     if (!in_array('priority', $announcementColumns, true)) {
-        $db->exec("ALTER TABLE announcements ADD COLUMN priority ENUM('Normal', 'Urgent') NOT NULL DEFAULT 'Normal'");
+        $db->exec("ALTER TABLE announcements ADD COLUMN priority ENUM('Normal', 'Urgent', 'High', 'Medium', 'Low') NOT NULL DEFAULT 'Normal'");
+    }
+    $priorityColumn = $db->query("SELECT COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'announcements' AND COLUMN_NAME = 'priority'")->fetch(PDO::FETCH_ASSOC);
+    if ($priorityColumn && str_starts_with(strtolower($priorityColumn['COLUMN_TYPE']), 'enum(')) {
+        $type = $priorityColumn['COLUMN_TYPE'];
+        $missing = array_values(array_filter(['Normal', 'Urgent', 'High', 'Medium', 'Low'],
+            static fn ($priority) => stripos($type, "'" . $priority . "'") === false));
+        if ($missing) {
+            // Append values so existing enum labels, stored records and defaults are preserved.
+            $type = substr($type, 0, -1) . ',' . implode(',', array_map($db->quote(...), $missing)) . ')';
+            $nullable = $priorityColumn['IS_NULLABLE'] === 'YES' ? ' NULL' : ' NOT NULL';
+            $default = $priorityColumn['COLUMN_DEFAULT'];
+            if (is_string($default) && strlen($default) > 1 && $default[0] === "'" && substr($default, -1) === "'") {
+                $default = substr($default, 1, -1);
+            }
+            $defaultSql = $default === null ? ($nullable === ' NULL' ? ' DEFAULT NULL' : '') : ' DEFAULT ' . $db->quote($default);
+            $db->exec('ALTER TABLE announcements MODIFY COLUMN priority ' . $type . $nullable . $defaultSql);
+        }
     }
     if (!in_array('expires_at', $announcementColumns, true)) {
         $db->exec('ALTER TABLE announcements ADD COLUMN expires_at DATETIME NULL');

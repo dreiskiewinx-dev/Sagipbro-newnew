@@ -1,15 +1,15 @@
 (() => {
     const config = window.sagipbroMessagesApi;
     const inbox = document.querySelector('[data-messages-inbox]');
-    if (!inbox || !config) return;
+    if (!inbox || !config || !window.SagipbroPagination) return;
     const status = inbox.querySelector('[data-messages-live-status]');
     const body = inbox.querySelector('tbody');
     const count = inbox.querySelector('[data-message-count]');
     let timer;
     let busy = false;
     let stopped = false;
+    let initializing = true;
     let lastData = '';
-    let currentMessages = [];
     const updating = new Set();
 
     const statusClass = (value) => ({
@@ -23,6 +23,7 @@
         button.type = 'button';
         button.className = `btn btn-light btn-icon${resolve ? ' text-success' : ''}`;
         button.dataset.messageStatus = nextStatus;
+        button.disabled = updating.has(Number(message.id));
         button.title = resolve ? 'Resolve' : (markRead ? 'Mark as read' : 'Mark as unread');
         button.setAttribute('aria-label', `${button.title}: ${message.subject}`);
         const icon = document.createElement('i');
@@ -32,10 +33,14 @@
         return button;
     };
 
-    function render(messages) {
+    function render(result) {
+        const messages = result.data || [];
+        const unread = Number(result.summary?.unread || 0);
+        const total = Number(result.summary?.total || 0);
+        count.textContent = `${unread} unread · ${total} total`;
+        count.className = `status-badge ${unread ? 'status-warning' : 'status-success'}`;
         const signature = JSON.stringify(messages);
         if (signature === lastData) return;
-        currentMessages = messages;
         const rows = document.createDocumentFragment();
         const element = (tag, text, className = '') => {
             const node = document.createElement(tag);
@@ -72,17 +77,18 @@
         }
         if (!messages.length) {
             const row = document.createElement('tr');
-            const empty = element('td', 'No messages received yet.', 'text-center text-body-secondary py-4');
+            const empty = element('td', 'No messages match your search or filters.', 'text-center text-body-secondary py-4');
             empty.colSpan = 8;
             row.append(empty);
             rows.append(row);
         }
         body.replaceChildren(rows);
-        const unread = messages.filter((message) => message.status === 'Unread').length;
-        count.textContent = `${unread} unread · ${messages.length} total`;
-        count.className = `status-badge ${unread ? 'status-warning' : 'status-success'}`;
         lastData = signature;
     }
+
+    const pagination = window.SagipbroPagination.create({
+        table: '#messagesTable', endpoint: config.endpoint, render, autoLoad: false
+    });
 
     async function updateMessage(id, nextStatus, row) {
         if (updating.has(id)) return;
@@ -104,15 +110,14 @@
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(payload.error || 'Unable to update the message.');
             lastData = '';
-            render(currentMessages.map((message) => Number(message.id) === id
-                ? { ...message, status: nextStatus }
-                : message));
+            await pagination.load();
             window.sagipbroToast?.(payload.message || `Message marked ${nextStatus}.`, 'Message updated');
         } catch (error) {
             row.querySelectorAll('[data-message-status]').forEach((button) => { button.disabled = false; });
             window.sagipbroToast?.(error.message, 'Update failed');
         } finally {
             updating.delete(id);
+            body.querySelector(`[data-message-id="${id}"]`)?.querySelectorAll('[data-message-status]').forEach((button) => { button.disabled = false; });
             if (!stopped && !document.hidden) timer = setTimeout(refresh, 1000);
         }
     }
@@ -128,27 +133,19 @@
 
     async function refresh() {
         clearTimeout(timer);
-        if (busy || updating.size || stopped || document.hidden) return;
+        if (initializing || busy || updating.size || stopped || document.hidden) return;
+        if (pagination.state.loading) {
+            timer = setTimeout(refresh, 1000);
+            return;
+        }
         busy = true;
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
         try {
-            const response = await fetch(config.endpoint, {
-                credentials: 'same-origin', cache: 'no-store', signal: controller.signal
-            });
-            if (response.redirected || response.status === 401 || response.status === 403) {
-                stopped = true;
-                throw new Error('Please sign in again to receive new messages.');
-            }
-            if (!response.ok) throw new Error();
-            const payload = await response.json();
-            if (!Array.isArray(payload.data)) throw new Error();
-            render(payload.data);
+            await pagination.load();
             status.textContent = 'Messages update automatically.';
         } catch (error) {
+            if (/Authentication required|not authorized/i.test(error.message)) stopped = true;
             status.textContent = stopped ? error.message : 'Unable to check new messages. Reconnecting automatically…';
         } finally {
-            clearTimeout(timeout);
             busy = false;
             if (!stopped && !document.hidden) timer = setTimeout(refresh, 1000);
         }
@@ -158,5 +155,20 @@
         else refresh();
     });
     window.addEventListener('online', refresh);
-    refresh();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', '10');
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pagination.state.page = result.record_page;
+            } catch (_) { /* The normal polling request reports connection failures. */ }
+        }
+        initializing = false;
+        await refresh();
+    };
+    initialize();
 })();

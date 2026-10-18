@@ -23,7 +23,8 @@
         if (!response.ok) throw new Error(result.error || 'Unable to complete the request.');
         return result;
     };
-    const render = () => {
+    const render = (result) => {
+        volunteers = result.data || [];
         tableBody.innerHTML = volunteers.map((volunteer) => `<tr data-row data-status="${escapeHtml(volunteer.status)}" data-search="${escapeHtml(`${volunteer.full_name} ${volunteer.skills} ${volunteer.assignment || ''}`)}">
             <td><span class="table-avatar">${escapeHtml(volunteer.full_name.slice(0, 2).toUpperCase())}</span><span class="d-inline-block align-middle"><span class="table-primary-text">${escapeHtml(volunteer.full_name)}</span><span class="table-secondary-text">VOL-${String(volunteer.id).padStart(4, '0')}</span></span></td>
             <td>${escapeHtml(volunteer.skills)}</td><td>${escapeHtml(volunteer.assignment || 'Unassigned')}</td><td>${escapeHtml(volunteer.contact)}</td><td>${escapeHtml(volunteer.availability)}</td>
@@ -34,16 +35,13 @@
         tableBody.querySelectorAll('[data-volunteer-delete]').forEach((button) => button.addEventListener('click', () => deactivate(Number(button.dataset.volunteerDelete))));
 
         const values = document.querySelectorAll('.stat-grid .stat-value');
-        const active = volunteers.filter((item) => item.status === 'Active').length;
-        const deployed = volunteers.filter((item) => item.status === 'Deployed').length;
-        if (values[0]) values[0].textContent = volunteers.length;
+        const stats = result.stats || {};
+        const active = Number(stats.active) || 0;
+        const deployed = Number(stats.deployed) || 0;
+        if (values[0]) values[0].textContent = stats.total ?? 0;
         if (values[1]) values[1].textContent = active;
         if (values[2]) values[2].textContent = deployed;
-        if (values[3]) values[3].textContent = volunteers.length ? `${Math.round((active + deployed) / volunteers.length * 100)}%` : '0%';
-        const resultCount = document.querySelector('.filter-results');
-        const summary = document.querySelector('#volunteersTable')?.closest('.data-card')?.querySelector('.record-summary > span');
-        if (resultCount) resultCount.textContent = `Showing ${volunteers.length} volunteer records`;
-        if (summary) summary.textContent = `Showing ${volunteers.length} of ${volunteers.length} volunteers`;
+        if (values[3]) values[3].textContent = Number(stats.total) ? `${Math.round((active + deployed) / Number(stats.total) * 100)}%` : '0%';
     };
     const fillEdit = (id) => {
         const volunteer = volunteers.find((item) => Number(item.id) === id);
@@ -93,13 +91,21 @@
         const data = Object.fromEntries(new FormData(editForm).entries());
         submit(editForm, 'PUT', { ...original, ...data, id: editForm.dataset.id });
     });
-    const load = async () => {
-        try {
-            volunteers = (await request()).data || [];
-            render();
-        } catch (error) {
-            window.sagipbroToast?.(error.message, 'Unable to load volunteers');
+    const pager = window.SagipbroPagination.create({ table: '#volunteersTable', endpoint: config.endpoint, render, autoLoad: false });
+    const load = () => pager.load();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', String(pager.state.perPage));
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pager.state.page = result.record_page;
+            } catch (_) { /* The normal request below reports connection failures. */ }
         }
+        await load();
     };
-    load();
+    initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load volunteers'));
 })();

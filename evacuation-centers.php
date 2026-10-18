@@ -2,7 +2,8 @@
 require_once __DIR__ . '/includes/public_service_helpers.php';
 $statuses = ['Available', 'Full', 'Closed'];
 $filters = ['q' => publicInput('q'), 'status' => publicChoice('status', $statuses)];
-$result = publicLoad(static fn(PDO $database): array => publicCenters($database, $filters));
+$paging = publicPageRequest($_GET);
+$result = publicLoad(static fn(PDO $database): array => publicCenters($database, $filters, $paging));
 $pageTitle = 'Evacuation Centers';
 $pageDescription = 'Find recorded evacuation centers, locations, capacities, current occupants and available spaces in Barangay Bonuan Binloc.';
 $activePage = 'services';
@@ -12,10 +13,9 @@ include __DIR__ . '/includes/navbar.php';
 ?>
 <main id="main-content">
     <?php publicServiceHero('Evacuation centers', 'Find a center, check available spaces, and review its current status. Follow barangay instructions before travelling to an evacuation center.', 'centers'); ?>
-    <section class="section-space section-soft" id="center-directory" data-scroll-target aria-labelledby="center-directory-title">
+    <section class="section-space section-soft" id="center-directory" data-scroll-target aria-label="Evacuation center directory">
         <div class="container">
-            <div class="section-heading"><span class="section-kicker">Evacuation directory</span><h2 id="center-directory-title">Find a center with space</h2><p>Available centers appear first and are highlighted in green. Full and closed centers cannot accept additional occupants.</p></div>
-            <?php publicDataNotice($result); ?>
+            <?php if ($result['error']) publicDataNotice($result); ?>
             <?php if (!$result['error']): $directory = $result['data']; ?>
                 <?php publicFilterForm('evacuation-centers.php#center-directory', $filters, $statuses); ?>
                 <p class="public-record-meta"><?= number_format($directory['total']) ?> center<?= $directory['total'] === 1 ? '' : 's' ?> found</p>
@@ -32,6 +32,7 @@ include __DIR__ . '/includes/navbar.php';
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <?php publicPagination($directory['pagination'], 'evacuation-centers.php#center-directory', $filters); ?>
             <?php endif; ?>
         </div>
     </section>

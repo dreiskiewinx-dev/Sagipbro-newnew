@@ -31,7 +31,8 @@
         if (percent >= 85) return 'Near capacity';
         return 'Open';
     };
-    const render = () => {
+    const render = (result) => {
+        centers = result.data || [];
         tableBody.innerHTML = centers.map((center) => {
             const percent = Math.min(100, Math.round(Number(center.occupants) / Math.max(1, Number(center.capacity)) * 100));
             const status = displayStatus(center);
@@ -53,13 +54,11 @@
         tableBody.querySelectorAll('[data-center-edit]').forEach((button) => button.addEventListener('click', () => fillEdit(Number(button.dataset.centerEdit))));
         tableBody.querySelectorAll('[data-center-delete]').forEach((button) => button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.centerDelete; }));
 
-        const full = centers.filter((center) => displayStatus(center) === 'Full').length;
+        const full = Number(result.stats?.full || 0);
         const badge = document.querySelector('#centersTable')?.closest('.data-card')?.querySelector('.data-card-header .status-badge');
-        const summary = document.querySelector('#centersTable')?.closest('.data-card')?.querySelector('.record-summary > span');
         const resultCount = document.querySelector('[data-filter-results]');
         if (badge) badge.textContent = `${full} centers at full capacity`;
-        if (summary) summary.textContent = `Showing ${centers.length} of ${centers.length} centers`;
-        if (resultCount) resultCount.textContent = `${centers.length} registered centers`;
+        if (resultCount) resultCount.textContent = `${Number(result.pagination?.total || 0).toLocaleString()} registered centers`;
     };
     const fillEdit = (id) => {
         const center = centers.find((item) => Number(item.id) === id);
@@ -104,13 +103,23 @@
         event.preventDefault();
         submit(deleteForm, 'DELETE', { id: deleteForm.dataset.id });
     });
-    const load = async () => {
-        try {
-            centers = (await request()).data || [];
-            render();
-        } catch (error) {
-            window.sagipbroToast?.(error.message, 'Unable to load centers');
+    const pager = window.SagipbroPagination.create({
+        table: '#centersTable', endpoint: config.endpoint, render, autoLoad: false,
+    });
+    const load = () => pager.load();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', String(pager.state.perPage));
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pager.state.page = result.record_page;
+            } catch (_) { /* The normal request below reports connection failures. */ }
         }
+        await load();
     };
-    load();
+    initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load centers'));
 })();

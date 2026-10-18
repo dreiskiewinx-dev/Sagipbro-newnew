@@ -17,7 +17,47 @@ $conn->exec("CREATE TABLE IF NOT EXISTS volunteers (
 ) ENGINE=InnoDB");
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $conn->query('SELECT * FROM volunteers ORDER BY full_name');
+    $where = [];
+    $params = [];
+    if (isset($_GET['id'])) {
+        $where[] = 'id = ?';
+        $params[] = positiveInt($_GET, 'id');
+    }
+    $query = adminQueryText('q');
+    if ($query !== '') {
+        $where[] = "(full_name LIKE ? ESCAPE '!' OR skills LIKE ? ESCAPE '!' OR assignment LIKE ? ESCAPE '!' OR contact LIKE ? ESCAPE '!' OR CONCAT('VOL-', LPAD(id, GREATEST(4, CHAR_LENGTH(id)), '0')) LIKE ? ESCAPE '!')";
+        array_push($params, ...array_fill(0, 5, adminLike($query)));
+    }
+    $status = adminQueryText('status');
+    if ($status !== '') {
+        $where[] = 'status = ?';
+        $params[] = $status;
+    }
+    $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+    $selectSql = 'SELECT * FROM volunteers' . $whereSql . ' ORDER BY full_name, id';
+    if (isset($_GET['id'])) {
+        $stmt = $conn->prepare($selectSql);
+        $stmt->execute($params);
+        $record = $stmt->fetch();
+        if (!$record) jsonResponse(['error' => 'Volunteer not found.'], 404);
+        $rank = $conn->prepare('SELECT COUNT(*) FROM volunteers WHERE (full_name, id) < (?, ?)');
+        $rank->execute([$record['full_name'], $record['id']]);
+        $perPage = (int) ($_GET['per_page'] ?? 10);
+        if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+        jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
+    }
+    if (adminQueryText('export') === 'csv') {
+        $stmt = $conn->prepare($selectSql);
+        $stmt->execute($params);
+        adminSendCsv('sagipbro-volunteers.csv', ['id' => 'Volunteer ID', 'full_name' => 'Full name', 'skills' => 'Skills', 'assignment' => 'Assignment', 'contact' => 'Contact number', 'email' => 'Email', 'availability' => 'Availability', 'status' => 'Status', 'notes' => 'Notes'], $stmt->fetchAll());
+    }
+    if (adminPaginationRequested()) {
+        $result = adminPaginate($conn, $selectSql, 'SELECT COUNT(*) FROM volunteers' . $whereSql, $params);
+        $result['stats'] = $conn->query("SELECT COUNT(*) AS total, COALESCE(SUM(status = 'Active'), 0) AS active, COALESCE(SUM(status = 'Deployed'), 0) AS deployed FROM volunteers")->fetch();
+        jsonResponse($result);
+    }
+    $stmt = $conn->prepare($selectSql);
+    $stmt->execute($params);
     jsonResponse(['data' => $stmt->fetchAll()]);
 }
 

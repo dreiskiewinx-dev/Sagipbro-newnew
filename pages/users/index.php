@@ -42,13 +42,13 @@ include '../../includes/header.php';
                 <div class="filter-toolbar">
                     <div class="search-field"><label for="userSearch">Search accounts</label><div class="input-icon"><i class="bi bi-search" aria-hidden="true"></i><input class="form-control" id="userSearch" type="search" placeholder="Name, username, email or ID" autocomplete="off" data-table-search="#usersTable"></div></div>
                     <div class="filter-field"><label for="userRoleFilter">Access role</label><select class="form-select" id="userRoleFilter" data-filter-select="#usersTable" data-filter-field="role"><option value="">All roles</option><option value="Administrator">Administrator</option><option value="Barangay Official">Barangay Official</option><option value="Volunteer">Volunteer</option><option value="Resident">Resident</option></select></div>
-                    <span class="filter-results" aria-live="polite">Loading accounts…</span>
+                    <span class="filter-results" data-filter-results aria-live="polite">Loading accounts…</span>
                 </div>
 
                 <div class="data-card">
                     <div class="data-card-header"><div><h2 id="userAccountsHeading">System users</h2><p>Account identities, roles, status, and recent access.</p></div><span class="status-badge status-success">Access controls active</span></div>
                     <div class="table-responsive">
-                        <table class="table app-table" id="usersTable" data-pagination="users">
+                        <table class="table app-table" id="usersTable" data-pagination="users" data-server-pagination="true">
                             <caption class="visually-hidden">SAGIPBRO user accounts</caption>
                             <thead><tr><th scope="col">User</th><th scope="col">Username</th><th scope="col">Role</th><th scope="col">Email</th><th scope="col">Last login</th><th scope="col">Sign-in status</th><th scope="col">Account access</th><th scope="col" class="text-end">Actions</th></tr></thead>
                             <tbody>

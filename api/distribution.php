@@ -4,15 +4,56 @@ require_once __DIR__ . '/bootstrap.php';
 requireApiLogin();
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $conn->query(
-        'SELECT d.*, d.recipient_reference AS household_id, r.name AS resource_name,
-                r.category AS resource_category, r.unit AS resource_unit,
-                u.full_name AS distributed_by_name
-         FROM distributions d
-         JOIN resources r ON r.id = d.resource_id
-         JOIN users u ON u.id = d.distributed_by
-         ORDER BY d.distributed_at DESC'
-    );
+    $where = [];
+    $params = [];
+    $recordId = isset($_GET['id']) ? positiveInt($_GET, 'id') : null;
+    if ($recordId !== null) {
+        $where[] = 'd.id = ?';
+        $params[] = $recordId;
+    } else {
+        if (($query = adminQueryText('q')) !== '') {
+            $where[] = "CONCAT_WS(' ', d.id, CONCAT('DST-', LPAD(d.id, 6, '0')), r.name, r.category, d.recipient_name, d.recipient_reference, d.location, u.full_name, d.remarks) LIKE ? ESCAPE '!'";
+            $params[] = adminLike($query);
+        }
+        if (($category = adminQueryText('category', 80)) !== '') {
+            $where[] = 'r.category = ?';
+            $params[] = $category;
+        }
+        if (($status = adminQueryText('status', 30)) !== '') {
+            $where[] = 'd.status = ?';
+            $params[] = $status;
+        }
+        $period = adminQueryText('period', 20);
+        if ($period === 'today') $where[] = 'd.distributed_at >= CURRENT_DATE() AND d.distributed_at < CURRENT_DATE() + INTERVAL 1 DAY';
+        elseif ($period === 'previous') $where[] = 'd.distributed_at < CURRENT_DATE()';
+    }
+    $from = ' FROM distributions d JOIN resources r ON r.id = d.resource_id JOIN users u ON u.id = d.distributed_by'
+        . ($where ? ' WHERE ' . implode(' AND ', $where) : '');
+    $select = 'SELECT d.*, d.recipient_reference AS household_id, r.name AS resource_name,
+        r.category AS resource_category, r.unit AS resource_unit, u.full_name AS distributed_by_name'
+        . $from . ' ORDER BY d.distributed_at DESC, d.id DESC';
+    if ($recordId !== null) {
+        $stmt = $conn->prepare($select);
+        $stmt->execute($params);
+        $record = $stmt->fetch();
+        if (!$record) jsonResponse(['error' => 'Distribution not found.'], 404);
+        $rank = $conn->prepare('SELECT COUNT(*) FROM distributions WHERE distributed_at > ? OR (distributed_at = ? AND id > ?)');
+        $rank->execute([$record['distributed_at'], $record['distributed_at'], $recordId]);
+        $perPage = (int) ($_GET['per_page'] ?? 10);
+        if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+        jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
+    }
+
+    // Exports contain every matching row, regardless of the currently selected page.
+    if (($_GET['export'] ?? '') !== 'csv' && adminPaginationRequested()) {
+        $result = adminPaginate($conn, $select, 'SELECT COUNT(*)' . $from, $params);
+        $stats = $conn->prepare("SELECT COALESCE(SUM(d.status = 'Pending review'), 0) AS pending" . $from);
+        $stats->execute($params);
+        $result['stats'] = $stats->fetch();
+        jsonResponse($result);
+    }
+    $stmt = $conn->prepare($select);
+    $stmt->execute($params);
     $rows = $stmt->fetchAll();
 
     if (($_GET['export'] ?? '') === 'csv') {

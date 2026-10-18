@@ -8,7 +8,8 @@ $filters = [
     'q' => publicInput('q'),
     'status' => publicChoice('status', $statuses),
 ];
-$result = publicLoad(static fn(PDO $database): array => publicDistributions($database, $filters));
+$paging = publicPageRequest($_GET);
+$result = publicLoad(static fn(PDO $database): array => publicDistributions($database, $filters, $paging));
 
 $pageTitle = 'Relief Distribution';
 $pageDescription = 'View published relief-distribution schedules, locations, supplies, and public distribution totals for Barangay Bonuan Binloc.';
@@ -25,15 +26,9 @@ include __DIR__ . '/includes/navbar.php';
         'distributions'
     ); ?>
 
-    <section class="section-space section-soft" id="distribution-directory" data-scroll-target aria-labelledby="distribution-directory-title">
+    <section class="section-space section-soft" id="distribution-directory" data-scroll-target aria-label="Relief distribution directory">
         <div class="container">
-            <div class="section-heading">
-                <span class="section-kicker">Published operations</span>
-                <h2 id="distribution-directory-title">Relief distribution schedules and records</h2>
-                <p>Active and upcoming schedules appear first. Public totals never include recipient names, contact details, or private release notes.</p>
-            </div>
-
-            <?php publicDataNotice($result); ?>
+            <?php if ($result['error']) publicDataNotice($result); ?>
             <?php if (!$result['error']): $directory = $result['data']; ?>
                 <?php publicFilterForm('distributions.php#distribution-directory', $filters, $statuses); ?>
                 <p class="public-record-meta"><?= number_format($directory['total']) ?> distribution<?= $directory['total'] === 1 ? '' : 's' ?> found</p>
@@ -89,6 +84,7 @@ include __DIR__ . '/includes/navbar.php';
                         <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
+                <?php publicPagination($directory['pagination'], 'distributions.php#distribution-directory', $filters); ?>
             <?php endif; ?>
         </div>
     </section>

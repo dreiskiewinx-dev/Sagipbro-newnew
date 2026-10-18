@@ -13,7 +13,6 @@ $dashboardStats = [
     'distributions' => 0,
     'distributed_quantity' => 0,
 ];
-$recentActivity = [];
 $lowStockItems = [];
 $recentAnnouncements = [];
 $distributionOverview = [];
@@ -28,8 +27,6 @@ try {
         (SELECT COUNT(*) FROM volunteers WHERE status IN ('Active', 'Deployed')) AS volunteers,
         (SELECT COUNT(*) FROM distributions WHERE distributed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributions,
         (SELECT COALESCE(SUM(quantity), 0) FROM distributions WHERE distributed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS distributed_quantity")->fetch();
-    $recentActivity = $conn->query("SELECT l.action, l.entity_type AS module, l.details AS description, l.created_at, COALESCE(u.full_name, u.username, 'System') AS actor
-        FROM activity_logs l LEFT JOIN users u ON u.id = l.user_id ORDER BY l.created_at DESC LIMIT 5")->fetchAll();
     $lowStockItems = $conn->query("SELECT name AS resource_name, stock AS quantity, low_stock_threshold AS minimum_stock, unit FROM resources
         WHERE status <> 'Inactive' AND stock <= low_stock_threshold ORDER BY stock ASC LIMIT 3")->fetchAll();
     $recentAnnouncements = $conn->query("SELECT title, body AS message, created_at FROM announcements
@@ -110,20 +107,11 @@ require __DIR__ . '/../includes/header.php';
                         <a href="../pages/activity/index.php">View all activity <i class="bi bi-arrow-right"></i></a>
                     </div>
                     <div class="table-responsive">
-                        <table class="table app-table">
+                        <table class="table app-table" id="dashboardActivityTable" data-pagination="recent activity" data-server-pagination="true" data-endpoint="<?= htmlspecialchars(appUrl('api/activity.php'), ENT_QUOTES, 'UTF-8') ?>">
                             <caption class="visually-hidden">Recent SAGIPBRO activity</caption>
                             <thead><tr><th scope="col">Activity</th><th scope="col">User</th><th scope="col">Module</th><th scope="col">Time</th></tr></thead>
                             <tbody>
-                                <?php foreach ($recentActivity as $activity): ?>
-                                    <?php $module = ucwords(str_replace(['_', '-'], ' ', (string) $activity['module'])); ?>
-                                    <tr>
-                                        <td><div class="activity-cell"><span class="activity-icon"><i class="bi bi-activity"></i></span><span><span class="table-primary-text"><?= htmlspecialchars(ucfirst((string) $activity['action']) . ' ' . strtolower($module), ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text">Database activity recorded</span></span></div></td>
-                                        <td><?= htmlspecialchars((string) $activity['actor'], ENT_QUOTES, 'UTF-8') ?></td>
-                                        <td><span class="status-badge status-info"><?= htmlspecialchars($module, ENT_QUOTES, 'UTF-8') ?></span></td>
-                                        <td><time datetime="<?= htmlspecialchars((string) $activity['created_at'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(date('M j, g:i A', strtotime((string) $activity['created_at'])), ENT_QUOTES, 'UTF-8') ?></time></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <?php if (!$recentActivity): ?><tr><td colspan="4" class="text-center text-body-secondary py-4">No activity records yet.</td></tr><?php endif; ?>
+                                <tr><td colspan="4" class="text-center text-body-secondary py-4">Loading activity…</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -168,4 +156,5 @@ require __DIR__ . '/../includes/header.php';
         </main>
     </div>
 </div>
+<script src="../assets/js/activity-api.js?v=1"></script>
 <?php require __DIR__ . '/../includes/footer.php'; ?>

@@ -43,6 +43,7 @@
         .filter((row) => row.matches('[data-row], [data-report-history], [data-message-id]'));
 
     document.querySelectorAll('table[data-pagination]').forEach((table) => {
+        if (table.hasAttribute('data-server-pagination')) return;
         const pageSize = Math.max(1, Number(table.dataset.pageSize) || 10);
         const card = table.closest('.data-card') || table.parentElement;
         let footer = card.querySelector('.data-card-footer');
@@ -113,6 +114,7 @@
         const selector = input.dataset.tableSearch;
         const table = selector ? document.querySelector(selector) : input.closest('.admin-content')?.querySelector('table');
         if (!table) return;
+        if (table.hasAttribute('data-server-pagination')) return;
         const relatedFilters = [
             ...document.querySelectorAll(`[data-filter-table="${selector}"], [data-filter-select="${selector}"]`),
         ];
@@ -173,12 +175,43 @@
         });
     });
 
-    document.querySelectorAll('[data-print]').forEach((button) => button.addEventListener('click', () => window.print()));
+    document.querySelectorAll('[data-print]').forEach((button) => button.addEventListener('click', () => {
+        const source = document.querySelector(button.dataset.print || '');
+        const table = source?.matches('table') ? source : source?.querySelector('table');
+        const pager = table && window.SagipbroPagination?.get(table);
+        if (pager) {
+            window.open(pager.url({ export: 'print', page: null, per_page: null }), '_blank', 'noopener');
+            return;
+        }
+        window.print();
+    }));
     document.querySelectorAll('[data-export]').forEach((button) => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', async () => {
             const source = document.querySelector(button.dataset.export || '');
             const table = source?.matches('table') ? source : source?.querySelector('table');
             const filename = `${button.dataset.exportName || 'sagipbro-report'}.csv`;
+            const pager = table && window.SagipbroPagination?.get(table);
+            if (pager) {
+                button.disabled = true;
+                try {
+                    const response = await fetch(pager.url({ export: 'csv', page: null, per_page: null }), { credentials: 'same-origin', headers: { Accept: 'text/csv' } });
+                    if (!response.ok || !response.headers.get('Content-Type')?.includes('text/csv')) throw new Error('Unable to export the matching records.');
+                    const objectUrl = URL.createObjectURL(await response.blob());
+                    const link = document.createElement('a');
+                    link.href = objectUrl;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+                    window.sagipbroToast?.(`${filename} includes all matching records.`, 'Export ready');
+                } catch (error) {
+                    window.sagipbroToast?.(error.message, 'Export failed');
+                } finally {
+                    button.disabled = false;
+                }
+                return;
+            }
             if (table) {
                 const rows = [...table.querySelectorAll('tr')].filter((row) => !row.hidden);
                 const csv = rows.map((row) => [...row.querySelectorAll('th,td')]

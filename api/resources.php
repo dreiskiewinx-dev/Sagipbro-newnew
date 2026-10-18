@@ -5,14 +5,64 @@ require_once __DIR__ . '/bootstrap.php';
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 	requireApiLogin();
 	$showArchived = ($_GET['view'] ?? '') === 'archived';
-	$stmt = $conn->query(
-		"SELECT id, name, category, unit, stock, low_stock_threshold, location, notes, status, created_at, updated_at,
-				(status = 'Inactive') AS is_archived,
-				CASE WHEN stock = 0 THEN 'Out of stock'
-					 WHEN stock <= low_stock_threshold THEN 'Low stock'
-					 ELSE 'In stock' END AS stock_status
-		 FROM resources WHERE status " . ($showArchived ? "= 'Inactive'" : "<> 'Inactive'") . " ORDER BY name"
-	);
+	// Distribution forms only need compact inventory choices, not every resource record.
+	if (($_GET['lookup'] ?? '') === 'distribution') {
+		$stmt = $conn->query("SELECT id, name, category, unit, stock FROM resources WHERE status <> 'Inactive' ORDER BY name, id");
+		jsonResponse(['data' => $stmt->fetchAll()]);
+	}
+	$stockStatus = "CASE WHEN stock = 0 THEN 'Out of stock' WHEN stock <= low_stock_threshold THEN 'Low stock' ELSE 'In stock' END";
+	$where = ["status " . ($showArchived ? "= 'Inactive'" : "<> 'Inactive'")];
+	$params = [];
+	$recordId = isset($_GET['id']) ? positiveInt($_GET, 'id') : null;
+	if ($recordId !== null) {
+		$where = ['id = ?'];
+		$params = [$recordId];
+	} else {
+		if (($query = adminQueryText('q')) !== '') {
+			$where[] = "CONCAT_WS(' ', id, CONCAT('#', id), name, category, unit, location, notes) LIKE ? ESCAPE '!'";
+			$params[] = adminLike($query);
+		}
+		if (($category = adminQueryText('category', 80)) !== '') {
+			$where[] = 'category = ?';
+			$params[] = $category;
+		}
+		if (($status = adminQueryText('status', 30)) !== '') {
+			$where[] = "($stockStatus) = ?";
+			$params[] = $status;
+		}
+	}
+	$from = ' FROM resources WHERE ' . implode(' AND ', $where);
+	$select = "SELECT id, name, category, unit, stock, low_stock_threshold, location, notes, status, created_at, updated_at,
+		(status = 'Inactive') AS is_archived, $stockStatus AS stock_status" . $from . ' ORDER BY name, id';
+	if ($recordId !== null) {
+		$stmt = $conn->prepare($select);
+		$stmt->execute($params);
+		$record = $stmt->fetch();
+		if (!$record) jsonResponse(['error' => 'Resource not found.'], 404);
+		$rank = $conn->prepare("SELECT COUNT(*) FROM resources WHERE (status = 'Inactive') = ? AND (name < ? OR (name = ? AND id < ?))");
+		$rank->execute([(int) $record['is_archived'], $record['name'], $record['name'], $recordId]);
+		$perPage = (int) ($_GET['per_page'] ?? 10);
+		if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+		jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
+	}
+	if (($_GET['export'] ?? '') === 'csv') {
+		$stmt = $conn->prepare($select);
+		$stmt->execute($params);
+		adminSendCsv('sagipbro-resource-inventory-' . date('Y-m-d') . '.csv', [
+			'id' => 'ID', 'name' => 'Resource', 'category' => 'Category', 'stock' => 'Available quantity',
+			'unit' => 'Unit', 'low_stock_threshold' => 'Low-stock threshold', 'location' => 'Storage location',
+			'stock_status' => 'Stock status', 'status' => 'Record status', 'updated_at' => 'Last updated', 'notes' => 'Notes',
+		], $stmt);
+	}
+	if (adminPaginationRequested()) {
+		$result = adminPaginate($conn, $select, 'SELECT COUNT(*)' . $from, $params);
+		$stats = $conn->prepare('SELECT COALESCE(SUM(stock <= low_stock_threshold), 0) AS attention' . $from);
+		$stats->execute($params);
+		$result['stats'] = $stats->fetch();
+		jsonResponse($result);
+	}
+	$stmt = $conn->prepare($select);
+	$stmt->execute($params);
 	jsonResponse(['data' => $stmt->fetchAll()]);
 }
 

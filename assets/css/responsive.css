@@ -1,6 +1,7 @@
-/* Match public photo banner heights on desktop without constraining mobile content. */
+/* Keep service banners compact while preserving the other public hero layouts. */
 @media (min-width: 992px) {
-    .home-hero, .page-hero.about-hero, .page-hero.services-hero, .page-hero.resources-hero, .page-hero.contact-hero { min-height: 35rem; }
+    .home-hero, .page-hero.about-hero, .page-hero.contact-hero { min-height: 35rem; }
+    .page-hero.services-hero, .page-hero.resources-hero { min-height: 24.5rem; }
     .home-hero .hero-content { padding: 3rem 0 6rem; }
 }
 
@@ -70,6 +71,7 @@
     .cta-actions { width: 100%; flex-wrap: wrap; }
     .cta-actions .btn { flex: 1 1 180px; }
     .page-hero { padding: 4rem 0 3.75rem; }
+    .page-hero.public-service-hero, .page-hero.services-hero, .page-hero.resources-hero { padding: 1.5rem 0; }
     .page-hero.photo-hero {
         background-image: linear-gradient(90deg, rgba(3,39,25,.92), rgba(3,39,25,.8)), var(--hero-photo);
     }

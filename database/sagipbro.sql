@@ -214,5 +214,5 @@ CREATE TABLE IF NOT EXISTS distribution_event_resources (
 
 ALTER TABLE distributions ADD COLUMN event_id INT UNSIGNED NULL,
     ADD CONSTRAINT fk_distribution_public_event FOREIGN KEY (event_id) REFERENCES distribution_events(id) ON DELETE SET NULL;
-ALTER TABLE announcements ADD COLUMN priority ENUM('Normal', 'Urgent') NOT NULL DEFAULT 'Normal',
+ALTER TABLE announcements ADD COLUMN priority ENUM('Normal', 'Urgent', 'High', 'Medium', 'Low') NOT NULL DEFAULT 'Normal',
     ADD COLUMN expires_at DATETIME NULL;

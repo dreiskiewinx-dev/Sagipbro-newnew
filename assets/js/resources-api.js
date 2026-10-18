@@ -6,7 +6,6 @@
     const addForm = document.getElementById('addResourceForm');
     const editForm = document.getElementById('editResourceForm');
     const deleteForm = document.getElementById('deleteResourceForm');
-    const archiveView = document.getElementById('resourceArchiveView');
     let resources = [];
 
     if (!config || !tableBody) return;
@@ -34,7 +33,8 @@
         return ['In stock', 'status-success', ''];
     };
 
-    const render = () => {
+    const render = (result) => {
+        resources = result.data || [];
         tableBody.innerHTML = resources.map((resource) => {
             const [status, statusClass, barClass] = statusInfo(resource);
             const percent = Math.min(100, Math.round((Number(resource.stock) / Math.max(1, Number(resource.low_stock_threshold) * 2)) * 100));
@@ -76,13 +76,11 @@
                 }
             });
         });
-        const attention = resources.filter((resource) => Number(resource.stock) <= Number(resource.low_stock_threshold)).length;
+        const attention = Number(result.stats?.attention || 0);
         const badge = document.querySelector('#resourcesTable')?.closest('.data-card')?.querySelector('.data-card-header .status-badge');
-        const summary = document.querySelector('#resourcesTable')?.closest('.data-card')?.querySelector('.record-summary > span');
         const resultCount = document.querySelector('[data-filter-results]');
         if (badge) badge.innerHTML = `<i class="bi bi-exclamation-triangle" aria-hidden="true"></i> ${attention} need attention`;
-        if (summary) summary.textContent = `Showing ${resources.length} of ${resources.length} resources`;
-        if (resultCount) resultCount.textContent = `${resources.length} resource records`;
+        if (resultCount) resultCount.textContent = `${Number(result.pagination?.total || 0).toLocaleString()} resource records`;
     };
 
     const fillEditForm = (id) => {
@@ -141,20 +139,29 @@
         save(deleteForm, 'DELETE', { id: deleteForm.dataset.resourceId });
     });
 
-    const load = async () => {
-        try {
-            const view = archiveView?.value === 'archived' ? 'archived' : 'active';
-            const result = await fetch(`${config.endpoint}?view=${view}`, { headers: { Accept: 'application/json' } });
-            const payload = await result.json().catch(() => ({}));
-            if (!result.ok) throw new Error(payload.error || 'Unable to load resources.');
-            resources = payload.data || [];
-            render();
-        } catch (error) {
-            window.sagipbroToast?.(error.message, 'Unable to load resources');
+    const pager = window.SagipbroPagination.create({
+        table: '#resourcesTable', endpoint: config.endpoint, render, autoLoad: false,
+    });
+    const load = () => pager.load();
+    document.querySelector('[data-resource-export]')?.addEventListener('click', (event) => {
+        event.currentTarget.href = pager.url({ export: 'csv', paginate: null, page: null, per_page: null });
+    });
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', String(pager.state.perPage));
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) {
+                    pager.state.page = result.record_page;
+                    if (Number(result.data?.[0]?.is_archived) === 1) document.getElementById('resourceArchiveView').value = 'archived';
+                }
+            } catch (_) { /* The normal request below reports connection failures. */ }
         }
+        await load();
     };
-
-    archiveView?.addEventListener('change', load);
-
-    load();
+    initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load resources'));
 })();

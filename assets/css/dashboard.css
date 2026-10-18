@@ -224,6 +224,26 @@ html { scroll-behavior: auto; }
 .stat-card.info .stat-card-icon { color: var(--blue-700); background: var(--blue-100); }
 .stat-value { display: block; margin: .4rem 0 .15rem; color: var(--ink-900); font-size: 1.7rem; font-weight: 850; letter-spacing: -.045em; line-height: 1; }
 .stat-meta { display: flex; align-items: center; gap: .35rem; color: var(--ink-500); font-size: .63rem; }
+
+/* Emphasize live dashboard totals without changing other admin summary cards. */
+.dashboard-stat-grid .stat-card {
+    --stat-accent: var(--green-700);
+    --stat-tint: var(--green-50);
+    --stat-border: var(--green-200);
+    min-width: 0;
+    padding: 1.25rem;
+    border-color: var(--stat-border);
+    background: linear-gradient(135deg, var(--stat-tint), #fff 85%);
+    box-shadow: 0 5px 16px rgba(11, 74, 51, .09);
+}
+.dashboard-stat-grid .stat-card::before { position: absolute; inset: 0 0 auto; height: 4px; background: var(--stat-accent); content: ""; }
+.dashboard-stat-grid .stat-card.warning { --stat-accent: var(--amber-700); --stat-tint: #fff9ec; --stat-border: #efd59d; }
+.dashboard-stat-grid .stat-card.info { --stat-accent: var(--blue-700); --stat-tint: #f0f7fc; --stat-border: #c7dfef; }
+.dashboard-stat-grid .stat-card.danger { --stat-accent: var(--red-700); --stat-tint: #fff5f4; --stat-border: #edc4bf; }
+.dashboard-stat-grid .stat-card-label { color: var(--ink-700); font-size: .76rem; font-weight: 800; }
+.dashboard-stat-grid .stat-card .stat-card-icon { width: 44px; height: 44px; flex: 0 0 44px; border-radius: .8rem; color: #fff; background: var(--stat-accent); font-size: 1.2rem; }
+.dashboard-stat-grid .stat-value { margin: .6rem 0 .3rem; color: var(--stat-accent); font-size: clamp(2rem, 2.6vw, 2.25rem); font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1.1; overflow-wrap: anywhere; }
+.dashboard-stat-grid .stat-meta { flex-wrap: wrap; color: var(--ink-600); font-size: .68rem; }
 .trend-up { color: #16754b; font-weight: 800; }
 .trend-down { color: var(--red-700); font-weight: 800; }
 
@@ -291,6 +311,22 @@ html { scroll-behavior: auto; }
 .record-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .record-summary span { color: var(--ink-500); font-size: .67rem; }
 .data-pagination-nav { flex: 0 0 auto; }
+.server-pagination-footer { flex-wrap: wrap; padding: .9rem 1.1rem; }
+.server-pagination-footer .pagination-summary { flex: 1 1 180px; }
+.pagination-size { display: flex; align-items: center; gap: .55rem; margin: 0; color: var(--ink-500); font-size: .67rem; white-space: nowrap; }
+.pagination-size .form-select { width: auto; min-width: 72px; min-height: 34px; font-size: .72rem; }
+.server-pagination-footer .pagination { flex-wrap: wrap; justify-content: center; gap: .15rem; margin: 0; }
+.server-pagination-footer .page-link { min-width: 34px; min-height: 34px; display: grid; place-items: center; border-radius: .4rem; color: var(--green-800); }
+.server-pagination-footer .page-item.active .page-link { border-color: var(--green-700); color: #fff; background: var(--green-700); }
+.server-pagination-footer .page-item.disabled .page-link { color: var(--ink-500); background: var(--surface-soft); }
+.server-pagination-footer .page-link:focus-visible { outline: 3px solid rgba(32, 135, 91, .34); outline-offset: 2px; }
+@media (max-width: 575.98px) {
+    .server-pagination-footer { justify-content: space-between; gap: .75rem; }
+    .server-pagination-footer .pagination-summary { flex-basis: 100%; text-align: center; }
+    .server-pagination-footer .pagination-size { justify-content: center; flex: 1 1 100%; }
+    .server-pagination-footer .data-pagination-nav { width: 100%; }
+    .server-pagination-footer .page-link { min-width: 30px; padding: .35rem .45rem; font-size: .7rem; }
+}
 
 .distribution-status-toggle { min-height: 44px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .2rem; padding: .2rem; border: 1px solid #ccdcd3; border-radius: .65rem; background: var(--surface-soft); }
 .distribution-status-option { min-width: 0; display: flex; align-items: center; justify-content: center; gap: .3rem; margin: 0; border-radius: .45rem; padding: .45rem .35rem; color: var(--ink-600); font-size: .67rem; font-weight: 750; line-height: 1.15; text-align: center; white-space: nowrap; cursor: pointer; transition: color .15s ease, background-color .15s ease, box-shadow .15s ease; }

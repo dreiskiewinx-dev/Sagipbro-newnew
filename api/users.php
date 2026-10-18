@@ -4,19 +4,65 @@ require_once __DIR__ . '/bootstrap.php';
 requireApiLogin(['admin']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $conn->query(
-        "SELECT u.id, u.full_name, u.username, u.email, u.role, u.status, u.force_password_change,
+    $onlineSql = "(u.status = 'Active' AND EXISTS (SELECT 1 FROM user_sessions s WHERE s.user_id = u.id AND s.signed_out_at IS NULL AND s.last_seen_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)))";
+    $where = [];
+    $params = [];
+    if (isset($_GET['id'])) {
+        $where[] = 'u.id = ?';
+        $params[] = positiveInt($_GET, 'id');
+    }
+    $query = adminQueryText('q');
+    if ($query !== '') {
+        $where[] = "(u.full_name LIKE ? ESCAPE '!' OR u.username LIKE ? ESCAPE '!' OR u.email LIKE ? ESCAPE '!' OR CONCAT('USR-', LPAD(u.id, GREATEST(4, CHAR_LENGTH(u.id)), '0')) LIKE ? ESCAPE '!')";
+        array_push($params, ...array_fill(0, 4, adminLike($query)));
+    }
+    $role = adminQueryText('role');
+    if ($role !== '') {
+        $where[] = 'u.role = ?';
+        $params[] = ['Administrator' => 'admin', 'Barangay Official' => 'official', 'Volunteer' => 'volunteer', 'Resident' => 'resident'][$role] ?? $role;
+    }
+    $status = adminQueryText('status');
+    if ($status !== '') {
+        $where[] = 'u.status = ?';
+        $params[] = $status;
+    }
+    $presence = adminQueryText('presence');
+    if ($presence !== '') {
+        $where[] = $onlineSql . ' = ?';
+        $params[] = strcasecmp($presence, 'Online') === 0 ? 1 : 0;
+    }
+    $whereSql = $where ? ' WHERE ' . implode(' AND ', $where) : '';
+    $selectSql = "SELECT u.id, u.full_name, u.username, u.email, u.role, u.status, u.force_password_change,
                 u.last_login_at, u.created_at, u.updated_at,
-                COALESCE(MAX(s.last_seen_at), u.last_login_at) AS last_seen_at,
-                CASE WHEN u.status = 'Active' AND SUM(
-                    CASE WHEN s.signed_out_at IS NULL AND s.last_seen_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE) THEN 1 ELSE 0 END
-                ) > 0 THEN 1 ELSE 0 END AS is_online
-         FROM users u
-         LEFT JOIN user_sessions s ON s.user_id = u.id
-         GROUP BY u.id, u.full_name, u.username, u.email, u.role, u.status, u.force_password_change,
-                  u.last_login_at, u.created_at, u.updated_at
-         ORDER BY u.full_name"
-    );
+                COALESCE((SELECT MAX(s.last_seen_at) FROM user_sessions s WHERE s.user_id = u.id), u.last_login_at) AS last_seen_at,
+                CASE WHEN $onlineSql THEN 1 ELSE 0 END AS is_online
+         FROM users u" . $whereSql . ' ORDER BY u.full_name, u.id';
+    if (isset($_GET['id'])) {
+        $stmt = $conn->prepare($selectSql);
+        $stmt->execute($params);
+        $record = $stmt->fetch();
+        if (!$record) jsonResponse(['error' => 'User not found.'], 404);
+        $rank = $conn->prepare('SELECT COUNT(*) FROM users WHERE (full_name, id) < (?, ?)');
+        $rank->execute([$record['full_name'], $record['id']]);
+        $perPage = (int) ($_GET['per_page'] ?? 10);
+        if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+        jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
+    }
+    if (adminQueryText('export') === 'csv') {
+        $stmt = $conn->prepare($selectSql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) $row['presence'] = (int) $row['is_online'] === 1 ? 'Online' : 'Offline';
+        unset($row);
+        adminSendCsv('sagipbro-users.csv', ['id' => 'User ID', 'full_name' => 'Full name', 'username' => 'Username', 'role' => 'Role', 'email' => 'Email', 'last_login_at' => 'Last login', 'presence' => 'Sign-in status', 'status' => 'Account status'], $rows);
+    }
+    if (adminPaginationRequested()) {
+        $result = adminPaginate($conn, $selectSql, 'SELECT COUNT(*) FROM users u' . $whereSql, $params);
+        $result['stats'] = $conn->query("SELECT COUNT(*) AS total, COALESCE(SUM(u.role IN ('admin', 'official')), 0) AS privileged, COALESCE(SUM($onlineSql), 0) AS online, COALESCE(SUM(u.status = 'Inactive'), 0) AS inactive FROM users u")->fetch();
+        jsonResponse($result);
+    }
+    $stmt = $conn->prepare($selectSql);
+    $stmt->execute($params);
     jsonResponse(['data' => $stmt->fetchAll()]);
 }
 

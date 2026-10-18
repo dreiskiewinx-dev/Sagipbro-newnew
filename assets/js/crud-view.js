@@ -107,6 +107,10 @@
         return false;
     };
 
+    const onPaginatedLoad = () => {
+        if (revealRequestedRecord()) document.removeEventListener('sagipbro:pagination-loaded', onPaginatedLoad);
+    };
+    document.addEventListener('sagipbro:pagination-loaded', onPaginatedLoad);
     if (!revealRequestedRecord()) {
         const observer = new MutationObserver(() => {
             if (revealRequestedRecord()) observer.disconnect();

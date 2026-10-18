@@ -10,6 +10,7 @@
     if (!config || !tableBody || !addForm || !editForm || !resetForm || !deactivateForm) return;
 
     let users = [];
+    let initializing = true;
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
     }[character]));
@@ -32,7 +33,8 @@
         if (!response.ok) throw new Error(result.error || 'Unable to complete the request.');
         return result;
     };
-    const render = () => {
+    const render = (result) => {
+        users = result.data || [];
         tableBody.innerHTML = users.map((user) => `<tr data-row data-role="${escapeHtml(roleLabel(user.role))}" data-status="${escapeHtml(user.status)}" data-presence="${Number(user.is_online) === 1 ? 'Online' : 'Offline'}" data-search="${escapeHtml(`${user.full_name} ${user.username} ${user.email || ''}`)}">
             <td><span class="table-avatar" aria-hidden="true">${escapeHtml((user.full_name || user.username || '?').slice(0, 2).toUpperCase())}</span><span class="d-inline-block align-middle"><span class="table-primary-text">${escapeHtml(user.full_name)}</span><span class="table-secondary-text">USR-${String(user.id).padStart(4, '0')}</span></span></td>
             <td>${escapeHtml(user.username)}</td>
@@ -53,14 +55,11 @@
         tableBody.querySelectorAll('[data-user-delete]').forEach((button) => button.addEventListener('click', () => { deactivateForm.dataset.id = button.dataset.userDelete; }));
 
         const values = document.querySelectorAll('.stat-grid .stat-value');
-        if (values[0]) values[0].textContent = users.length;
-        if (values[1]) values[1].textContent = users.filter((user) => ['admin', 'official'].includes(user.role)).length;
-        if (values[2]) values[2].textContent = users.filter((user) => Number(user.is_online) === 1).length;
-        if (values[3]) values[3].textContent = users.filter((user) => user.status === 'Inactive').length;
-        const resultCount = document.querySelector('.filter-results');
-        const summary = document.querySelector('#usersTable')?.closest('.data-card')?.querySelector('.record-summary > span');
-        if (resultCount) resultCount.textContent = `Showing ${users.length} accounts`;
-        if (summary) summary.textContent = `Showing ${users.length} of ${users.length} user accounts`;
+        const stats = result.stats || {};
+        if (values[0]) values[0].textContent = stats.total ?? 0;
+        if (values[1]) values[1].textContent = stats.privileged ?? 0;
+        if (values[2]) values[2].textContent = stats.online ?? 0;
+        if (values[3]) values[3].textContent = stats.inactive ?? 0;
     };
     const fillEdit = (id) => {
         const user = users.find((item) => Number(item.id) === id);
@@ -115,16 +114,24 @@
         event.preventDefault();
         submit(deactivateForm, 'DELETE', { id: deactivateForm.dataset.id }, 'User account deactivated.');
     });
-    const load = async () => {
-        try {
-            users = (await request()).data || [];
-            render();
-        } catch (error) {
-            window.sagipbroToast?.(error.message, 'Unable to load users');
+    const pager = window.SagipbroPagination.create({ table: '#usersTable', endpoint: config.endpoint, render, autoLoad: false });
+    const load = () => pager.load();
+    const initialize = async () => {
+        const requestedId = new URLSearchParams(window.location.search).get('view');
+        if (requestedId && /^\d+$/.test(requestedId)) {
+            try {
+                const url = new URL(config.endpoint, window.location.href);
+                url.searchParams.set('id', requestedId);
+                url.searchParams.set('per_page', String(pager.state.perPage));
+                const response = await fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' });
+                const result = await response.json();
+                if (response.ok && result.record_page) pager.state.page = result.record_page;
+            } catch (_) { /* The normal request below reports connection failures. */ }
         }
+        await load();
     };
-    load();
+    initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load users')).finally(() => { initializing = false; });
     window.setInterval(() => {
-        if (!document.hidden) load();
+        if (!document.hidden && !initializing && !pager.state.loading) load().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load users'));
     }, 5000);
 })();

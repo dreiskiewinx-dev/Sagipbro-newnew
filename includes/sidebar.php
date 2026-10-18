@@ -76,7 +76,6 @@ if ($sidebarRole === 'official') {
         <?php endforeach; ?>
     </nav>
     <div class="sidebar-footer">
-        <a class="sidebar-link<?= $activeAdmin === 'profile' ? ' active' : '' ?>" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>pages/profile/index.php"><i class="bi bi-person-circle"></i><span>Profile</span></a>
         <div class="system-status"><span class="status-pulse" aria-hidden="true"></span><span><strong>System operational</strong><small>Last sync: just now</small></span></div>
     </div>
 </aside>
