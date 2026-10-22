@@ -43,6 +43,7 @@ function hmGet(string $route, int $expected = 200): array
     hmCheck(str_contains($meta['wrapper_data'][0] ?? '', ' ' . $expected . ' '), $route . ' expected HTTP ' . $expected . ', got ' . ($meta['wrapper_data'][0] ?? 'no status'));
     hmCheck(!str_contains($body, 'HOME_PRIVATE_'), $route . ' exposed a non-public announcement.');
     hmCheck(!str_contains($body, 'SQLSTATE') && !preg_match('/Fatal error|Warning:|Stack trace:/i', $body), $route . ' exposed technical errors.');
+    if (parse_url($url, PHP_URL_PATH) === '/index.php') hmHomepageAnnouncementJump($body);
     return ['body' => $body, 'headers' => implode("\n", $meta['wrapper_data'] ?? [])];
 }
 
@@ -58,6 +59,18 @@ function hmDom(string $body): DOMXPath
 function hmClass(string $class): string
 {
     return 'contains(concat(" ", normalize-space(@class), " "), " ' . $class . ' ")';
+}
+
+function hmHomepageAnnouncementJump(string $body): void
+{
+    $dom = hmDom($body);
+    $actions = '//section[' . hmClass('home-hero') . ']//*[' . hmClass('hero-actions') . ']';
+    hmCheck($dom->query($actions . '/a')->length === 3 && $dom->query($actions . '/a[@href="resources.php#resource-directory"]')->length === 1 && $dom->query($actions . '/a[@href="evacuation-centers.php#center-directory"]')->length === 1, 'Homepage keeps its two original hero actions alongside one announcement action.');
+    $jump = $dom->query($actions . '/a[@href="#latest-announcements"]');
+    hmCheck($jump->length === 1 && trim($jump->item(0)->textContent) === 'View announcements' && $dom->query('.//i[' . hmClass('bi-megaphone') . ']', $jump->item(0))->length === 1, 'Announcement action uses the native homepage target and megaphone label.');
+    hmCheck($dom->query('//*[@id="latest-announcements"]')->length === 1 && $dom->query('//section[@id="latest-announcements" and @aria-labelledby="latest-announcements-title"]//h2[@id="latest-announcements-title"]')->length === 1, 'Announcement action targets one existing, named homepage feed in populated, empty and outage states.');
+    hmCheck($dom->query('//section[@id="latest-announcements"]/preceding-sibling::*[1][' . hmClass('emergency-band') . ']')->length === 1 && $dom->query('//section[@id="latest-announcements"]/following-sibling::*[1][@aria-labelledby="quick-info-title"]')->length === 1, 'Announcements appear immediately after the advisory and before unchanged Quick Information in every data state.');
+    hmCheck($dom->query('//*[@id="latest-announcements"]//a[' . hmClass('home-announcements-all') . ' and @href="announcements.php#announcement-directory"]')->length === 1, 'View All always opens the existing complete announcement directory.');
 }
 
 function hmCards(DOMXPath $dom): array
@@ -76,6 +89,8 @@ function hmPreserved(string $html): void
     global $project;
     preg_match('~<section class="section-space" aria-labelledby="quick-info-title">[\s\S]*?</section>~', $html, $match);
     hmCheck(hash('sha256', str_replace("\r\n", "\n", $match[0] ?? '')) === '7540c1a6ee75f88dca021bda27b9811f8c4410d4e53da2bf1d19a374d3e7a55f', 'Quick Information markup, cards, and links must remain unchanged.');
+    preg_match('~<section class="section-space section-soft" aria-labelledby="snapshot-title">[\s\S]*?</section>~', (string) file_get_contents($project . '/index.php'), $snapshotSource);
+    hmCheck(hash('sha256', str_replace("\r\n", "\n", $snapshotSource[0] ?? '')) === '3957623ad2e26b023269ee985de56ec65d47ce104766b484ec20f6d7701389b1', 'Readiness section markup and its live-data calculation must remain unchanged.');
     hmCheck(hash_file('sha256', $project . '/includes/footer.php') === '33b5c5b88562065629219d6a6b99ae1f5df0a822c47a2085aaa494458191bf52', 'Footer source must remain unchanged.');
     hmCheck(hash_file('sha256', $project . '/includes/navbar.php') === 'd20ae46eb48f4e68b424cfa123c8f39c18943fcd4d63f4ae5e1de65ca67eef87', 'Navbar source must remain unchanged.');
     $dom = hmDom($html);
@@ -88,8 +103,22 @@ function hmPreserved(string $html): void
 function hmFeed(PDO $db, array $ids, ?int $urgentId): void
 {
     $feed = publicHomepageAnnouncements($db);
-    hmCheck(array_map('intval', array_column($feed['rows'], 'id')) === $ids, 'Homepage query returns exactly the three expected notices in stable urgent/date order.');
-    hmCheck(($feed['urgent'] === null ? null : (int) $feed['urgent']['id']) === $urgentId, 'Advisory derives the latest urgent notice from the same feed.');
+    hmCheck(array_map('intval', array_column($feed['rows'], 'id')) === $ids, 'Homepage query returns the priority-selected feature plus up to three distinct urgent-first recent notices.');
+    hmCheck(($feed['urgent'] === null ? null : (int) $feed['urgent']['id']) === $urgentId, 'Urgent advisory uses the featured notice only when its priority is Urgent.');
+    hmCheck(count($feed['rows']) <= 4 && count(array_unique(array_column($feed['rows'], 'id'))) === count($feed['rows']), 'Featured and recent query results never duplicate or exceed four records.');
+}
+
+function hmFeatured(DOMXPath $dom, int $id, string $priority, int $recentCount): DOMElement
+{
+    $featured = $dom->query('//*[@id="latest-announcements"]//a[' . hmClass('home-announcement-card--featured') . ']');
+    hmCheck($featured->length === 1 && hmLinkId($featured->item(0)) === $id, 'Exactly one featured card opens the selected highest-priority announcement.');
+    $card = $featured->item(0);
+    hmCheck($dom->query('.//*[' . hmClass('status-badge') . ']', $card)->length === 1 && str_contains($card->getAttribute('class'), 'home-announcement-card--' . strtolower($priority)), 'Featured badge and color tone reflect the real ' . $priority . ' priority.');
+    hmCheck($dom->query('.//span[' . hmClass('home-announcement-cta') . ' and contains(., "Read Full Announcement")]', $card)->length === 1 && $dom->query('.//i[' . hmClass('bi-megaphone') . ']', $card)->length === 1, 'Featured card contains its announcement icon and readable full-announcement action.');
+    hmCheck($dom->query('.//a|.//button|.//input|.//select|.//textarea', $card)->length === 0, 'The full-card link contains no nested interactive controls.');
+    hmCheck($dom->query('//*[@id="latest-announcements"]//*[' . hmClass('home-announcements-recent') . ']/a[' . hmClass('home-announcement-card') . ']')->length === $recentCount, 'Recent column contains exactly the remaining available announcements.');
+    hmCheck($dom->query('//*[@id="latest-announcements"]//*[' . hmClass('home-announcements-recent') . ']//a[' . hmClass('home-announcement-card--featured') . ']')->length === 0, 'Featured announcement is outside the recent list.');
+    return $card;
 }
 
 function hmBrowser(string $directory, array $environment): void
@@ -110,19 +139,30 @@ const overlap = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top 
     const doc = frame.contentDocument, win = frame.contentWindow;
     const announcements = doc.querySelector('#latest-announcements');
     const cards = [...announcements.querySelectorAll('a.home-announcement-card')];
+    const featured = announcements.querySelector('a.home-announcement-card--featured');
+    const recent = announcements.querySelector('.home-announcements-recent');
+    const featuredAction = featured.querySelector('.home-announcement-cta');
     const hero = doc.querySelector('.home-hero'), actions = [...hero.querySelectorAll('.hero-actions a')];
+    const announcementJump = actions.find(action => action.getAttribute('href') === '#latest-announcements');
+    const homepageUrl = win.location.href;
     const quick = doc.querySelector('[aria-labelledby="quick-info-title"]');
     const readiness = doc.querySelector('[aria-labelledby="snapshot-title"]');
     const inventory = readiness.querySelector('.surface-card'), centers = readiness.querySelector('.center-feature');
     check(doc.querySelector('link[rel="stylesheet"][href*="bootstrap"]').sheet !== null, 'Bootstrap stylesheet loaded');
-    check(cards.length === 3 && cards.every(card => card.getAttribute('href').includes('view=')), 'Three full-card announcement links');
+    check(cards.length === 4 && cards.every(card => card.getAttribute('href').includes('view=')), 'One featured and three recent full-card announcement links');
+    check(announcements.querySelectorAll('.home-announcement-card--featured').length === 1 && recent.querySelectorAll('a.home-announcement-card').length === 3 && cards[0] === featured, 'One leading feature is separate from the recent list');
+    check(new Set(cards.map(card => card.href)).size === 4, 'Feature is never repeated among recent notices');
+    check(featuredAction?.textContent.trim() === 'Read Full Announcement' && !featured.querySelector('a,button,input,select,textarea'), 'Featured action is readable without nested controls');
+    featured.focus();
+    check(doc.activeElement === featured, 'Featured full-card link is keyboard focusable');
     check(!win.homepageXss, 'Announcement HTML does not execute');
-    check(hero.textContent.includes('SAGIPBRO') && actions.length === 2, 'Original hero content and actions retained');
+    check(hero.textContent.includes('SAGIPBRO') && actions.length === 3 && actions.some(action => action.getAttribute('href') === 'resources.php#resource-directory') && actions.some(action => action.getAttribute('href') === 'evacuation-centers.php#center-directory'), 'Original hero actions retained alongside the announcement jump');
+    check(announcementJump?.textContent.trim() === 'View announcements', 'Hero exposes one clear homepage announcement action');
     check(quick.querySelectorAll('a.quick-card').length === 3, 'Three original Quick Information cards retained');
     check(doc.querySelector('.public-navbar') && doc.querySelector('footer'), 'Existing navbar/footer retained');
-    check(announcements.offsetTop > quick.offsetTop && announcements.offsetTop < readiness.offsetTop, 'New section is between Quick Information and readiness');
-    for (const width of [1440, 900, 390, 320]) {
-        frame.style.width = width + 'px'; await settle();
+    check(announcements.previousElementSibling?.classList.contains('emergency-band') && announcements.nextElementSibling === quick && announcements.offsetTop < quick.offsetTop && quick.offsetTop < readiness.offsetTop, 'Featured section immediately follows advisory and precedes Quick Information');
+    for (const width of [1440, 1024, 900, 768, 390, 320]) {
+        frame.style.width = width + 'px'; win.history.replaceState(null, '', homepageUrl); win.scrollTo(0, 0); await settle();
         check(win.innerWidth === width, width + 'px test uses the actual requested CSS viewport');
         check(doc.documentElement.scrollWidth <= width + 1, width + 'px no horizontal overflow');
         const h = hero.getBoundingClientRect();
@@ -130,15 +170,32 @@ const overlap = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top 
             const rect = action.getBoundingClientRect();
             check(rect.left >= h.left && rect.right <= h.right + 1 && rect.height >= 40, width + 'px hero action fits and remains tappable');
         }
+        for (let i = 0; i < actions.length; i++) for (let j = i + 1; j < actions.length; j++) check(!overlap(actions[i].getBoundingClientRect(), actions[j].getBoundingClientRect()), width + 'px hero actions remain non-overlapping');
         for (let i = 0; i < cards.length; i++) {
             const rect = cards[i].getBoundingClientRect();
             check(rect.left >= 0 && rect.right <= width + 1 && rect.width >= 200, width + 'px announcement card fits');
+            check(cards[i].scrollWidth <= cards[i].clientWidth + 1, width + 'px long announcement text stays within its card');
+            const time = cards[i].querySelector('time');
+            check(time && /\d:\d{2} [AP]M PHT/.test(time.textContent) && time.getAttribute('datetime').endsWith('+08:00'), width + 'px card retains publication date and local time');
             for (let j = i + 1; j < cards.length; j++) check(!overlap(rect, cards[j].getBoundingClientRect()), width + 'px cards do not overlap');
+        }
+        const featureRect = featured.getBoundingClientRect(), recentRect = recent.getBoundingClientRect();
+        const actionRect = featuredAction.getBoundingClientRect();
+        check(actionRect.height >= 40 && actionRect.width >= 120 && actionRect.left >= featureRect.left && actionRect.right <= featureRect.right + 1 && actionRect.bottom <= featureRect.bottom + 1 && parseFloat(win.getComputedStyle(featuredAction).fontSize) >= 14, width + 'px featured action is readable, tappable and unclipped');
+        if (width >= 768) {
+            const expectedRatio = width >= 992 ? .65 : .58;
+            check(Math.abs(featureRect.width / (featureRect.width + recentRect.width) - expectedRatio) < .025, width + 'px feature/recent column ratio');
+            check(recentRect.left >= featureRect.right - 1 && Math.abs(recentRect.top - featureRect.top) < 2, width + 'px columns align at their top edge');
+            check([...recent.querySelectorAll('a')].every(card => featureRect.width > card.getBoundingClientRect().width && featureRect.height >= card.getBoundingClientRect().height), width + 'px feature is larger than each compact recent card');
+        } else {
+            check(recentRect.top >= featureRect.bottom - 1 && Math.abs(recentRect.width - featureRect.width) < 2, width + 'px feature appears first in the single-column layout');
         }
         const inv = inventory.getBoundingClientRect(), cen = centers.getBoundingClientRect();
         check(width >= 992 ? cen.left >= inv.right - 1 : (width >= 768 || cen.top >= inv.bottom - 1), width + 'px readiness desktop/mobile columns');
         check(!overlap(inv, cen), width + 'px readiness cards do not overlap');
         if (width < 768) check(cards[1].getBoundingClientRect().top >= cards[0].getBoundingClientRect().bottom - 1, width + 'px announcements stack vertically');
+        announcementJump.click(); await settle();
+        check(frame.contentDocument === doc && win.location.href.split('#')[0] === homepageUrl.split('#')[0] && win.location.hash === '#latest-announcements', width + 'px announcement action selects the matching homepage fragment without redirecting');
     }
     const selectedId = new URL(cards[0].href).searchParams.get('view');
     const selectedTitle = cards[0].querySelector('h3,h2').textContent;
@@ -211,6 +268,10 @@ try {
 
     $base = ['body' => "Full instruction & safety guidance.\n<script>window.homepageXss=true</script>\n" . str_repeat('Follow verified barangay guidance. ', 20) . 'HOME_FULL_BODY_END', 'created_by' => $staff, 'status' => 'Published', 'published_at' => '2020-01-01 12:00:00'];
     $urgentOld = hmInsert($db, 'announcements', ['title' => 'HOME Older urgent', 'priority' => 'Urgent'] + $base);
+    hmFeed($db, [$urgentOld], $urgentOld);
+    $single = hmDom(hmGet('index.php')['body']);
+    hmFeatured($single, $urgentOld, 'Urgent', 0);
+    hmCheck(count(hmCards($single)) === 1 && $single->query('//*[' . hmClass('home-announcements-grid--single') . ']')->length === 1, 'A single announcement produces one full-width feature without placeholders or duplication.');
     $urgentNew = hmInsert($db, 'announcements', ['title' => 'HOME Latest urgent <img src=x onerror=window.homepageXss=true>', 'priority' => 'Urgent', 'published_at' => '2022-01-01 12:00:00'] + $base);
     $high = hmInsert($db, 'announcements', ['title' => 'HOME Latest high', 'priority' => 'High', 'published_at' => '2025-01-01 12:00:00'] + $base);
     $other = [];
@@ -220,21 +281,29 @@ try {
     foreach ([['Draft', '2020-01-01 00:00:00', null], ['Archived', '2020-01-01 00:00:00', null], ['Published', '2099-01-01 00:00:00', null], ['Published', '2020-01-01 00:00:00', '2021-01-01 00:00:00'], ['Published', null, null]] as $i => [$status, $published, $expires]) {
         $private[] = hmInsert($db, 'announcements', ['title' => 'HOME_PRIVATE_' . $i, 'body' => 'HOME_PRIVATE_BODY', 'priority' => 'Urgent', 'status' => $status, 'published_at' => $published, 'expires_at' => $expires] + $base);
     }
-    hmFeed($db, [$urgentNew, $urgentOld, $high], $urgentNew);
+    hmFeed($db, [$urgentNew, $urgentOld, $high, $other[2]], $urgentNew);
     $html = hmGet('index.php')['body']; $dom = hmDom($html); $cards = hmCards($dom);
-    hmCheck(array_map('hmLinkId', $cards) === [$urgentNew, $urgentOld, $high], 'Homepage cards contain exactly three unique published announcements, urgent first.');
+    hmCheck(array_map('hmLinkId', $cards) === [$urgentNew, $urgentOld, $high, $other[2]], 'Homepage displays the urgent feature plus three distinct urgent-first recent publications, not a second priority-ranked list.');
+    $featured = hmFeatured($dom, $urgentNew, 'Urgent', 3);
+    $featuredPreview = $dom->query('.//*[' . hmClass('home-announcement-preview') . ']', $featured)->item(0)->textContent;
+    hmCheck(preg_match_all('/./us', $featuredPreview) > 140 && preg_match_all('/./us', $featuredPreview) <= 320 && !str_contains($featuredPreview, 'HOME_FULL_BODY_END'), 'Featured description uses the larger 320-character escaped excerpt rather than the complete body.');
     hmCheck($dom->query('//*[@id="latest-announcements"]//a[' . hmClass('home-announcement-card--urgent') . ']')->length === 2, 'Urgent cards carry the subtle red-border class.');
-    foreach ($cards as $card) {
+    foreach ($cards as $i => $card) {
         $id = hmLinkId($card);
         hmCheck(parse_url($card->getAttribute('href'), PHP_URL_FRAGMENT) === 'announcement-' . $id, 'Announcement card link targets exact selected detail.');
         hmCheck($dom->query('.//time', $card)->length === 1 && $dom->query('.//*[' . hmClass('status-badge') . ']', $card)->length === 1, 'Every card shows its publication date and priority.');
+        $time = $dom->query('.//time', $card)->item(0);
+        hmCheck(preg_match('/\d:\d{2} [AP]M PHT/', $time->textContent) === 1 && str_ends_with($time->getAttribute('datetime'), '+08:00'), 'Card date includes readable publication time with its Philippine timezone.');
+        hmCheck($dom->query('//*[@id="' . $card->getAttribute('aria-labelledby') . '"]')->length === 1, 'Every full-card link has a unique visible heading as its accessible name.');
+        if ($i > 0) hmCheck(preg_match_all('/./us', $dom->query('.//*[' . hmClass('home-announcement-preview') . ']', $card)->item(0)->textContent) <= 140, 'Recent notices use compact previews instead of full descriptions.');
     }
     $bar = $dom->query('//section[' . hmClass('emergency-band--urgent') . ']')->item(0);
     hmCheck($bar instanceof DOMElement && str_contains($bar->textContent, 'HOME Latest urgent'), 'Advisory shows the latest active urgent title.');
+    hmCheck(!str_contains($bar->textContent, 'Full instruction') && !str_contains($bar->textContent, 'Follow verified barangay'), 'Urgent strip contains the featured title without duplicating its body excerpt.');
     $guidance = $dom->query('.//a', $bar)->item(0);
     hmCheck($guidance instanceof DOMElement && hmLinkId($guidance) === $urgentNew, 'Read Guidance opens the exact urgent announcement.');
     hmCheck(!str_contains($html, '<script>window.homepageXss') && !str_contains($html, '<img src=x') && str_contains($html, '&lt;img'), 'Database titles and descriptions are escaped.');
-    hmCheck(strpos($html, 'id="quick-info-title"') < strpos($html, 'id="latest-announcements"') && strpos($html, 'id="latest-announcements"') < strpos($html, 'id="snapshot-title"'), 'Latest Announcements is between untouched Quick Information and readiness.');
+    hmCheck(strpos($html, 'emergency-band--urgent') < strpos($html, 'id="latest-announcements"') && strpos($html, 'id="latest-announcements"') < strpos($html, 'id="quick-info-title"'), 'Featured announcements are immediately discoverable after the urgent advisory and before Quick Information.');
     hmPreserved($html);
     $cardIds = array_map('hmLinkId', $cards);
     hmCheck(count($cardIds) === count(array_unique($cardIds)), 'Homepage announcement feed does not duplicate cards.');
@@ -269,17 +338,39 @@ try {
     if (getenv('SAGIPBRO_HOMEPAGE_BROWSER') === '1') hmBrowser($directory, $environment);
 
     $db->exec('UPDATE announcements SET status = \'Archived\' WHERE id = ' . $urgentNew);
+    hmFeed($db, [$urgentOld, $high, $other[2], $other[1]], $urgentOld);
     $html = hmGet('index.php')['body'];
     hmCheck(!str_contains($html, 'HOME Latest urgent') && str_contains($html, 'HOME Older urgent'), 'Refresh removes archived urgent notice and promotes the next active urgent.');
     $db->exec('DELETE FROM announcements WHERE id = ' . $urgentOld);
+    $db->exec("UPDATE announcements SET published_at = '2025-12-01 12:00:00' WHERE id = " . $other[2]);
+    $db->exec("UPDATE announcements SET published_at = '2025-11-01 12:00:00' WHERE id = " . $other[1]);
+    hmFeed($db, [$high, $other[2], $other[1], $other[0]], null);
     $html = hmGet('index.php')['body'];
+    hmFeatured(hmDom($html), $high, 'High', 3);
     hmCheck(!str_contains($html, 'emergency-band--urgent') && str_contains($html, 'Community preparedness reminder'), 'Deleting last active urgent restores general advisory fallback.');
+    hmCheck(str_contains($html, 'HOME Normal notice'), 'Recent notices remain publication-date ordered even when lower-priority notices are newer than the feature.');
+    $tie = hmInsert($db, 'announcements', ['title' => 'HOME Same-date high tie', 'priority' => 'High', 'published_at' => '2025-01-01 12:00:00'] + $base);
+    hmFeed($db, [$tie, $other[2], $other[1], $high], null);
+    $db->exec("UPDATE announcements SET published_at = '2024-12-01 12:00:00' WHERE id = " . $tie);
+    hmFeed($db, [$high, $other[2], $other[1], $tie], null);
+    $db->exec('DELETE FROM announcements WHERE id = ' . $tie);
     $db->exec("UPDATE announcements SET title = 'HOME Updated high notice' WHERE id = " . $high);
     $html = hmGet('index.php')['body'];
     hmCheck(str_contains($html, 'HOME Updated high notice') && !str_contains($html, 'HOME Latest high'), 'Refresh reflects administrator edits.');
     $db->exec("UPDATE announcements SET expires_at = '2020-01-01 00:00:00' WHERE id = " . $high);
-    hmCheck(!str_contains(hmGet('index.php')['body'], 'HOME Updated high notice'), 'Refresh removes newly expired publications.');
+    $html = hmGet('index.php')['body'];
+    hmCheck(!str_contains($html, 'HOME Updated high notice'), 'Refresh removes newly expired publications.');
+    hmFeed($db, [$other[0], $other[2], $other[1], $old], null);
+    hmFeatured(hmDom($html), $other[0], 'Medium', 3);
+    $db->exec("UPDATE announcements SET status = 'Archived' WHERE id = " . $other[0]);
+    hmFeed($db, [$other[1], $other[2], $old], null);
+    hmFeatured(hmDom(hmGet('index.php')['body']), $other[1], 'Low', 2);
+    $db->exec("UPDATE announcements SET status = 'Archived' WHERE id IN (" . $other[1] . ',' . $old . ')');
+    hmFeed($db, [$other[2]], null);
+    hmFeatured(hmDom(hmGet('index.php')['body']), $other[2], 'Normal', 0);
+    $db->exec("UPDATE announcements SET status = 'Published' WHERE id IN (" . implode(',', [$other[0], $other[1], $old]) . ')');
     $new = hmInsert($db, 'announcements', ['title' => 'HOME Fresh public notice', 'priority' => 'High', 'published_at' => '2025-06-01 12:00:00'] + $base);
+    hmFeed($db, [$new, $other[2], $other[1], $other[0]], null);
     hmCheck(str_contains(hmGet('index.php')['body'], 'HOME Fresh public notice'), 'Refresh reflects newly published administrator records.');
 
     $db->exec('ALTER TABLE announcements CHANGE body content TEXT NOT NULL');
@@ -298,7 +389,7 @@ try {
     $outage = hmGet('index.php', 503);
     hmCheck(str_contains($outage['body'], 'Information temporarily unavailable') && str_contains($outage['body'], 'Community preparedness reminder'), 'Database outage remains honest and preserves useful general guidance.');
     hmCheck(count(hmCards(hmDom($outage['body']))) === 0, 'Database outage never fabricates live announcement cards.');
-    fwrite(STDOUT, "PASS: real-record visibility, latest urgent advisory, top-three feed, escaping, links, filters/pagination, mutations, legacy schema, preservation, empty/outage states.\n");
+    fwrite(STDOUT, "PASS: real-record visibility, featured priority/date/id selection, three unique recent notices, urgent title advisory, escaping, links, filters/pagination, mutations, legacy schema, preservation, single/empty/outage states.\n");
 } catch (Throwable $error) {
     $failed = true; fwrite(STDERR, 'FAIL: ' . $error->getMessage() . "\n");
 } finally {

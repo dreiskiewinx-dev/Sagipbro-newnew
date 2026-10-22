@@ -11,7 +11,7 @@ $snapshot = publicLoad(static function (PDO $db): array {
         'centers' => publicCenters($db)['rows'],
     ];
     try {
-        // One announcement query supplies both the advisory and the three cards.
+        // The featured feed also supplies the short urgent advisory.
         $data['announcements'] = publicHomepageAnnouncements($db);
     } catch (Throwable $error) {
         // An announcement-only failure must not hide working inventory/center data.
@@ -22,6 +22,9 @@ $snapshot = publicLoad(static function (PDO $db): array {
 });
 $homeAnnouncements = $snapshot['error'] ? null : $snapshot['data']['announcements'];
 $urgentAnnouncement = $homeAnnouncements['urgent'] ?? null;
+$featuredAnnouncement = $homeAnnouncements['rows'][0] ?? null;
+$recentAnnouncements = array_slice($homeAnnouncements['rows'] ?? [], 1);
+$announcementTones = ['Urgent' => 'urgent', 'High' => 'high', 'Medium' => 'medium', 'Low' => 'low', 'Normal' => 'normal'];
 require __DIR__ . '/includes/header.php';
 require __DIR__ . '/includes/navbar.php';
 ?>
@@ -36,6 +39,7 @@ require __DIR__ . '/includes/navbar.php';
                 <div class="hero-actions">
                     <a class="btn btn-white" href="resources.php#resource-directory"><i class="bi bi-box-seam" aria-hidden="true"></i> View resources</a>
                     <a class="btn btn-ghost-light" href="evacuation-centers.php#center-directory"><i class="bi bi-buildings" aria-hidden="true"></i> View evacuation centers</a>
+                    <a class="btn btn-ghost-light" href="#latest-announcements"><i class="bi bi-megaphone" aria-hidden="true"></i> View announcements</a>
                 </div>
             </div>
         </div>
@@ -55,7 +59,6 @@ require __DIR__ . '/includes/navbar.php';
                 <div class="emergency-message">
                     <?php if ($urgentAnnouncement): ?>
                     <strong><?= publicEscape($urgentAnnouncement['title']) ?></strong>
-                    <span><?= publicEscape(publicExcerpt($urgentAnnouncement['body'])) ?></span>
                     <?php else: ?>
                     <strong>Community preparedness reminder</strong>
                     <span>Keep your family go-bag ready, monitor official weather bulletins, and know your nearest evacuation route.</span>
@@ -64,6 +67,44 @@ require __DIR__ . '/includes/navbar.php';
                 </div>
                 <a class="emergency-link" href="<?= $urgentAnnouncement ? 'announcements.php?view=' . (int) $urgentAnnouncement['id'] . '#announcement-' . (int) $urgentAnnouncement['id'] : 'announcements.php#announcement-directory' ?>">Read guidance <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
             </div>
+        </div>
+    </section>
+
+    <section class="section-space home-announcements" id="latest-announcements" aria-labelledby="latest-announcements-title">
+        <div class="container">
+            <div class="section-heading">
+                <span class="section-kicker">Community updates</span>
+                <h2 id="latest-announcements-title">Latest Announcements</h2>
+                <p>Official emergency updates and community advisories from Barangay Bonuan Binloc.</p>
+            </div>
+            <?php if ($homeAnnouncements === null): ?>
+                <div class="alert alert-warning" role="status"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Announcements are temporarily unavailable. Refresh this page for current updates or <a href="contact.php#contact-details">contact the barangay</a> for assistance.</div>
+            <?php elseif (!$featuredAnnouncement): ?>
+                <?php publicEmpty('No current announcements', 'There are no current published advisories. Check back for verified emergency updates and community notices.'); ?>
+            <?php else: ?>
+                <div class="home-announcements-grid<?= !$recentAnnouncements ? ' home-announcements-grid--single' : '' ?>">
+                    <a class="home-announcement-card home-announcement-card--featured home-announcement-card--<?= $announcementTones[$featuredAnnouncement['priority']] ?? 'normal' ?>" href="announcements.php?view=<?= (int) $featuredAnnouncement['id'] ?>#announcement-<?= (int) $featuredAnnouncement['id'] ?>" aria-labelledby="home-announcement-<?= (int) $featuredAnnouncement['id'] ?>">
+                        <span class="home-announcement-feature-label"><span class="home-announcement-icon"><i class="bi bi-megaphone" aria-hidden="true"></i></span> Featured update</span>
+                        <div class="home-announcement-meta"><?php publicStatus($featuredAnnouncement['priority']); ?><time datetime="<?= publicEscape(str_replace(' ', 'T', $featuredAnnouncement['published_at']) . '+08:00') ?>"><?= publicEscape(publicDate($featuredAnnouncement['published_at'])) ?></time></div>
+                        <h3 id="home-announcement-<?= (int) $featuredAnnouncement['id'] ?>"><?= publicEscape($featuredAnnouncement['title']) ?></h3>
+                        <p class="home-announcement-preview"><?= publicEscape(publicExcerpt($featuredAnnouncement['body'], 320)) ?></p>
+                        <span class="btn home-announcement-cta">Read Full Announcement <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
+                    </a>
+                    <?php if ($recentAnnouncements): ?>
+                        <div class="home-announcements-recent" role="group" aria-label="More recent announcements">
+                            <?php foreach ($recentAnnouncements as $announcement): ?>
+                                <a class="home-announcement-card home-announcement-card--<?= $announcementTones[$announcement['priority']] ?? 'normal' ?>" href="announcements.php?view=<?= (int) $announcement['id'] ?>#announcement-<?= (int) $announcement['id'] ?>" aria-labelledby="home-announcement-<?= (int) $announcement['id'] ?>">
+                                    <div class="home-announcement-meta"><?php publicStatus($announcement['priority']); ?><time datetime="<?= publicEscape(str_replace(' ', 'T', $announcement['published_at']) . '+08:00') ?>"><?= publicEscape(publicDate($announcement['published_at'])) ?></time></div>
+                                    <h3 id="home-announcement-<?= (int) $announcement['id'] ?>"><?= publicEscape($announcement['title']) ?></h3>
+                                    <p class="home-announcement-preview"><?= publicEscape(publicExcerpt($announcement['body'], 140)) ?></p>
+                                    <span class="quick-link">Read announcement <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+            <a class="home-announcements-all" href="announcements.php#announcement-directory">View All Announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </div>
     </section>
 
@@ -94,32 +135,6 @@ require __DIR__ . '/includes/navbar.php';
                     <span class="quick-link">How distribution works <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
                 </a>
             </div>
-        </div>
-    </section>
-
-    <section class="section-space home-announcements" id="latest-announcements" aria-labelledby="latest-announcements-title">
-        <div class="container">
-            <div class="section-heading">
-                <h2 id="latest-announcements-title">Latest Announcements</h2>
-                <p>Stay informed with the latest emergency updates and community advisories from Barangay Bonuan Binloc.</p>
-            </div>
-            <?php if ($homeAnnouncements === null): ?>
-                <div class="alert alert-warning" role="status"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Announcements are temporarily unavailable. Refresh this page for current updates or <a href="contact.php#contact-details">contact the barangay</a> for assistance.</div>
-            <?php elseif (!$homeAnnouncements['rows']): ?>
-                <?php publicEmpty('No current announcements', 'There are no current published advisories. Check back for verified emergency updates and community notices.'); ?>
-            <?php else: ?>
-                <div class="home-announcements-grid">
-                    <?php foreach ($homeAnnouncements['rows'] as $announcement): ?>
-                        <a class="home-announcement-card<?= $announcement['priority'] === 'Urgent' ? ' home-announcement-card--urgent' : '' ?>" href="announcements.php?view=<?= (int) $announcement['id'] ?>#announcement-<?= (int) $announcement['id'] ?>" aria-labelledby="home-announcement-<?= (int) $announcement['id'] ?>">
-                            <div class="home-announcement-meta"><?php publicStatus($announcement['priority']); ?><time datetime="<?= publicEscape(str_replace(' ', 'T', $announcement['published_at']) . '+08:00') ?>"><?= publicEscape(publicDate($announcement['published_at'])) ?></time></div>
-                            <h3 id="home-announcement-<?= (int) $announcement['id'] ?>"><?= publicEscape($announcement['title']) ?></h3>
-                            <p class="home-announcement-preview"><?= publicEscape(publicExcerpt($announcement['body'])) ?></p>
-                            <span class="quick-link">Read announcement <i class="bi bi-arrow-up-right" aria-hidden="true"></i></span>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-            <a class="home-announcements-all" href="announcements.php#announcement-directory">View All Announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
         </div>
     </section>
 

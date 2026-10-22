@@ -174,9 +174,27 @@ function publicLatestAnnouncements(PDO $db, int $limit): array
 
 function publicHomepageAnnouncements(PDO $db): array
 {
-    $rows = publicLatestAnnouncements($db, 3);
-    $first = $rows[0] ?? null;
-    $urgent = $first !== null && strcasecmp((string) $first['priority'], 'Urgent') === 0 ? $first : null;
+    $schema = publicSchema($db);
+    $where = ' FROM announcements WHERE ' . implode(' AND ', publicAnnouncementVisibility($schema));
+    $expiresAt = $schema['announcement_expires_at'] ?? 'NULL';
+    $select = "SELECT id, title, {$schema['body']} AS body, priority,
+        {$schema['announcement_published_at']} AS published_at, {$expiresAt} AS expires_at,
+        'Published' AS status";
+    // The featured position always promotes the highest active priority; ties are newest first.
+    $featured = $db->query($select . $where . " ORDER BY CASE LOWER(priority)
+        WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2
+        WHEN 'low' THEN 3 WHEN 'normal' THEN 4 ELSE 5 END,
+        published_at DESC, id DESC LIMIT 1")->fetch();
+    if (!$featured) {
+        return ['rows' => [], 'urgent' => null];
+    }
+    // Keep the remaining urgent notices visible without repeating the featured announcement.
+    $statement = $db->prepare($select . $where . " AND id <> ?
+        ORDER BY (priority = 'Urgent') DESC, published_at DESC, id DESC LIMIT 3");
+    $statement->bindValue(1, (int) $featured['id'], PDO::PARAM_INT);
+    $statement->execute();
+    $rows = array_merge([$featured], $statement->fetchAll());
+    $urgent = strcasecmp((string) $featured['priority'], 'Urgent') === 0 ? $featured : null;
     return ['rows' => $rows, 'urgent' => $urgent];
 }
 
