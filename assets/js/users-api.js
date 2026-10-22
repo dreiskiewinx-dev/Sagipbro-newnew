@@ -132,6 +132,6 @@
     };
     initialize().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load users')).finally(() => { initializing = false; });
     window.setInterval(() => {
-        if (!document.hidden && !initializing && !pager.state.loading) load().catch((error) => window.sagipbroToast?.(error.message, 'Unable to load users'));
+        if (!document.hidden && !initializing && !pager.state.loading) pager.load({ background: true }).catch((error) => window.sagipbroToast?.(error.message, 'Unable to load users'));
     }, 5000);
 })();

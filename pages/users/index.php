@@ -125,5 +125,5 @@ include '../../includes/header.php';
         csrfToken: <?= json_encode(csrfToken()) ?>
     };
 </script>
-<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/users-api.js"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/users-api.js?v=2"></script>
 <?php include '../../includes/footer.php'; ?>

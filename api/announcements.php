@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 			$where[] = "(a.title LIKE ? ESCAPE '!' OR a.body LIKE ? ESCAPE '!' OR u.full_name LIKE ? ESCAPE '!')";
 			$params = array_fill(0, 3, adminLike($search));
 		}
-		foreach (['category', 'status', 'audience'] as $field) {
+		foreach (['category', 'status', 'audience', 'priority'] as $field) {
 			$value = adminQueryText($field, 100);
 			if ($value !== '') {
 				$where[] = "a.{$field} = ?";
@@ -47,6 +47,113 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 requireApiLogin(['admin', 'official']);
 $data = requestData();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && array_key_exists('action', $data)) {
+	requireApiLogin(['admin']);
+	$action = $data['action'];
+	if (!in_array($action, ['bulk_archive', 'bulk_delete'], true)) {
+		jsonResponse(['error' => 'Choose a valid bulk announcement action.'], 422);
+	}
+	// Preserve JSON array/object types: associative decoding alone accepts {"0": 1} as a list.
+	$payload = $_POST ? null : json_decode((string) file_get_contents('php://input'));
+	$ids = $_POST ? ($data['ids'] ?? null) : ($payload->ids ?? null);
+	if (!is_array($ids) || !array_is_list($ids) || count($ids) < 1 || count($ids) > 100) {
+		jsonResponse(['error' => 'Select between 1 and 100 announcement IDs.'], 422);
+	}
+	$seen = [];
+	foreach ($ids as $id) {
+		if (!is_int($id) || $id < 1 || $id > 4294967295 || isset($seen[$id])) {
+			jsonResponse(['error' => 'Announcement IDs must be unique positive integers.'], 422);
+		}
+		$seen[$id] = true;
+	}
+	sort($ids, SORT_NUMERIC);
+	$marks = implode(', ', array_fill(0, count($ids), '?'));
+	try {
+		$conn->beginTransaction();
+		// Stable locking order serializes overlapping selections before any record changes.
+		$selected = $conn->prepare("SELECT id, title, status FROM announcements WHERE id IN ({$marks}) ORDER BY id FOR UPDATE");
+		foreach ($ids as $position => $id) $selected->bindValue($position + 1, $id, PDO::PARAM_INT);
+		$selected->execute();
+		$records = $selected->fetchAll();
+		if (count($records) !== count($ids)) {
+			$conn->rollBack();
+			jsonResponse(['error' => 'One or more selected announcements no longer exist. Refresh the list and try again.'], 404);
+		}
+		$affected = $action === 'bulk_archive'
+			? array_values(array_filter($records, static fn (array $record): bool => $record['status'] !== 'Archived'))
+			: $records;
+		$affectedIds = array_map(static fn (array $record): int => (int) $record['id'], $affected);
+		if ($affectedIds) {
+			$affectedMarks = implode(', ', array_fill(0, count($affectedIds), '?'));
+			$mutation = $conn->prepare($action === 'bulk_archive'
+				? "UPDATE announcements SET status = 'Archived' WHERE id IN ({$affectedMarks})"
+				: "DELETE FROM announcements WHERE id IN ({$affectedMarks})");
+			foreach ($affectedIds as $position => $id) $mutation->bindValue($position + 1, $id, PDO::PARAM_INT);
+			$mutation->execute();
+			if ($mutation->rowCount() !== count($affectedIds)) {
+				throw new RuntimeException('The selected announcement set changed during the transaction.');
+			}
+		}
+		foreach ($affected as $record) {
+			$details = ['bulk_action' => $action, 'previous_status' => $record['status'], 'title' => $record['title']];
+			if ($action === 'bulk_archive') $details['status'] = 'Archived';
+			else $details['deleted'] = true;
+			logActivity($conn, $action === 'bulk_archive' ? 'archive' : 'delete', 'announcement', (int) $record['id'], $details);
+		}
+		$counts = ['selected_count' => count($ids), 'affected_count' => count($affectedIds), 'unchanged_count' => count($ids) - count($affectedIds)];
+		logActivity($conn, $action, 'announcement', null, [
+			'selected_ids' => $ids, 'affected_ids' => $affectedIds,
+		] + $counts);
+		$conn->commit();
+		jsonResponse([
+			'message' => $action === 'bulk_archive' ? 'Selected announcements archived.' : 'Selected announcements permanently deleted.',
+			'action' => $action, 'ids' => $ids,
+		] + $counts);
+	} catch (Throwable $error) {
+		if ($conn->inTransaction()) $conn->rollBack();
+		error_log('Bulk announcement action failed (' . get_class($error) . ').');
+		$conflict = $error instanceof PDOException && str_starts_with((string) $error->getCode(), '23');
+		jsonResponse(['error' => $conflict
+			? 'A related record prevents this action. No announcements were changed.'
+			: 'The selected announcements could not be changed. No changes were saved.'], $conflict ? 409 : 500);
+	}
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'PUT' && ($data['action'] ?? '') === 'restore') {
+	requireApiLogin(['admin']);
+	$id = positiveInt($data, 'id');
+	try {
+		$conn->beginTransaction();
+		$selected = $conn->prepare('SELECT id, status FROM announcements WHERE id = ? FOR UPDATE');
+		$selected->bindValue(1, $id, PDO::PARAM_INT);
+		$selected->execute();
+		$record = $selected->fetch();
+		if (!$record) {
+			$conn->rollBack();
+			jsonResponse(['error' => 'Announcement not found.'], 404);
+		}
+		if ($record['status'] !== 'Archived') {
+			$conn->rollBack();
+			jsonResponse(['error' => 'Only archived announcements can be restored.'], 409);
+		}
+		$stmt = $conn->prepare("UPDATE announcements SET status = 'Draft' WHERE id = ? AND status = 'Archived'");
+		$stmt->bindValue(1, $id, PDO::PARAM_INT);
+		$stmt->execute();
+		if ($stmt->rowCount() !== 1) throw new RuntimeException('The archived announcement changed during the transaction.');
+		logActivity($conn, 'restore', 'announcement', $id, ['previous_status' => 'Archived', 'status' => 'Draft']);
+		$conn->commit();
+		jsonResponse(['message' => 'Announcement restored as a draft. Review and publish it when ready.', 'id' => $id, 'status' => 'Draft']);
+	} catch (Throwable $error) {
+		if ($conn->inTransaction()) $conn->rollBack();
+		error_log('Announcement restore failed (' . get_class($error) . ').');
+		$conflict = $error instanceof PDOException && str_starts_with((string) $error->getCode(), '23');
+		jsonResponse(['error' => $conflict
+			? 'A related record prevents restoring this announcement. No changes were saved.'
+			: 'The announcement could not be restored. No changes were saved.'], $conflict ? 409 : 500);
+	}
+}
+
 $announcementPriority = static function ($value): string {
 	if (!in_array($value, ['Normal', 'Urgent', 'High', 'Medium', 'Low'], true)) jsonResponse(['error' => 'Choose a valid announcement priority.'], 422);
 	return $value;

@@ -140,7 +140,7 @@
         }
         busy = true;
         try {
-            await pagination.load();
+            await pagination.load({ background: true });
             status.textContent = 'Messages update automatically.';
         } catch (error) {
             if (/Authentication required|not authorized/i.test(error.message)) stopped = true;

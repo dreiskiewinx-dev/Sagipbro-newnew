@@ -9,6 +9,7 @@
     const publishedCount = document.querySelector('[data-announcement-published]');
     if (!config || !tableBody || !addForm || !editForm || !deleteForm || !window.SagipbroPagination) return;
 
+    const canBulkManage = config.canBulkManage === true;
     let announcements = [];
     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
@@ -27,12 +28,20 @@
     };
     const statusClass = (status) => status === 'Published' ? 'status-success' : (status === 'Draft' ? 'status-warning' : 'status-neutral');
     const render = (result) => {
-        announcements = result.data || [];
+        clearSelection();
+        selectionInvalidated = false;
+        announcements = Array.isArray(result.data) ? result.data : [];
         const published = result.summary?.published || 0;
         if (publishedCount) publishedCount.textContent = `${published} currently published`;
         tableBody.innerHTML = announcements.map((announcement) => {
+            const id = Number(announcement.id);
+            const archived = announcement.status === 'Archived';
             const sourceDate = announcement.published_at || announcement.created_at;
             const date = sourceDate ? new Date(sourceDate.replace(' ', 'T')) : null;
+            const view = `<button class="btn btn-light btn-icon" type="button" title="View" aria-label="View ${escapeHtml(announcement.title)}" data-record-json="${escapeHtml(JSON.stringify(announcement))}" data-bs-toggle="modal" data-bs-target="#viewAnnouncementModal"><i class="bi bi-eye" aria-hidden="true"></i></button>`;
+            const editArchive = archived ? '' : `<button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit ${escapeHtml(announcement.title)}" data-announcement-edit="${id}" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal"><i class="bi bi-pencil" aria-hidden="true"></i></button><button class="btn btn-light btn-icon text-success" type="button" title="Archive" aria-label="Archive ${escapeHtml(announcement.title)}" data-announcement-delete="${id}" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal"><i class="bi bi-archive" aria-hidden="true"></i></button>`;
+            const restore = canBulkManage && archived ? `<button class="btn btn-light btn-icon text-success" type="button" title="Restore as draft" aria-label="Restore ${escapeHtml(announcement.title)} as draft" data-announcement-restore="${id}"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i></button>` : '';
+            const permanentDelete = canBulkManage ? `<button class="btn btn-light btn-icon text-danger" type="button" title="Delete permanently" aria-label="Permanently delete ${escapeHtml(announcement.title)}" data-announcement-permanent-delete="${id}"><i class="bi bi-trash" aria-hidden="true"></i></button>` : '';
             return `<tr data-row data-category="${escapeHtml(announcement.category)}" data-status="${escapeHtml(announcement.status)}" data-audience="${escapeHtml(announcement.audience)}" data-search="${escapeHtml(`${announcement.title} ${announcement.content} ${announcement.author}`)}">
                 <td style="min-width: 280px; max-width: 420px;"><span class="table-primary-text">${escapeHtml(announcement.title)}</span><span class="table-secondary-text text-truncate" style="max-width: 390px;">${escapeHtml(announcement.content)}</span><span class="table-secondary-text">ANN-${String(announcement.id).padStart(4, '0')}</span></td>
                 <td><span class="d-inline-flex align-items-center gap-2"><i class="bi bi-megaphone-fill text-success" aria-hidden="true"></i>${escapeHtml(announcement.category)}</span></td>
@@ -40,11 +49,13 @@
                 <td><span class="status-badge ${statusClass(announcement.status)}">${escapeHtml(announcement.status)}</span></td>
                 <td><span class="table-primary-text">${date ? escapeHtml(date.toLocaleDateString('en-PH')) : '-'}</span><span class="table-secondary-text">${date ? escapeHtml(date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })) : ''}</span></td>
                 <td>${escapeHtml(announcement.author)}</td>
-                <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(announcement.title)}"><button class="btn btn-light btn-icon" type="button" title="View" data-record-json="${escapeHtml(JSON.stringify(announcement))}" data-bs-toggle="modal" data-bs-target="#viewAnnouncementModal"><i class="bi bi-eye"></i></button><button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit ${escapeHtml(announcement.title)}" data-announcement-edit="${announcement.id}" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal"><i class="bi bi-pencil"></i></button><button class="btn btn-light btn-icon text-danger" type="button" title="Archive" aria-label="Archive ${escapeHtml(announcement.title)}" data-announcement-delete="${announcement.id}" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal"><i class="bi bi-archive"></i></button></div></td>
+                <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(announcement.title)}">${view}${editArchive}${restore}${permanentDelete}</div></td>
             </tr>`;
-        }).join('') || '<tr><td colspan="7" class="text-center text-body-secondary py-4">No announcements match your search or filters.</td></tr>';
+        }).join('') || `<tr><td colspan="7" class="text-center text-body-secondary py-4">No announcements match your search or filters.</td></tr>`;
         tableBody.querySelectorAll('[data-announcement-edit]').forEach((button) => button.addEventListener('click', () => fillEdit(Number(button.dataset.announcementEdit))));
         tableBody.querySelectorAll('[data-announcement-delete]').forEach((button) => button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.announcementDelete; }));
+        syncSelection();
+        if (bulkBusy) disableBulkControls();
     };
     const fillEdit = (id) => {
         const announcement = announcements.find((item) => Number(item.id) === id);
@@ -75,7 +86,11 @@
         }
     };
     document.addEventListener('sagipbro:record-viewed', (event) => {
-        if (event.detail.modal.id === 'viewAnnouncementModal') fillEdit(Number(event.detail.record.id));
+        if (event.detail.modal.id !== 'viewAnnouncementModal') return;
+        const archived = event.detail.record.status === 'Archived';
+        const editButton = event.detail.modal.querySelector('[data-bs-target="#editAnnouncementModal"]');
+        if (editButton) editButton.hidden = archived;
+        if (!archived) fillEdit(Number(event.detail.record.id));
     });
     addForm.addEventListener('submit', (event) => {
         event.preventDefault();

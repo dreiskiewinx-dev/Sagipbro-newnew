@@ -54,5 +54,5 @@ window.sagipbroMessagesApi = {
     csrfToken: <?= json_encode(csrfToken()) ?>
 };
 </script>
-<script src="../../assets/js/messages-live.js?v=4" defer></script>
+<script src="../../assets/js/messages-live.js?v=5" defer></script>
 <?php include '../../includes/footer.php'; ?>

@@ -49,6 +49,7 @@
         let abortController = null;
         let searchTimer = null;
         let controlsSignature = '';
+        let bulk = null;
 
         const url = (overrides = {}) => {
             const result = new URL(options.endpoint, window.location.href);
@@ -125,7 +126,10 @@
             }
         };
 
-        const load = async ({ reset = false } = {}) => {
+        const load = async ({ reset = false, background = false } = {}) => {
+            // Polling must not replace a page while its records await confirmation.
+            if (background && (bulk?.hasSelection || bulk?.busy || bulk?.confirming)) return null;
+            bulk?.invalidate();
             if (reset) state.page = 1;
             const thisRequest = ++requestNumber;
             abortController?.abort();
@@ -159,6 +163,7 @@
                         cell.textContent = 'No records match your search or filters.';
                     }
                 }
+                bulk?.render(result);
                 summary.textContent = `Showing ${Number(pagination.from).toLocaleString()}–${Number(pagination.to).toLocaleString()} of ${state.total.toLocaleString()} records`;
                 size.value = String(state.perPage);
                 const counter = document.querySelector(`[data-table-count="${selector}"]`) || card.parentElement?.querySelector('[data-filter-results]');
@@ -175,12 +180,14 @@
                     state.loading = false;
                     table.setAttribute('aria-busy', 'false');
                     renderControls();
+                    bulk?.sync();
                     window.sagipbroRestorePagePosition?.();
                 }
             }
         };
 
         search?.addEventListener('input', () => {
+            bulk?.invalidate();
             clearTimeout(searchTimer);
             // Invalidate an in-flight page immediately, before the search debounce.
             requestNumber++;
@@ -188,15 +195,18 @@
             searchTimer = setTimeout(() => load({ reset: true }).catch(reportError), 250);
         });
         filters.forEach((filter) => filter.addEventListener('change', () => {
+            bulk?.invalidate();
             clearTimeout(searchTimer);
             load({ reset: true }).catch(reportError);
         }));
         size.addEventListener('change', () => {
+            bulk?.invalidate();
             state.perPage = Number(size.value);
             load({ reset: true }).catch(reportError);
         });
         const controller = { load, state, url };
         controllers.set(table, controller);
+        bulk = window.SagipbroBulk?.attach({ table, pagination: controller }) || null;
         renderControls();
         if (options.autoLoad !== false) queueMicrotask(() => load().catch(reportError));
         return controller;

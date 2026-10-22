@@ -291,6 +291,25 @@ html { scroll-behavior: auto; }
 .filter-toolbar .form-control, .filter-toolbar .form-select { min-height: 40px; font-size: .76rem; }
 .filter-results { margin-left: auto; align-self: center; color: var(--ink-500); font-size: .66rem; }
 
+/* Bulk selection is scoped to editable registers and the current database page. */
+.admin-bulk-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; padding: .8rem 1rem; border-bottom: 1px solid var(--green-200); background: var(--green-50); }
+.admin-bulk-toolbar[hidden], .admin-bulk-toolbar [hidden] { display: none !important; }
+.admin-bulk-summary, .announcement-bulk-summary { display: grid; gap: .15rem; min-width: 0; }
+.admin-bulk-summary strong, .announcement-bulk-summary strong { color: var(--green-900); font-size: .8rem; }
+.admin-bulk-summary span, .announcement-bulk-summary span { color: var(--ink-600); font-size: .68rem; }
+.admin-bulk-actions, .announcement-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.admin-bulk-actions .btn, .announcement-bulk-actions .btn { font-size: .73rem; }
+.admin-bulk-table .admin-bulk-selection-cell { width: 3.25rem; min-width: 3.25rem; padding: .5rem .6rem; }
+.admin-bulk-selection-control { display: inline-grid; min-width: 32px; min-height: 36px; margin: 0; place-items: center; cursor: pointer; }
+.admin-bulk-table .admin-bulk-selection-cell .form-check-input { width: 1.1rem; height: 1.1rem; margin: 0; border-color: #8ea99b; cursor: pointer; }
+.admin-bulk-table .admin-bulk-selection-cell .form-check-input:checked, .admin-bulk-table .admin-bulk-selection-cell .form-check-input:indeterminate { border-color: var(--green-700); background-color: var(--green-700); }
+.admin-bulk-table .admin-bulk-selection-cell .form-check-input:disabled { cursor: default; }
+.admin-bulk-table tr.is-selected > td { background-color: var(--green-50); }
+@media (max-width: 575.98px) {
+    .admin-bulk-actions, .announcement-bulk-actions { width: 100%; }
+    .admin-bulk-actions .btn, .announcement-bulk-actions .btn { flex: 1 1 135px; }
+}
+
 .stock-cell { min-width: 120px; }
 .stock-cell-top { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .32rem; font-size: .7rem; }
 .stock-cell-top strong { color: var(--ink-900); }

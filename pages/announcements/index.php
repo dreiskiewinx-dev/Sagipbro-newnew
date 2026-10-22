@@ -7,6 +7,7 @@ $pageDescription = 'Create, publish, and maintain trusted community advisories t
 $basePath = '../../';
 $isAdmin = true;
 $activeAdmin = 'announcements';
+$canManageAnnouncements = ($_SESSION['role'] ?? '') === 'admin';
 
 $announcements = [];
 
@@ -48,6 +49,10 @@ include '../../includes/header.php';
                     <select class="form-select" id="announcementStatus" data-filter-select="#announcementsTable" data-filter-field="status"><option value="">All statuses</option><option>Published</option><option>Draft</option><option>Archived</option></select>
                 </div>
                 <div class="filter-field">
+                    <label for="announcementPriority">Priority</label>
+                    <select class="form-select" id="announcementPriority" data-filter-select="#announcementsTable" data-filter-field="priority"><option value="">All priorities</option><option>Urgent</option><option>High</option><option>Medium</option><option>Low</option><option>Normal</option></select>
+                </div>
+                <div class="filter-field">
                     <label for="announcementAudience">Audience</label>
                     <select class="form-select" id="announcementAudience" data-filter-select="#announcementsTable" data-filter-field="audience"><option value="">All audiences</option><option>All residents</option><option>Zones 1–3</option><option>Sitio Korea</option><option>Evacuees</option><option>Volunteers</option><option>Motorists</option></select>
                 </div>
@@ -59,12 +64,24 @@ include '../../includes/header.php';
                     <div><h2 id="announcementRegisterHeading">Community announcement register</h2><p>Published notices appear on the public information feed.</p></div>
                     <span class="status-badge status-info" data-announcement-published>0 currently published</span>
                 </div>
+                <?php if ($canManageAnnouncements): ?>
+                    <div class="announcement-bulk-toolbar" id="announcementBulkToolbar" hidden>
+                        <div class="announcement-bulk-summary"><strong id="announcementSelectionCount" role="status" aria-live="polite" aria-atomic="true">0 announcements selected</strong><span>Selection applies to this page only.</span></div>
+                        <div class="announcement-bulk-actions" role="group" aria-label="Selected announcement actions">
+                            <button class="btn btn-sm btn-brand" type="button" data-announcement-bulk-action="archive" disabled><i class="bi bi-archive" aria-hidden="true"></i> Archive selected</button>
+                            <button class="btn btn-sm btn-outline-brand" type="button" data-announcement-bulk-action="restore" disabled><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Restore selected</button>
+                            <button class="btn btn-sm btn-danger" type="button" data-announcement-bulk-action="delete" disabled><i class="bi bi-trash" aria-hidden="true"></i> Delete selected</button>
+                            <button class="btn btn-sm btn-outline-brand" id="announcementClearSelection" type="button" disabled>Clear selection</button>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <div class="table-responsive">
                     <table class="table app-table align-middle" id="announcementsTable" data-table data-pagination="announcements" data-server-pagination="true">
-                        <thead><tr><th scope="col">Title and content</th><th scope="col">Category</th><th scope="col">Audience</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Author</th><th scope="col" class="text-end">Actions</th></tr></thead>
+                        <thead><tr><?php if ($canManageAnnouncements): ?><th scope="col" class="announcement-selection-cell"><label class="announcement-selection-control"><input class="form-check-input" id="announcementSelectAll" type="checkbox" disabled><span class="visually-hidden">Select all announcements on this page</span></label></th><?php endif; ?><th scope="col">Title and content</th><th scope="col">Category</th><th scope="col">Audience</th><th scope="col">Status</th><th scope="col">Date</th><th scope="col">Author</th><th scope="col" class="text-end">Actions</th></tr></thead>
                         <tbody>
                             <?php foreach ($announcements as $announcement): ?>
                                 <tr data-row data-category="<?= htmlspecialchars($announcement['category'], ENT_QUOTES, 'UTF-8') ?>" data-status="<?= htmlspecialchars($announcement['status'], ENT_QUOTES, 'UTF-8') ?>" data-audience="<?= htmlspecialchars($announcement['audience'], ENT_QUOTES, 'UTF-8') ?>">
+                                    <?php if ($canManageAnnouncements): ?><td class="announcement-selection-cell"><label class="announcement-selection-control"><input class="form-check-input" type="checkbox" data-announcement-select="<?= (int) $announcement['id'] ?>"><span class="visually-hidden">Select <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?></span></label></td><?php endif; ?>
                                     <td style="min-width: 280px; max-width: 420px;"><span class="table-primary-text"><?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text text-truncate" style="max-width: 390px;"><?= htmlspecialchars($announcement['content'], ENT_QUOTES, 'UTF-8') ?></span><span class="table-secondary-text"><?= htmlspecialchars($announcement['id'], ENT_QUOTES, 'UTF-8') ?></span></td>
                                     <td><span class="d-inline-flex align-items-center gap-2"><i class="bi <?= htmlspecialchars($categoryIcons[$announcement['category']] ?? 'bi-megaphone-fill', ENT_QUOTES, 'UTF-8') ?> text-success" aria-hidden="true"></i><?= htmlspecialchars($announcement['category'], ENT_QUOTES, 'UTF-8') ?></span></td>
                                     <td><?= htmlspecialchars($announcement['audience'], ENT_QUOTES, 'UTF-8') ?></td>
@@ -74,7 +91,7 @@ include '../../includes/header.php';
                                     <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>">
                                         <button class="btn btn-light btn-icon" type="button" title="View" aria-label="View <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#viewAnnouncementModal" data-record-id="<?= htmlspecialchars($announcement['id'], ENT_QUOTES, 'UTF-8') ?>" data-record-name="<?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-eye" aria-hidden="true"></i></button>
                                         <button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#editAnnouncementModal" data-record-id="<?= htmlspecialchars($announcement['id'], ENT_QUOTES, 'UTF-8') ?>" data-record-name="<?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-pencil" aria-hidden="true"></i></button>
-                                        <button class="btn btn-light btn-icon text-danger" type="button" title="Archive" aria-label="Archive <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal" data-record-id="<?= htmlspecialchars($announcement['id'], ENT_QUOTES, 'UTF-8') ?>" data-record-name="<?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-archive" aria-hidden="true"></i></button>
+                                        <button class="btn btn-light btn-icon text-success" type="button" title="Archive" aria-label="Archive <?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>" data-bs-toggle="modal" data-bs-target="#deleteAnnouncementModal" data-record-id="<?= htmlspecialchars($announcement['id'], ENT_QUOTES, 'UTF-8') ?>" data-record-name="<?= htmlspecialchars($announcement['title'], ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-archive" aria-hidden="true"></i></button>
                                     </div></td>
                                 </tr>
                             <?php endforeach; ?>
@@ -83,6 +100,20 @@ include '../../includes/header.php';
                 </div>
                 <div class="data-card-footer record-summary"><span data-pagination-summary data-announcement-summary>Showing 0 announcements</span></div>
             </section>
+
+            <?php if ($canManageAnnouncements): ?>
+                <div class="modal fade" id="bulkAnnouncementModal" tabindex="-1" aria-labelledby="bulkAnnouncementTitle" aria-describedby="bulkAnnouncementMessage bulkAnnouncementHelp" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="bulkAnnouncementForm">
+                        <div class="modal-header"><h2 class="modal-title" id="bulkAnnouncementTitle">Confirm announcement action</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                        <div class="modal-body">
+                            <p class="mb-2" id="bulkAnnouncementMessage"></p>
+                            <p class="small text-muted mb-0" id="bulkAnnouncementHelp"></p>
+                            <div class="alert alert-danger mt-3 mb-0" id="bulkAnnouncementError" role="alert" hidden></div>
+                        </div>
+                        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" id="bulkAnnouncementConfirm" type="submit" disabled>Confirm</button></div>
+                    </form></div>
+                </div>
+            <?php endif; ?>
 
             <div class="modal fade" id="addAnnouncementModal" tabindex="-1" aria-labelledby="addAnnouncementTitle" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><form class="modal-content" id="addAnnouncementForm">
@@ -132,7 +163,7 @@ include '../../includes/header.php';
                 <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form id="deleteAnnouncementForm">
                     <div class="modal-header"><h2 class="modal-title" id="deleteAnnouncementTitle">Archive announcement?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
                     <div class="modal-body"><p class="mb-2">Archive the selected announcement?</p><p class="small text-muted mb-0">It will be removed from the public feed but retained in the announcement register and activity log.</p></div>
-                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Keep published</button><button class="btn btn-danger" type="submit" data-confirm-action="Announcement archived."><i class="bi bi-archive"></i> Archive</button></div>
+                    <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Keep published</button><button class="btn btn-brand" type="submit" data-confirm-action="Announcement archived."><i class="bi bi-archive"></i> Archive</button></div>
                 </form></div></div>
             </div>
 
@@ -150,8 +181,9 @@ include '../../includes/header.php';
 <script>
     window.sagipbroAnnouncementApi = {
         endpoint: <?= json_encode(appUrl('api/announcements.php')) ?>,
-        csrfToken: <?= json_encode(csrfToken()) ?>
+        csrfToken: <?= json_encode(csrfToken()) ?>,
+        canBulkManage: <?= json_encode($canManageAnnouncements) ?>
     };
 </script>
-<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js?v=2"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js?v=3"></script>
 <?php include '../../includes/footer.php'; ?>

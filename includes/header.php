@@ -111,8 +111,17 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/bootstrap-icons.min.css?v=1.11.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=14">
     <?php if ($isAdmin): ?>
-        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=15">
-        <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-pagination.js?v=1"></script>
+        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=17">
+        <script>
+        window.sagipbroBulkApi = {
+            enabled: <?= json_encode(($_SESSION['role'] ?? '') === 'admin') ?>,
+            endpoint: <?= json_encode(appUrl('api/bulk.php')) ?>,
+            csrfToken: <?= json_encode(csrfToken()) ?>,
+            currentUserId: <?= (int) ($_SESSION['user_id'] ?? 0) ?>
+        };
+        </script>
+        <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-bulk.js?v=1"></script>
+        <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-pagination.js?v=2"></script>
     <?php endif; ?>
     <?php if (!empty($useLoginStyles)): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/login.css">
