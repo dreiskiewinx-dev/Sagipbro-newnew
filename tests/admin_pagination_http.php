@@ -120,6 +120,12 @@ function checkPageSet(string $endpoint, int $total, array $baseQuery = []): void
 function pageBrowserCheck(string $directory, array $cases, array $environment, PDO $database): void
 {
     global $serverAddress;
+    foreach ($cases as &$case) {
+        if ($case['table'] === 'activityLogsTable' && empty($case['deep'])) {
+            $case['statValues'] = array_values($database->query("SELECT SUM(DATE(created_at) = CURDATE()), COUNT(DISTINCT CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN user_id END), SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%'), SUM(LOWER(action) LIKE '%block%') FROM activity_logs")->fetch(PDO::FETCH_NUM));
+        }
+    }
+    unset($case);
     $chrome = getenv('SAGIPBRO_CHROME_BINARY') ?: 'C:/Program Files/Google/Chrome/Application/chrome.exe';
     pageCheck(is_file($chrome), 'Set SAGIPBRO_CHROME_BINARY to run optional browser tests.');
     $script = <<<'JAVASCRIPT'
@@ -141,6 +147,15 @@ const change = (element, value, type = 'change') => {
     element.value = value;
     element.dispatchEvent(new Event(type, { bubbles: true }));
 };
+const statisticLabels = {
+    residentsTable: ['Registered residents', 'Households', 'Priority residents', 'Records verified'],
+    volunteersTable: ['Registered volunteers', 'Ready for deployment', 'Currently deployed', 'Operationally available'],
+    usersTable: ['Total accounts', 'Officials & admins', 'Online now', 'Inactive accounts'],
+    recentReportsTable: ['Reports available', 'Records summarized', 'Last data sync', 'Scheduled reports'],
+    activityLogsTable: ['Events today', 'Active users', 'Warnings', 'Blocked attempts'],
+    volunteerDashboardStats: ["Today's assignments", 'Open centers', 'Households assisted', 'Items distributed'],
+    dashboardActivityTable: ['Total resources', 'Low-stock items', 'Evacuation centers', 'Registered residents', 'Active volunteers', 'Recent distributions']
+};
 (async () => {
     for (const test of cases) {
         output.textContent = JSON.stringify({ running: true, checks, results, current: test.table });
@@ -149,35 +164,56 @@ const change = (element, value, type = 'change') => {
         await new Promise((resolve) => { frame.onload = resolve; frame.src = test.route; });
         const page = frame.contentWindow;
         const doc = frame.contentDocument;
-        await wait(() => page.SagipbroPagination?.get('#' + test.table), test.table + ' controller');
-        const pager = page.SagipbroPagination.get('#' + test.table);
-        await wait(() => !pager.state.loading && pager.state.total === test.total, test.table + ' initial data');
+        if (!test.statsOnly) await wait(() => page.SagipbroPagination?.get('#' + test.table), test.table + ' controller');
+        const pager = test.statsOnly ? null : page.SagipbroPagination.get('#' + test.table);
+        if (pager) await wait(() => !pager.state.loading && pager.state.total === test.total, test.table + ' initial data');
         const table = doc.getElementById(test.table);
-        if (table.closest('.modal')) {
+        if (table?.closest('.modal')) {
             page.bootstrap.Modal.getOrCreateInstance(table.closest('.modal')).show();
             await wait(() => table.getBoundingClientRect().width > 0, test.table + ' visible preview');
         }
-        const footer = table.closest('.data-card').querySelector('.server-pagination-footer');
+        const footer = table?.closest('.data-card').querySelector('.server-pagination-footer');
         const button = (label) => footer.querySelector('button[aria-label="' + label + '"]');
-        if (test.table === 'dashboardActivityTable') {
-            const grid = doc.querySelector('.dashboard-stat-grid');
+        if (statisticLabels[test.table] && !test.deep && !test.crud) {
+            const grid = doc.querySelector('.stat-grid');
             const cards = [...grid.querySelectorAll('.stat-card')];
             const liveTotals = [...grid.querySelectorAll('[data-dashboard-stat]')];
-            const labels = ['Total resources', 'Low-stock items', 'Evacuation centers', 'Registered residents', 'Active volunteers', 'Recent distributions'];
+            const labels = statisticLabels[test.table];
+            const originalValues = cards.map(card => card.querySelector('.stat-value').textContent.trim());
             const keys = ['resources', 'low_stock', 'centers', 'open_centers', 'residents', 'volunteers', 'distributions', 'distributed_quantity'];
-            const response = await page.fetch(new URL('../api/reports.php?report=summary', page.location.href), { headers: { Accept: 'application/json' } });
-            check(response.ok, 'Dashboard live totals can be checked against the real summary API');
-            const totals = (await response.json()).data?.[0];
-            check(totals && keys.every(key => Object.prototype.hasOwnProperty.call(totals, key)), 'Dashboard summary API retains all eight live metrics');
-            check(cards.length === 6, 'Dashboard retains all six summary cards');
-            check(liveTotals.length === keys.length && keys.every(key => liveTotals.some(node => node.dataset.dashboardStat === key)), 'All dashboard data bindings remain available');
+            let totals = null, expectedValues = test.statValues;
+            const getStatistics = async (route) => {
+                const response = await page.fetch(new URL(route, page.location.origin), { headers: { Accept: 'application/json' } });
+                check(response.ok, test.table + ' statistics are available from the real API');
+                return response.json();
+            };
+            if (test.table === 'dashboardActivityTable') {
+                totals = (await getStatistics('/api/reports.php?report=summary')).data?.[0];
+                check(totals && keys.every(key => Object.prototype.hasOwnProperty.call(totals, key)), 'Dashboard summary API retains all eight live metrics');
+                check(liveTotals.length === keys.length && keys.every(key => liveTotals.some(node => node.dataset.dashboardStat === key)), 'All dashboard data bindings remain available');
+                expectedValues = ['resources', 'low_stock', 'centers', 'residents', 'volunteers', 'distributions'].map(key => totals[key]);
+            } else if (['residentsTable', 'volunteersTable', 'usersTable'].includes(test.table)) {
+                const endpoint = test.table.replace('Table', '');
+                const stats = (await getStatistics('/api/' + endpoint + '.php?paginate=1')).stats;
+                check(Boolean(stats), test.table + ' real database summary is retained');
+                if (endpoint === 'residents') expectedValues = [stats.total, stats.households, stats.priority, (Number(stats.total) ? Math.round(Number(stats.active) / Number(stats.total) * 100) : 0) + '%'];
+                if (endpoint === 'volunteers') expectedValues = [stats.total, stats.active, stats.deployed, (Number(stats.total) ? Math.round((Number(stats.active) + Number(stats.deployed)) / Number(stats.total) * 100) : 0) + '%'];
+                if (endpoint === 'users') expectedValues = [stats.total, stats.privileged, stats.online, stats.inactive];
+            } else if (test.table === 'recentReportsTable') {
+                const query = new URLSearchParams({report: 'overview', from: doc.getElementById('reportDateFrom').value, to: doc.getElementById('reportDateTo').value, coverage: doc.getElementById('reportArea').value});
+                const rows = (await getStatistics('/api/reports.php?' + query)).data;
+                check(/^(?:[1-9]|1[0-2]):\d{2} [AP]M$/.test(originalValues[2]), 'Reports retains its real Last data sync time string');
+                expectedValues = [rows.find(row => row.item === 'Reports available').value, rows.find(row => row.item === 'Records summarized').value, originalValues[2], 0];
+            }
+            check(cards.length === labels.length, test.table + ' retains all existing summary cards');
+            check(expectedValues?.length === cards.length && originalValues.every((value, index) => value.replace(/,/g, '') === String(expectedValues[index])), test.table + ' summary values match the real database or API');
             const intersects = (a, b) => a.left < b.right - 1 && a.right > b.left + 1 && a.top < b.bottom - 1 && a.bottom > b.top + 1;
-            for (const width of [1440, 900, 390, 320]) {
+            for (const width of [1440, 1024, 900, 390, 320]) {
                 frame.style.width = width + 'px';
                 await new Promise(resolve => setTimeout(resolve, 150));
                 const rem = Number.parseFloat(page.getComputedStyle(doc.documentElement).fontSize);
                 const columns = page.getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).length;
-                check(columns === (width >= 992 ? 3 : width >= 576 ? 2 : 1), width + 'px dashboard keeps its three/two/one-column summary layout');
+                check(columns === (width >= 992 ? (grid.classList.contains('dashboard-stat-grid') ? 3 : 4) : width >= 576 ? 2 : 1), width + 'px ' + test.table + ' keeps its existing desktop/tablet/mobile column count');
                 check(doc.documentElement.scrollWidth <= width + 1 && grid.scrollWidth <= grid.clientWidth + 1, width + 'px dashboard summary grid does not overflow');
                 for (const node of liveTotals) {
                     const text = node.textContent.trim();
@@ -191,24 +227,27 @@ const change = (element, value, type = 'change') => {
                     const accent = page.getComputedStyle(card, '::before');
                     const iconBounds = icon.getBoundingClientRect(), labelBounds = label.getBoundingClientRect(), numberBounds = number.getBoundingClientRect();
                     check(label.textContent.trim() === labels[index], width + 'px dashboard label is preserved: ' + labels[index]);
+                    check(number.textContent.trim() === originalValues[index], width + 'px ' + test.table + ' preserves its live value/time string: ' + labels[index]);
                     check(bounds.left >= 0 && bounds.right <= width + 1 && numberBounds.left >= bounds.left && numberBounds.right <= bounds.right, width + 'px summary card and value fit the viewport: ' + labels[index]);
+                    check(number.scrollWidth <= number.clientWidth + 1 && numberBounds.bottom <= bounds.bottom - 1, width + 'px summary number/time string is not clipped: ' + labels[index]);
                     check(labelBounds.right <= iconBounds.left + 1 && iconBounds.right <= bounds.right - 1, width + 'px label and icon do not overlap: ' + labels[index]);
                     check(Number.parseFloat(accent.height) >= 3.5 && Number.parseFloat(accent.height) <= 4.5 && !['none', 'normal'].includes(accent.content), width + 'px card has its visible four-pixel top accent');
                     check(Number.parseFloat(numberStyle.fontSize) >= rem * 2 - 1 && Number(numberStyle.fontWeight) >= 800 && numberStyle.fontVariantNumeric.includes('tabular-nums'), width + 'px live number is larger, bold and consistently aligned');
                     check(Number.parseFloat(labelStyle.fontSize) >= rem * .73 && Number(labelStyle.fontWeight) >= 750 && labelStyle.color !== 'rgb(110, 131, 123)', width + 'px summary label is larger and darker');
                     check(Math.abs(iconBounds.width - 44) < 1 && Math.abs(iconBounds.height - 44) < 1 && iconStyle.color === 'rgb(255, 255, 255)', width + 'px card icon is solid and readable');
                     check(accent.backgroundColor === iconStyle.backgroundColor && accent.backgroundColor === numberStyle.color, width + 'px accent, icon and number use the same status color');
-                    const tone = card.classList.contains('warning') ? 'amber' : card.classList.contains('info') ? 'blue' : 'green';
+                    const tone = card.classList.contains('danger') ? 'red' : card.classList.contains('warning') ? 'amber' : card.classList.contains('info') ? 'blue' : 'green';
                     check(!tones[tone] || tones[tone] === accent.backgroundColor, width + 'px repeated status accents stay consistent: ' + tone);
                     tones[tone] = accent.backgroundColor;
                     for (let previous = 0; previous < index; previous++) check(!intersects(bounds, cards[previous].getBoundingClientRect()), width + 'px summary cards remain non-overlapping');
                 }
-                check(new Set(Object.values(tones)).size === 3, width + 'px green, amber and blue status accents remain distinct');
+                check(new Set(Object.values(tones)).size === Object.keys(tones).length, width + 'px semantic status accents remain distinct');
             }
             frame.style.width = '1440px';
             await new Promise(resolve => setTimeout(resolve, 100));
-            results.push('six dashboard summary cards retain live values and responsive emphasis');
+            results.push(test.table + ' summary cards retain live values/time and responsive emphasis');
         }
+        if (test.statsOnly) continue;
         if (test.crud) {
             button('Next').click();
             await wait(() => pager.state.page === 2 && !pager.state.loading, 'resource CRUD starting page');
@@ -450,8 +489,20 @@ try {
     $serverCommand = [PHP_BINARY, '-d', 'display_errors=0', '-d', 'log_errors=1', '-S', $listen, '-t', $project];
     $browser = getenv('SAGIPBRO_PAGINATION_BROWSER') === '1';
     if ($browser) {
+        $volunteerIdentity = $database->query("SELECT id, full_name FROM users WHERE role = 'volunteer' ORDER BY id LIMIT 1")->fetch();
+        $volunteerStatistics = $database->prepare("SELECT
+            (SELECT COUNT(*) FROM distribution_events WHERE publication_status = 'Published' AND DATE(starts_at) = CURDATE()),
+            (SELECT COUNT(*) FROM evacuation_centers WHERE status = 'Open'),
+            COUNT(DISTINCT COALESCE(recipient_resident_id, recipient_name)), COALESCE(SUM(quantity), 0)
+            FROM distributions WHERE distributed_by = ? AND DATE(distributed_at) = CURDATE()");
+        $volunteerStatistics->execute([(int) $volunteerIdentity['id']]);
+        $volunteerStatValues = $volunteerStatistics->fetch(PDO::FETCH_NUM);
         // Only this isolated loopback test server loads the temporary router.
         $router = '<?php $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH); if ($path === "/__pagination_browser") { setcookie(' . var_export(session_name(), true) . ', ' . var_export($sessionId, true) . ', ["path" => "/", "httponly" => true, "samesite" => "Lax"]); header("Content-Type: text/html; charset=utf-8"); readfile(' . var_export($temporaryDirectory . '/browser.html', true) . '); return true; } if (preg_match("~^/(?:pages/(?:resources|evacuation|distribution|residents|volunteers|users|announcements|messages|activity|reports)/index|dashboard/admin)\\.php$~", $path)) { $target = ' . var_export($project, true) . ' . $path; chdir(dirname($target)); ob_start(); require $target; header_remove("X-Frame-Options"); ob_end_flush(); return true; } return false;';
+        // Render the actual role-restricted template with a private fixture identity;
+        // restore the administrator session before this test request is persisted.
+        $volunteerRoute = 'if ($path === "/__volunteer_stats") { require_once ' . var_export($project . '/config/session.php', true) . '; $originalSession = $_SESSION; session_write_close(); $_SESSION["user_id"] = ' . (int) $volunteerIdentity['id'] . '; $_SESSION["role"] = "volunteer"; $_SESSION["full_name"] = ' . var_export($volunteerIdentity['full_name'], true) . '; chdir(' . var_export($project . '/dashboard', true) . '); ob_start(); try { require ' . var_export($project . '/dashboard/volunteer.php', true) . '; } finally { $_SESSION = $originalSession; } header_remove("X-Frame-Options"); ob_end_flush(); return true; } ';
+        $router = str_replace('return false;', $volunteerRoute . 'return false;', $router);
         file_put_contents($temporaryDirectory . '/router.php', $router);
         $serverCommand[] = $temporaryDirectory . '/router.php';
     }
@@ -494,6 +545,7 @@ try {
         foreach ([['pages/resources/index.php', 'resourcesTable', 105], ['pages/evacuation/index.php', 'centersTable', 105], ['pages/distribution/index.php', 'distributionsTable', 105], ['pages/residents/index.php', 'residentsTable', 105], ['pages/volunteers/index.php', 'volunteersTable', 105], ['pages/users/index.php', 'usersTable', 106], ['pages/announcements/index.php', 'announcementsTable', 105], ['pages/messages/index.php', 'messagesTable', 105], ['pages/activity/index.php', 'activityLogsTable', 210], ['dashboard/admin.php', 'dashboardActivityTable', 210], ['pages/reports/index.php', 'recentReportsTable', 105], ['pages/reports/index.php', 'reportResourcesTable', 105]] as [$route, $table, $total]) {
             $cases[] = ['route' => $route, 'table' => $table, 'total' => $total, 'matches' => $table === 'activityLogsTable' ? 2 : 1];
         }
+        $cases[] = ['route' => '__volunteer_stats', 'table' => 'volunteerDashboardStats', 'statsOnly' => true, 'statValues' => $volunteerStatValues];
         $deepCases[] = ['route' => 'pages/resources/index.php?view=' . $archivedResourceId, 'table' => 'resourcesTable', 'total' => 1, 'deep' => true, 'page' => 1, 'label' => 'Archived pagination fixture'];
         $deepCases[] = ['route' => 'pages/resources/index.php', 'table' => 'resourcesTable', 'total' => 105, 'crud' => true];
         pageBrowserCheck($temporaryDirectory, array_merge($cases, $deepCases), $environment, $database);

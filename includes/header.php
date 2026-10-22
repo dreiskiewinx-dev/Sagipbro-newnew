@@ -111,7 +111,7 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/bootstrap-icons.min.css?v=1.11.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=13">
     <?php if ($isAdmin): ?>
-        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=14">
+        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=15">
         <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-pagination.js?v=1"></script>
     <?php endif; ?>
     <?php if (!empty($useLoginStyles)): ?>
