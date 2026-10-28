@@ -68,6 +68,18 @@ include __DIR__ . '/includes/navbar.php';
                         <span class="quick-link">View distributions <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
                     </a>
                 </article>
+                <article class="service-row" id="announcements">
+                    <a class="service-row-link" href="announcements.php#announcement-directory">
+                        <span class="service-row-top">
+                            <span class="service-row-icon"><i class="bi bi-megaphone" aria-hidden="true"></i></span>
+                        </span>
+                        <div class="service-row-copy">
+                            <h3>Announcements</h3>
+                            <p>Read published barangay advisories and emergency instructions with the full announcement, priority, publication time, and expiry.</p>
+                        </div>
+                        <span class="quick-link">Read announcements <i class="bi bi-arrow-right" aria-hidden="true"></i></span>
+                    </a>
+                </article>
                 <article class="service-row">
                     <a class="service-row-link" href="reports.php#public-reports">
                         <span class="service-row-top">

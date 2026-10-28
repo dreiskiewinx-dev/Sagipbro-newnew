@@ -169,8 +169,10 @@ const statisticLabels = {
         if (pager) await wait(() => !pager.state.loading && pager.state.total === test.total, test.table + ' initial data');
         const table = doc.getElementById(test.table);
         if (table?.closest('.modal')) {
-            page.bootstrap.Modal.getOrCreateInstance(table.closest('.modal')).show();
-            await wait(() => table.getBoundingClientRect().width > 0, test.table + ' visible preview');
+            const animationStyle = doc.createElement('style'); animationStyle.textContent = '.modal.fade .modal-dialog,.modal-backdrop.fade{transition:none!important}'; doc.head.append(animationStyle);
+            const instance = page.bootstrap.Modal.getOrCreateInstance(table.closest('.modal'));
+            instance.show();
+            await wait(() => table.getBoundingClientRect().width > 0 && !instance._isTransitioning && !pager.state.loading, test.table + ' visible preview');
         }
         const footer = table?.closest('.data-card').querySelector('.server-pagination-footer');
         const button = (label) => footer.querySelector('button[aria-label="' + label + '"]');
@@ -380,6 +382,59 @@ const statisticLabels = {
         await new Promise((resolve) => setTimeout(resolve, 80));
         const bounds = footer.getBoundingClientRect();
         check(bounds.width <= page.innerWidth + 1, test.table + ' pagination footer must fit a mobile viewport');
+        if (test.table === 'reportResourcesTable') {
+            const modal = doc.querySelector('#reportPreviewModal');
+            const style = doc.createElement('style'); style.textContent = '.modal.fade .modal-dialog,.modal-backdrop.fade{transition:none!important}'; doc.head.append(style);
+            const nativeFetch = page.fetch.bind(page), printCalls = [];
+            page.open = (url) => { printCalls.push(String(url)); return null; };
+            const closePreview = async () => { modal.querySelector('.modal-footer [data-bs-dismiss="modal"]').click(); await wait(() => !modal.classList.contains('show') && !page.bootstrap.Modal.getInstance(modal)?._isTransitioning, 'preview closed'); };
+            const openPreview = async (type) => {
+                doc.querySelector(`[data-report-preview="${type}"]`).click();
+                try {
+                    await wait(() => modal.classList.contains('show') && !page.bootstrap.Modal.getInstance(modal)?._isTransitioning && !pager.state.loading, type + ' preview loaded');
+                } catch (error) {
+                    throw new Error(error.message + ': ' + JSON.stringify({modal:modal.className,transitioning:page.bootstrap.Modal.getInstance(modal)?._isTransitioning,state:pager.state,status:modal.querySelector('[data-preview-status]').textContent,title:modal.querySelector('.modal-title').textContent}));
+                }
+            };
+            if (modal.classList.contains('show')) await closePreview();
+            for (const width of [1440, 390]) {
+                frame.style.width = width + 'px';
+                for (const [type, title, column, metric] of [
+                    ['resources', 'Resource stock', 'Threshold', 'Total available units'],
+                    ['distribution', 'Distribution summary', 'Quantity distributed', 'Distribution transactions'],
+                    ['evacuation', 'Evacuation capacity', 'Available spaces', 'Current occupants'],
+                    ['residents', 'Resident summary', 'With recorded vulnerability', 'Active residents'],
+                    ['resources', 'Resource stock', 'Threshold', 'Total available units'],
+                ]) {
+                    await openPreview(type);
+                    check(modal.dataset.report === type && modal.querySelector('.modal-title').textContent.includes(title) && modal.querySelector('[data-preview-heading]').textContent === title, type + ' switches the preview title at ' + width + 'px');
+                    check(table.tHead.textContent.includes(column) && (type === 'resources' || !table.tHead.textContent.includes('Threshold')), type + ' displays its own columns rather than stale resource fields');
+                    check(modal.querySelector('[data-preview-metrics]').textContent.includes(metric) && (type === 'resources' || !modal.querySelector('[data-preview-metrics]').textContent.includes('Low-stock')), type + ' displays the matching summary metrics');
+                    const exportButton = modal.querySelector('[data-report-export]'), exportUrl = new URL(exportButton.dataset.reportUrl);
+                    check(!exportButton.disabled && exportUrl.searchParams.get('report') === type && exportButton.dataset.reportTitle === title && exportUrl.searchParams.get('from') === doc.querySelector('#reportDateFrom').value && exportUrl.searchParams.get('to') === doc.querySelector('#reportDateTo').value, type + ' export retains the report type, title, and selected period');
+                    modal.querySelector('[data-print]').click();
+                    check(printCalls.length > 0, type + ' print opens its filtered report: ' + JSON.stringify({disabled:modal.querySelector('[data-print]').disabled,source:modal.querySelector('[data-print]').dataset.print,controller:!!page.SagipbroPagination.get(table)}));
+                    const printUrl = new URL(printCalls.at(-1), page.location.href);
+                    check(printUrl.searchParams.get('report') === type && printUrl.searchParams.get('export') === 'print' && !printUrl.searchParams.has('page'), type + ' modal print uses all matching selected report rows');
+                    doc.querySelector(`#${{resources:'resource-stock',distribution:'distribution-summary',evacuation:'evacuation-capacity',residents:'resident-summary'}[type]} [data-report-print-url]`).click();
+                    check(new URL(printCalls.at(-1), page.location.href).searchParams.get('report') === type, type + ' catalog print uses the selected report');
+                    const modalBounds = modal.querySelector('.modal-content').getBoundingClientRect(), action = exportButton.getBoundingClientRect();
+                    check(modalBounds.left >= -1 && modalBounds.right <= width + 1 && action.height >= 40 && action.bottom <= page.innerHeight + 1, type + ' preview fits and actions remain reachable at ' + width + 'px');
+                    check(pager.state.page === 1, type + ' starts on the first page instead of reusing a previous report page');
+                    await closePreview();
+                }
+            }
+            page.fetch = (url, options) => new URL(url, page.location.href).searchParams.get('report') === 'distribution'
+                ? Promise.resolve(new page.Response(JSON.stringify({error:'Fixture distribution preview unavailable.'}), {status:503,headers:{'Content-Type':'application/json'}}))
+                : nativeFetch(url, options);
+            await openPreview('distribution');
+            check(modal.querySelector('[data-preview-status]').textContent.includes('Fixture distribution preview unavailable') && !table.tHead.textContent.includes('Threshold') && modal.querySelector('[data-preview-metrics]').children.length === 0 && modal.querySelector('[data-report-export]').disabled, 'A failed request shows its error and clears the previous report instead of displaying stale resource information');
+            await closePreview(); page.fetch = nativeFetch;
+            await openPreview('residents');
+            check(table.tHead.textContent.includes('Active residents') && !modal.querySelector('[data-report-export]').disabled, 'Selecting another report recovers after a failed preview');
+            await closePreview();
+            results.push('all four report previews, matching print/export, failure recovery and desktop/mobile layout');
+        }
         results.push(test.table + ' desktop/mobile controls');
     }
     output.textContent = JSON.stringify({ ok: true, checks, results, cleanupResources });
@@ -487,7 +542,7 @@ try {
     fclose($reservation);
     $serverAddress = 'http://' . $listen;
     $serverCommand = [PHP_BINARY, '-d', 'display_errors=0', '-d', 'log_errors=1', '-S', $listen, '-t', $project];
-    $browser = getenv('SAGIPBRO_PAGINATION_BROWSER') === '1';
+    $browser = getenv('SAGIPBRO_PAGINATION_BROWSER') === '1' || getenv('SAGIPBRO_REPORT_PREVIEW_BROWSER') === '1';
     if ($browser) {
         $volunteerIdentity = $database->query("SELECT id, full_name FROM users WHERE role = 'volunteer' ORDER BY id LIMIT 1")->fetch();
         $volunteerStatistics = $database->prepare("SELECT
@@ -530,6 +585,29 @@ try {
         } else checkPageSet($endpoint, $total, $baseQuery);
         fwrite(STDOUT, 'PASS: ' . $endpoint . " pagination, sizes, boundaries, search, empty results, and stable ordering.\n");
     }
+    $previewPeriod = ['from' => $clock['yesterday'], 'to' => $clock['today']];
+    foreach (['distribution', 'evacuation'] as $type) {
+        checkPageSet('report-preview', 105, ['report' => $type] + $previewPeriod);
+        $previewResult = pageGet('report-preview', ['report' => $type] + $previewPeriod);
+        pageCheck($previewResult['report'] === $type && count($previewResult['metrics']) === 3, 'Report preview selects its own type and summary metrics: ' . $type);
+        pageCheck(!array_key_exists('stock', $previewResult['columns']) && !array_key_exists('low_stock_threshold', $previewResult['columns']), 'Non-resource preview must not contain resource stock columns.');
+        $print = pageRequest('report-preview', ['report' => $type, 'page' => 2, 'export' => 'print'] + $previewPeriod);
+        preg_match('/<tbody>(.*?)<\/tbody>/s', $print['body'], $printRows);
+        pageCheck($print['status'] === 200 && substr_count($printRows[1] ?? '', '<tr>') === 105 && !str_contains($print['body'], 'Resource stock report'), 'Print uses all rows of the selected report: ' . $type);
+    }
+    $extraDistribution = pageFixture($database, 'distributions', ['resource_id' => $resources[1], 'recipient_name' => 'Preview recipient', 'quantity' => 4, 'distributed_by' => $adminId, 'distributed_at' => $clock['today'] . ' 09:00:00', 'location' => 'Preview location']);
+    $groupedPreview = pageGet('report-preview', ['report' => 'distribution', 'q' => 'PAG_%!'] + $previewPeriod);
+    pageCheck(count($groupedPreview['data']) === 1 && (int) $groupedPreview['data'][0]['transactions'] === 2 && (int) $groupedPreview['data'][0]['quantity_distributed'] === 5, 'Distribution preview groups and totals transactions instead of displaying current resource stock.');
+    $database->exec('DELETE FROM distributions WHERE id = ' . $extraDistribution);
+    $residentsPreview = pageGet('report-preview', ['report' => 'residents'] + $previewPeriod);
+    $activeResidents = (int) $database->query("SELECT COUNT(*) FROM residents WHERE status='Active'")->fetchColumn();
+    pageCheck($residentsPreview['report'] === 'residents' && count($residentsPreview['data']) === 1 && (int) $residentsPreview['data'][0]['total'] === $activeResidents && array_key_exists('vulnerable', $residentsPreview['columns']), 'Resident preview reports active residents and vulnerability totals.');
+    $emptyResidents = pageGet('report-preview', ['report' => 'residents', 'q' => 'NO_SUCH_PREVIEW_RESIDENT'] + $previewPeriod);
+    pageCheck((int) $emptyResidents['data'][0]['total'] === 0 && (int) $emptyResidents['stats']['vulnerable'] === 0, 'An empty resident summary reports zero people without reusing resource totals.');
+    $coveredDistribution = pageGet('report-preview', ['report' => 'distribution', 'coverage' => 'Medical'] + $previewPeriod);
+    pageCheck((int) $coveredDistribution['pagination']['total'] === 52, 'Distribution preview retains resource category filters.');
+    pageCheck(pageRequest('report-preview', ['report' => 'not-a-report'])['status'] === 422, 'Unknown preview types are rejected instead of falling back to resources.');
+    fwrite(STDOUT, "PASS: each report preview has matching data, summary metrics, filters, pagination and complete print output.\n");
     $deepCases = [];
     foreach (['resources' => ['pages/resources/index.php', 'resourcesTable'], 'centers' => ['pages/evacuation/index.php', 'centersTable'], 'distribution' => ['pages/distribution/index.php', 'distributionsTable'], 'residents' => ['pages/residents/index.php', 'residentsTable'], 'volunteers' => ['pages/volunteers/index.php', 'volunteersTable'], 'users' => ['pages/users/index.php', 'usersTable'], 'announcements' => ['pages/announcements/index.php', 'announcementsTable'], 'messages' => ['pages/messages/index.php', 'messagesTable'], 'activity' => ['pages/activity/index.php', 'activityLogsTable']] as $endpoint => [$route, $table]) {
         $second = pageGet($endpoint, ['page' => 2]);
@@ -548,6 +626,10 @@ try {
         $cases[] = ['route' => '__volunteer_stats', 'table' => 'volunteerDashboardStats', 'statsOnly' => true, 'statValues' => $volunteerStatValues];
         $deepCases[] = ['route' => 'pages/resources/index.php?view=' . $archivedResourceId, 'table' => 'resourcesTable', 'total' => 1, 'deep' => true, 'page' => 1, 'label' => 'Archived pagination fixture'];
         $deepCases[] = ['route' => 'pages/resources/index.php', 'table' => 'resourcesTable', 'total' => 105, 'crud' => true];
+        if (getenv('SAGIPBRO_REPORT_PREVIEW_BROWSER') === '1' && getenv('SAGIPBRO_PAGINATION_BROWSER') !== '1') {
+            $cases = array_values(array_filter($cases, static fn (array $case): bool => $case['table'] === 'reportResourcesTable'));
+            $deepCases = [];
+        }
         pageBrowserCheck($temporaryDirectory, array_merge($cases, $deepCases), $environment, $database);
     }
 

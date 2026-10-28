@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 if (PHP_SAPI !== 'cli') { http_response_code(403); exit('Run from the command line.'); }
 require_once __DIR__ . '/../config/config.php';
+require_once __DIR__ . '/../database/public_services_migration.php';
 
 $project = dirname(__DIR__);
 $databaseName = 'sagipbro_bulk_' . bin2hex(random_bytes(10));
@@ -103,7 +104,21 @@ const submit = async () => { await modalEvent('hidden.bs.modal', () => form.requ
     frame.style.width = '1440px'; frame.style.height = '900px';
     await load('/pages/announcements/index.php'); doc = frame.contentDocument; win = frame.contentWindow;
     table = doc.querySelector('#announcementsTable'); modal = doc.querySelector('#bulkAnnouncementModal'); form = doc.querySelector('#bulkAnnouncementForm');
-    await ready(); await filter('announcementSearch', 'UIBULK Item');
+    await ready();
+    const createModal = doc.querySelector('#addAnnouncementModal'), createForm = doc.querySelector('#addAnnouncementForm');
+    for (let number = 1; number <= 2; number++) {
+        await new Promise(resolve => { createModal.addEventListener('shown.bs.modal', resolve, {once: true}); doc.querySelector('[data-bs-target="#addAnnouncementModal"]').click(); });
+        Object.entries({title: 'UIPRIORITY urgent ' + number, content: 'Two simultaneous urgent announcement verification.', category: 'Advisory', audience: 'All residents', status: 'Published', priority: 'Urgent'}).forEach(([key, value]) => { createForm.elements[key].value = value; });
+        await new Promise(resolve => { createModal.addEventListener('hidden.bs.modal', resolve, {once: true}); createForm.requestSubmit(createForm.querySelector('[type="submit"]')); });
+        await ready();
+    }
+    const savedUrgent = [...table.querySelectorAll('[data-record-json]')].map(button => JSON.parse(button.dataset.recordJson)).filter(record => record.title.startsWith('UIPRIORITY urgent'));
+    check(savedUrgent.length === 2 && savedUrgent.every(record => record.priority === 'Urgent' && record.status === 'Published'), 'The actual admin form saves two consecutive published Urgent notices without clearing either priority');
+    const editModal = doc.querySelector('#editAnnouncementModal');
+    await new Promise(resolve => { editModal.addEventListener('shown.bs.modal', resolve, {once: true}); table.querySelector('[data-announcement-edit="' + savedUrgent[0].id + '"]').click(); });
+    check(doc.querySelector('#editAnnouncementForm').elements.priority.value === 'Urgent', 'Reopening the editor retains the selected Urgent priority');
+    await new Promise(resolve => { editModal.addEventListener('hidden.bs.modal', resolve, {once: true}); editModal.querySelector('.modal-footer [data-bs-dismiss="modal"]').click(); });
+    await filter('announcementSearch', 'UIBULK Item');
     check(win.sagipbroAnnouncementApi.canBulkManage === true && boxes().length === 10, 'Admin gets ten real current-page selectable rows');
     cleared('Initial selection toolbar is hidden');
     check(!win.bulkXss, 'Database announcement markup is escaped');
@@ -218,6 +233,10 @@ try {
     foreach (explode(';', (string) file_get_contents($project . '/database/sagipbro.sql')) as $sql) {
         $sql = trim($sql); if ($sql !== '' && !preg_match('/\A(?:CREATE\s+DATABASE|USE)\b/i', $sql)) $db->exec($sql);
     }
+    $db->exec("ALTER TABLE announcements MODIFY priority ENUM('Normal','Urgent') NOT NULL DEFAULT 'Normal'");
+    migratePublicServices($db); migratePublicServices($db);
+    $priorityType = $db->query("SHOW COLUMNS FROM announcements LIKE 'priority'")->fetch()['Type'];
+    foreach (['Normal', 'Urgent', 'High', 'Medium', 'Low'] as $priority) bulkCheck(str_contains($priorityType, "'" . $priority . "'"), 'Legacy enum migration supports ' . $priority . ' and can run twice.');
     bulkCheck(mkdir($directory, 0700), 'Private test directory created.');
     putenv('SAGIPBRO_SESSION_PATH=' . $directory); require_once $project . '/config/session.php';
     foreach (['admin', 'official', 'volunteer'] as $role) {
@@ -317,7 +336,30 @@ try {
     bulkCheck((int) $filtered['pagination']['total'] === 100 && count($filtered['data']) === 25 && (int) $filtered['pagination']['page'] === 4, 'Priority combines with search, category, status, audience and database-level pagination.');
     $empty = bulkApi('GET', null, 200, 'admin', true, ['paginate' => 1, 'q' => 'Limit fixture', 'priority' => 'Urgent']);
     bulkCheck($empty['data'] === [] && (int) $empty['pagination']['total'] === 0, 'Priority filtering returns honest empty results.');
-    fwrite(STDOUT, "PASS: strict IDs, roles/CSRF, atomic validation/FK/audit rollback, archive/public visibility, restore/publish, official CRUD, permanent-delete audit, 100-row limit and combined pagination filters.\n");
+    $priorityPayload = ['body' => 'Priority persistence verification.', 'category' => 'Advisory', 'audience' => 'All residents', 'status' => 'Published', 'published_at' => '2020-01-01T12:00'];
+    $priorityIds = [];
+    foreach (['Normal', 'Urgent', 'High', 'Medium', 'Low'] as $priority) {
+        $createdNotice = bulkApi('POST', ['title' => 'Priority regression ' . $priority, 'priority' => $priority] + $priorityPayload, 201);
+        $priorityIds[$priority] = (int) $createdNotice['id'];
+        bulkCheck(bulkRecord($db, (int) $createdNotice['id'])['priority'] === $priority, 'Create preserves exactly selected priority: ' . $priority);
+    }
+    $secondUrgent = bulkApi('POST', ['title' => 'Priority regression second urgent', 'priority' => 'Urgent'] + $priorityPayload, 201);
+    $urgentList = bulkApi('GET', null, 200, 'admin', true, ['paginate' => 1, 'q' => 'Priority regression', 'priority' => 'Urgent']);
+    bulkCheck((int) $urgentList['pagination']['total'] === 2 && bulkRecord($db, $priorityIds['Urgent'])['priority'] === 'Urgent' && bulkRecord($db, (int) $secondUrgent['id'])['priority'] === 'Urgent', 'Two published Urgent announcements coexist without replacing or clearing either priority.');
+    $urgentDirectory = bulkDom(bulkRequest('announcements.php?q=Priority%20regression&priority=Urgent')['body']);
+    bulkCheck($urgentDirectory->query('//*[@id="announcement-directory"]//article')->length === 2, 'Public priority filter displays both Urgent announcements.');
+    bulkApi('PUT', ['id' => $priorityIds['Normal'], 'title' => 'Priority regression edited urgent', 'priority' => 'Urgent'] + $priorityPayload);
+    bulkCheck(bulkRecord($db, $priorityIds['Normal'])['priority'] === 'Urgent', 'Editing one announcement to Urgent preserves the other Urgent notices.');
+    $db->exec("CREATE TRIGGER priority_fixture_insert BEFORE INSERT ON announcements FOR EACH ROW SET NEW.priority = 'Normal'");
+    $beforePriorityFailure = bulkSnapshot($db);
+    bulkApi('POST', ['title' => 'Priority regression rejected conversion', 'priority' => 'Urgent'] + $priorityPayload, 503);
+    bulkCheck(bulkSnapshot($db) === $beforePriorityFailure, 'Silently changed priority rolls back the entire create and audit entry.');
+    $db->exec('DROP TRIGGER priority_fixture_insert');
+    $db->exec("CREATE TRIGGER priority_fixture_update BEFORE UPDATE ON announcements FOR EACH ROW SET NEW.priority = 'Normal'");
+    bulkApi('PUT', ['id' => $priorityIds['Urgent'], 'title' => 'Priority regression rejected edit', 'priority' => 'Urgent'] + $priorityPayload, 503);
+    bulkCheck(bulkSnapshot($db) === $beforePriorityFailure, 'Silently changed priority rolls back edited content and audit entry.');
+    $db->exec('DROP TRIGGER priority_fixture_update');
+    fwrite(STDOUT, "PASS: bulk safeguards, legacy priority migration, all five priorities, two simultaneous Urgent notices, public filtering, edits, and rollback when priority is silently changed.\n");
     if (getenv('SAGIPBRO_ANNOUNCEMENT_BULK_BROWSER') === '1') {
         for ($i = 1; $i <= 23; $i++) bulkInsert($db, 'announcements', ['title' => sprintf('UIBULK Item %02d', $i) . ($i === 23 ? ' <img src=x onerror=window.bulkXss=true>' : '')] + $base);
         bulkBrowser($directory, $environment, $db);

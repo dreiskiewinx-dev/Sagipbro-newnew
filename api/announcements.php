@@ -168,6 +168,32 @@ $announcementExpiry = static function ($value): ?string {
 	jsonResponse(['error' => 'Enter a valid expiry date and time.'], 422);
 };
 
+/** Do not report success when an older enum silently discards the selected priority. */
+function saveAnnouncementWithPriority(PDO $conn, string $sql, array $params, ?int $id, string $priority, string $action): int
+{
+	try {
+		$conn->beginTransaction();
+		$conn->prepare($sql)->execute($params);
+		$id ??= (int) $conn->lastInsertId();
+		$check = $conn->prepare('SELECT priority FROM announcements WHERE id = ?');
+		$check->execute([$id]);
+		if ($check->fetchColumn() !== $priority) {
+			$conn->rollBack();
+			jsonResponse(['error' => 'The selected priority could not be saved. Update the announcement database schema and try again. No changes were made.'], 503);
+		}
+		logActivity($conn, $action, 'announcement', $id);
+		$conn->commit();
+		return $id;
+	} catch (Throwable $error) {
+		if ($conn->inTransaction()) $conn->rollBack();
+		error_log('Announcement save failed (' . get_class($error) . ').');
+		$unsupported = $error instanceof PDOException && (int) ($error->errorInfo[1] ?? 0) === 1265;
+		jsonResponse(['error' => $unsupported
+			? 'The selected priority is not supported by the announcement database. Update its schema and try again. No changes were made.'
+			: 'The announcement could not be saved. No changes were made. Please try again.'], $unsupported ? 503 : 500);
+	}
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$title = requiredString($data, 'title', 180);
 	$body = requiredString($data, 'body', 10000);
@@ -178,10 +204,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 	$publishedAt = $status === 'Published' ? ($publishedAt !== '' ? str_replace('T', ' ', $publishedAt) : date('Y-m-d H:i:s')) : null;
 	$priority = $announcementPriority($data['priority'] ?? 'Normal');
 	$expiresAt = $announcementExpiry($data['expires_at'] ?? null);
-	$stmt = $conn->prepare('INSERT INTO announcements (title, body, category, audience, status, created_by, published_at, priority, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-	$stmt->execute([$title, $body, $category, $audience, $status, currentUserId(), $publishedAt, $priority, $expiresAt]);
-	$id = (int) $conn->lastInsertId();
-	logActivity($conn, $status === 'Published' ? 'publish' : 'create', 'announcement', $id);
+	$id = saveAnnouncementWithPriority($conn,
+		'INSERT INTO announcements (title, body, category, audience, status, created_by, published_at, priority, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+		[$title, $body, $category, $audience, $status, currentUserId(), $publishedAt, $priority, $expiresAt],
+		null, $priority, $status === 'Published' ? 'publish' : 'create');
 	jsonResponse(['id' => $id, 'message' => 'Announcement created.'], 201);
 }
 
@@ -200,9 +226,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 		if (!$current) jsonResponse(['error' => 'Announcement not found or archived.'], 404);
 		$priority = array_key_exists('priority', $data) ? $announcementPriority($data['priority']) : $current['priority'];
 		$expiresAt = array_key_exists('expires_at', $data) ? $announcementExpiry($data['expires_at']) : $current['expires_at'];
-		$stmt = $conn->prepare('UPDATE announcements SET title = ?, body = ?, category = ?, audience = ?, status = ?, published_at = ?, priority = ?, expires_at = ? WHERE id = ?');
-		$stmt->execute([$title, $body, $category, $audience, $status, $publishedAt, $priority, $expiresAt, $id]);
-	logActivity($conn, 'update', 'announcement', $id);
+	saveAnnouncementWithPriority($conn,
+		'UPDATE announcements SET title = ?, body = ?, category = ?, audience = ?, status = ?, published_at = ?, priority = ?, expires_at = ? WHERE id = ?',
+		[$title, $body, $category, $audience, $status, $publishedAt, $priority, $expiresAt, $id],
+		$id, $priority, 'update');
 	jsonResponse(['message' => 'Announcement updated.']);
 }
 

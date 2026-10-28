@@ -84,6 +84,7 @@ function publicServiceLinks(): array
         'centers' => ['evacuation-centers.php#center-directory', 'Evacuation Centers', 'bi-buildings'],
         'resources' => ['resources.php#resource-directory', 'Relief Resources', 'bi-box-seam'],
         'distributions' => ['distributions.php#distribution-directory', 'Relief Distribution', 'bi-truck'],
+        'announcements' => ['announcements.php#announcement-directory', 'Announcements', 'bi-megaphone'],
         'reports' => ['reports.php#public-reports', 'Reports', 'bi-file-earmark-bar-graph'],
     ];
 }

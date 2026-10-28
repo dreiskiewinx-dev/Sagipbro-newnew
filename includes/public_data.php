@@ -155,6 +155,16 @@ function publicAnnouncements(PDO $db, array $filters = [], ?array $paging = null
     return publicPaginate($db, $select . $from . " ORDER BY (priority = 'Urgent') DESC, published_at DESC, id DESC", 'SELECT COUNT(*)' . $from, $params, $paging);
 }
 
+/** The floating shortcut shows the newest current publication, regardless of priority. */
+function publicFloatingAnnouncement(PDO $db): ?array
+{
+    $schema = publicSchema($db);
+    $where = implode(' AND ', publicAnnouncementVisibility($schema));
+    $record = $db->query('SELECT id, title FROM announcements WHERE ' . $where
+        . " ORDER BY {$schema['announcement_published_at']} DESC, id DESC LIMIT 1")->fetch();
+    return $record ?: null;
+}
+
 /** Compact public announcement components share the same visibility and ordering rules. */
 function publicLatestAnnouncements(PDO $db, int $limit): array
 {

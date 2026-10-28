@@ -185,5 +185,5 @@ include '../../includes/header.php';
         canBulkManage: <?= json_encode($canManageAnnouncements) ?>
     };
 </script>
-<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js?v=3"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/announcements-api.js?v=4"></script>
 <?php include '../../includes/footer.php'; ?>

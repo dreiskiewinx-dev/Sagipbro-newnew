@@ -28,8 +28,7 @@
     };
     const statusClass = (status) => status === 'Published' ? 'status-success' : (status === 'Draft' ? 'status-warning' : 'status-neutral');
     const render = (result) => {
-        clearSelection();
-        selectionInvalidated = false;
+        // Pagination refreshes selection through the shared SagipbroBulk controller.
         announcements = Array.isArray(result.data) ? result.data : [];
         const published = result.summary?.published || 0;
         if (publishedCount) publishedCount.textContent = `${published} currently published`;
@@ -51,11 +50,9 @@
                 <td>${escapeHtml(announcement.author)}</td>
                 <td class="text-end"><div class="table-actions" role="group" aria-label="Actions for ${escapeHtml(announcement.title)}">${view}${editArchive}${restore}${permanentDelete}</div></td>
             </tr>`;
-        }).join('') || `<tr><td colspan="7" class="text-center text-body-secondary py-4">No announcements match your search or filters.</td></tr>`;
+        }).join('') || `<tr><td colspan="${canBulkManage ? 8 : 7}" class="text-center text-body-secondary py-4">No announcements match your search or filters.</td></tr>`;
         tableBody.querySelectorAll('[data-announcement-edit]').forEach((button) => button.addEventListener('click', () => fillEdit(Number(button.dataset.announcementEdit))));
         tableBody.querySelectorAll('[data-announcement-delete]').forEach((button) => button.addEventListener('click', () => { deleteForm.dataset.id = button.dataset.announcementDelete; }));
-        syncSelection();
-        if (bulkBusy) disableBulkControls();
     };
     const fillEdit = (id) => {
         const announcement = announcements.find((item) => Number(item.id) === id);

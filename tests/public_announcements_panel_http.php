@@ -216,9 +216,10 @@ try {
         ['Relief Resources', 'Organizes food, water, hygiene, medical, and shelter supplies by available quantity, unit, category, and stock condition.', 'bi-box-seam', 'resources.php#resource-directory', 'Browse available supplies'],
         ['Evacuation Centers', 'Presents center locations, capacity, current occupancy, and availability so options can be reviewed quickly.', 'bi-buildings', 'evacuation-centers.php#center-directory', 'Check center availability'],
         ['Relief Distribution', 'Find published schedules, locations, active distributions, planned supplies, and totals already distributed. Recipient details remain private.', 'bi-truck', 'distributions.php#distribution-directory', 'View distributions'],
+        ['Announcements', 'Read published barangay advisories and emergency instructions with the full announcement, priority, publication time, and expiry.', 'bi-megaphone', 'announcements.php#announcement-directory', 'Read announcements'],
         ['Reports', 'Review public resource availability, open evacuation capacity, and recent relief distributions from barangay records.', 'bi-file-earmark-bar-graph', 'reports.php#public-reports', 'Open public reports'],
     ];
-    apCheck($serviceRows->length === count($expectedServices), 'All four existing service cards are preserved.');
+    apCheck($serviceRows->length === count($expectedServices), 'All five service cards include the announcement directory.');
     foreach ($expectedServices as $index => [$title, $description, $icon, $href, $label]) {
         $row = $serviceRows->item($index);
         apCheck(trim($dom->query('.//h3', $row)->item(0)->textContent) === $title && trim($dom->query('.//p', $row)->item(0)->textContent) === $description, 'Existing service title and description preserved: ' . $title);
@@ -235,8 +236,8 @@ try {
     apCheck(hash_file('sha256', $project . '/includes/footer.php') === '33b5c5b88562065629219d6a6b99ae1f5df0a822c47a2085aaa494458191bf52', 'Footer source remains byte-identical.');
     apCheck(!str_contains($html, 'PRIVATE_HIDDEN'), 'Hidden publications never enter HTML.');
     apCheck(!str_contains($html, '<script>window.panelXss') && str_contains($html, '&lt;script&gt;'), 'Preview and full text are escaped.');
-    apCheck($dom->query('//nav[@aria-label="Public disaster services"]//a')->length === 4, 'Exactly four service navigation tabs.');
-    apCheck($dom->query('//nav[@aria-label="Public disaster services"]//a[contains(@href,"announcements")]')->length === 0, 'Announcement tab removed.');
+    apCheck($dom->query('//nav[@aria-label="Public disaster services"]//a')->length === 5, 'Exactly five service navigation tabs.');
+    apCheck($dom->query('//nav[@aria-label="Public disaster services"]//a[@href="announcements.php#announcement-directory"]')->length === 1, 'Announcement tab opens the full announcement directory.');
     apCheck($dom->query('//aside//details')->length === 5 && $dom->query('//aside//summary')->length === 5, 'Five clickable entries with native details fallback.');
     apCheck($dom->query('//aside//a[contains(@href,"announcements.php#")]')->length === 1, 'Full page is linked from panel.');
     foreach (['priority-high', 'priority-medium', 'success', 'danger'] as $tone) apCheck(str_contains($html, 'status-' . $tone), 'Priority tone ' . $tone . ' rendered.');

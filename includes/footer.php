@@ -55,6 +55,7 @@
     </div>
 </footer>
 <?php endif; ?>
+<?php if (!$isAdmin && !$isAuthPage) include __DIR__ . '/floating_announcement.php'; ?>
 <?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
 <div class="modal fade logout-confirm-modal" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmDescription" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">

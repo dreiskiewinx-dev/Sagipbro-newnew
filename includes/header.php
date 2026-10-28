@@ -110,6 +110,14 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.min.css?v=5.3.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/bootstrap-icons.min.css?v=1.11.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=14">
+    <?php if (!$isAdmin && !($isAuthPage ?? false)): ?>
+        <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/floating-announcement.css?v=2">
+        <script>
+        try {
+            document.documentElement.classList.toggle('announcements-minimized', window.localStorage.getItem('sagipbro:announcements:minimized') === '1');
+        } catch (_) {}
+        </script>
+    <?php endif; ?>
     <?php if ($isAdmin): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/dashboard.css?v=17">
         <script>
