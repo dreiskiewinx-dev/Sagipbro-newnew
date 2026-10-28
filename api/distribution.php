@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/bootstrap.php';
-requireApiLogin();
+requireApiLogin(['admin', 'official', 'volunteer']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $where = [];

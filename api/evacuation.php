@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/bootstrap.php';
-requireApiLogin();
+requireApiLogin(['admin', 'official', 'volunteer']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 	$stmt = $conn->query("SELECT e.*, e.center_name AS name, e.current_occupants AS occupants, GREATEST(e.capacity - e.current_occupants, 0) AS available_capacity,

@@ -4,6 +4,17 @@ require_once __DIR__ . '/config.php';
 
 const SAGIPBRO_SESSION_IDLE_SECONDS = 1200;
 const SAGIPBRO_SESSION_MAX_SECONDS = 28800;
+const SAGIPBRO_LOGIN_ROLES = ['admin', 'official', 'volunteer', 'resident'];
+
+function dashboardPath(?string $role = null): string
+{
+    return match ($role ?? ($_SESSION['role'] ?? '')) {
+        'admin', 'official' => 'dashboard/admin.php',
+        'volunteer' => 'dashboard/volunteer.php',
+        'resident' => 'dashboard/resident.php',
+        default => 'login.php',
+    };
+}
 
 if (session_status() === PHP_SESSION_NONE) {
     $configuredSessionPath = trim((string) getenv('SAGIPBRO_SESSION_PATH'));
@@ -40,8 +51,8 @@ function isLoggedIn(): bool
 
     // Validate once per request, before page/API helpers release the session lock.
     static $validatedSession = null;
-    $sessionKey = session_id() . ':' . (string) $_SESSION['user_id'];
-    if (($_SESSION['role'] ?? '') !== 'admin') {
+    $sessionKey = session_id() . ':' . (string) $_SESSION['user_id'] . ':' . ($_SESSION['role'] ?? '');
+    if (!in_array($_SESSION['role'] ?? '', SAGIPBRO_LOGIN_ROLES, true)) {
         invalidateLoginSession();
         return false;
     }
@@ -52,12 +63,12 @@ function isLoggedIn(): bool
     require_once __DIR__ . '/connection.php';
     try {
         $statement = sagipbroDatabase()->prepare(
-            "SELECT u.id, u.force_password_change, u.password_hash,
+            "SELECT u.id, u.role, u.force_password_change, u.password_hash,
                     UNIX_TIMESTAMP(s.created_at) AS signed_in_at,
                     UNIX_TIMESTAMP(s.last_activity_at) AS activity_at,
                     UNIX_TIMESTAMP() AS server_now FROM users u
              INNER JOIN user_sessions s ON s.user_id = u.id
-             WHERE u.id = ? AND u.role = 'admin' AND u.status = 'Active'
+             WHERE u.id = ? AND u.role IN ('admin', 'official', 'volunteer', 'resident') AND u.status = 'Active'
                AND s.session_hash = ? AND s.signed_out_at IS NULL
              LIMIT 1"
         );
@@ -70,7 +81,8 @@ function isLoggedIn(): bool
                 || $now >= (int) $record['activity_at'] + SAGIPBRO_SESSION_IDLE_SECONDS;
             $version = hash('sha256', $record['password_hash']);
             $credentialChanged = isset($_SESSION['credential_version']) && !hash_equals($_SESSION['credential_version'], $version);
-            if ($expired || $credentialChanged) {
+            $roleChanged = $record['role'] !== $_SESSION['role'];
+            if ($expired || $credentialChanged || $roleChanged) {
                 $revoke = sagipbroDatabase()->prepare('UPDATE user_sessions SET signed_out_at=NOW() WHERE session_hash=? AND user_id=? AND signed_out_at IS NULL');
                 $revoke->execute([hash('sha256', session_id()), (int) $_SESSION['user_id']]);
                 $authorized = false;
@@ -81,7 +93,7 @@ function isLoggedIn(): bool
             }
         }
     } catch (Throwable $e) {
-        error_log('Administrator session validation unavailable (' . get_class($e) . ').');
+        error_log('Account session validation unavailable (' . get_class($e) . ').');
         http_response_code(503);
         exit('Authentication temporarily unavailable. Please try again later.');
     }
@@ -220,7 +232,7 @@ function requireRole($roles)
     requireLogin();
 
     if (!in_array($_SESSION['role'], (array) $roles, true)) {
-        header('Location: ' . appUrl('index.php'));
+        header('Location: ' . appUrl(dashboardPath()));
         exit;
     }
 }

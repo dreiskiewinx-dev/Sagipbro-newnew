@@ -4,19 +4,26 @@ Modern Bootstrap 5 interface for the **SAGIPBRO Disaster Relief Resource Informa
 
 ## Included screens
 
-- Public website: Home, About, Services, Resources, Contact, and Administrator Login
-- Administrator-only login and protected administration dashboard
+- Public website: Home, About, Services, Resources, Contact, and Sign in
+- Role-based dashboards for administrators, officials, volunteers, and residents
 - Admin operations: Resources, Evacuation Centers, Distributions, Residents, Volunteers, Announcements, Reports, Users, Activity Logs, and Profile
 - Reusable PHP components: header, public/admin navigation, sidebar, alerts, and footer
 - Responsive tables, search and filters, status badges, accessible forms, confirmation flows, modals, print styles, and CSV table export
 
-## Administrator access
+## Account access
 
-Only users with role `admin` and status `Active` can sign in. Protected pages and
+Active `admin`, `official`, `volunteer`, and `resident` accounts can sign in. Protected pages and
 APIs validate the current account and its unrevoked `user_sessions` record on
-each request. Existing non-admin sessions are rejected. Account deactivation or
+each request. The stored session role must match the current database role. Account deactivation or
 role changes revoke sessions; reactivation or promotion requires a fresh login.
 Sessions without a matching database record also require a fresh login.
+
+Administrators and officials use the management dashboard, volunteers use their
+volunteer dashboard and distribution tools, and residents use their personal
+portal and profile. Account management and bulk administrative actions stay
+admin-only. Registry APIs default to administrator/official access; residents
+cannot browse or export the resident registry. Volunteer distribution forms can
+load compact inventory choices without opening inventory administration.
 
 Public registration is disabled at both `register.php` and
 `actions/auth/register.php`. Administrators manage accounts through the protected

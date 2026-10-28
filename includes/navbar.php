@@ -115,7 +115,7 @@ window.sagipbroNotifications = {
                     </form>
                 <?php endif; ?>
             <?php else: ?>
-                <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>login.php"><i class="bi bi-person-lock" aria-hidden="true"></i> Staff login</a>
+                <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>login.php"><i class="bi bi-person-lock" aria-hidden="true"></i> Sign in</a>
             <?php endif; ?>
         </div>
     </div>

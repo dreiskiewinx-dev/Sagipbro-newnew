@@ -123,7 +123,7 @@ $profileActivityStatement->execute([$profileUserId]);
 $profileActivity = $profileActivityStatement->fetchAll();
 
 $pageTitle = 'My Profile';
-$pageDescription = 'Manage your SAGIPBRO administrator profile and security preferences.';
+$pageDescription = 'Manage your SAGIPBRO account profile and security preferences.';
 $basePath = '../../';
 $isAdmin = true;
 $activeAdmin = 'profile';
@@ -229,7 +229,7 @@ include '../../includes/header.php';
                     </section>
 
                     <section class="data-card" aria-labelledby="recentSecurityHeading">
-                        <div class="data-card-header"><div><h2 id="recentSecurityHeading">Recent account activity</h2><p>Your latest sign-ins and security changes.</p></div><a href="../activity/index.php">View all logs <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+                        <div class="data-card-header"><div><h2 id="recentSecurityHeading">Recent account activity</h2><p>Your latest sign-ins and security changes.</p></div><?php if (in_array($_SESSION['role'], ['admin', 'official'], true)): ?><a href="../activity/index.php">View all logs <i class="bi bi-arrow-right" aria-hidden="true"></i></a><?php endif; ?></div>
                         <div class="data-card-body">
                             <?php if ($profileActivity): ?>
                             <ol class="timeline">

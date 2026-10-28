@@ -248,7 +248,7 @@ try {
         usleep(50000);
     } while (microtime(true) < $deadline);
 
-    foreach (['official', 'volunteer', 'resident', 'inactive', 'missing'] as $role) {
+    foreach (['inactive', 'missing'] as $role) {
         $login = authLogin('auth_' . $role);
         authCheck($login['status'] === 302 && $login['location'] === '../../login.php?error=Invalid username or password', $role . ' must receive the same generic rejection.');
         authCheck(authRequest('api/residents.php', ['cookie' => $login['initial_cookie']])['status'] === 401, $role . ' login must not grant access.');
@@ -261,6 +261,45 @@ try {
     foreach (['dashboard/admin.php', 'pages/users/index.php', 'api/residents.php', 'api/residents.php?export=csv', 'api/users.php'] as $route) {
         authCheck(authRequest($route, $admin)['status'] === 200, 'Administrators retain access to ' . $route);
     }
+    foreach (['official' => 'admin.php', 'volunteer' => 'volunteer.php', 'resident' => 'resident.php'] as $role => $dashboard) {
+        $identity = authLogin('auth_' . $role);
+        authCheck($identity['status'] === 302 && $identity['location'] === '../../dashboard/' . $dashboard, $role . ' signs in to the correct dashboard.');
+        authCheck(authRequest('dashboard/' . $dashboard, $identity)['status'] === 200, $role . ' can open its dashboard.');
+        authCheck(authRequest('login.php', $identity)['location'] === 'dashboard/' . $dashboard, 'An already signed-in ' . $role . ' is sent to its own dashboard.');
+        authCheck(authRequest('pages/profile/index.php', $identity)['status'] === 200, $role . ' can manage its own profile.');
+        authCheck(authRequest('api/session.php', $identity)['status'] === 200, $role . ' retains session expiry/status support.');
+        authCheck(authRequest('api/session.php', $identity, 'POST', [])['status'] === 200, $role . ' can explicitly renew its session.');
+        authCheck(authRequest('api/presence.php', $identity, 'POST', [])['status'] === 200, $role . ' presence works.');
+        authCheck(authRequest('api/users.php', $identity)['status'] === 403, $role . ' cannot read the account-management API.');
+        authCheck(authRequest('api/bulk.php', $identity, 'POST', ['module' => 'users', 'action' => 'deactivate', 'ids' => [$ids['admin']]])['status'] === 403, $role . ' cannot run administrator bulk operations.');
+        if ($role === 'official') {
+            authCheck(authRequest('pages/residents/index.php', $identity)['status'] === 200 && authRequest('api/residents.php', $identity)['status'] === 200, 'Officials retain barangay record management.');
+        } else {
+            authCheck(authRequest('api/residents.php', $identity)['status'] === 403, $role . ' cannot read the resident registry.');
+            authCheck(authRequest('dashboard/admin.php', $identity)['location'] === '/' . 'dashboard/' . $dashboard, $role . ' cannot open the management dashboard.');
+        }
+        if ($role === 'volunteer') {
+            authCheck(authRequest('pages/distribution/index.php', $identity)['status'] === 200 && authRequest('api/distribution.php?paginate=1', $identity)['status'] === 200, 'Volunteers retain distribution tools.');
+            authCheck(authRequest('api/resources.php?lookup=distribution', $identity)['status'] === 200, 'Volunteers can load compact distribution inventory choices.');
+            authCheck(authRequest('api/resources.php?paginate=1', $identity)['status'] === 403, 'Volunteer inventory choices do not grant full inventory administration.');
+        } elseif ($role === 'resident') {
+            authCheck(authRequest('api/distribution.php', $identity)['status'] === 403 && authRequest('api/volunteers.php', $identity)['status'] === 403, 'Residents cannot read staff registers.');
+        }
+        $db->exec('UPDATE users SET force_password_change=1 WHERE id=' . $ids[$role]);
+        authCheck(authRequest('api/session.php', $identity)['status'] === 200, 'Restricted ' . $role . ' sessions retain supporting session status.');
+        authCheck(str_ends_with(authRequest('dashboard/' . $dashboard, $identity)['location'], '/pages/profile/change-password.php'), 'Temporary-password restrictions also apply to ' . $role . '.');
+        authCheck(authRequest('pages/profile/change-password.php', $identity)['status'] === 200, $role . ' can open mandatory password replacement.');
+        $forcedLogin = authLogin('auth_' . $role);
+        authCheck($forcedLogin['location'] === '../../pages/profile/change-password.php', $role . ' temporary-password sign-in cannot bypass replacement.');
+        $db->exec('UPDATE users SET force_password_change=0 WHERE id=' . $ids[$role]);
+        $db->exec("UPDATE users SET status='Inactive' WHERE id=" . $ids[$role]);
+        authCheck(authRequest('api/session.php', $identity)['status'] === 401, $role . ' deactivation revokes existing access.');
+        $db->exec("UPDATE users SET status='Active' WHERE id=" . $ids[$role]);
+        $expiredRole = authLogin('auth_' . $role);
+        $expiredHash = hash('sha256', substr($expiredRole['cookie'], strpos($expiredRole['cookie'], '=') + 1));
+        $db->exec("UPDATE user_sessions SET last_activity_at=DATE_SUB(NOW(),INTERVAL 20 MINUTE) WHERE session_hash='{$expiredHash}'");
+        authCheck(authRequest('api/session.php', $expiredRole)['status'] === 401, $role . ' sessions still expire after inactivity.');
+    }
     authCheck(authRequest('api/residents.php', ['cookie' => $admin['initial_cookie']])['status'] === 401, 'Pre-login cookies cannot access protected APIs.');
     authCheck(authRequest('api/residents.php', array_replace($admin, ['csrf' => 'invalid']), 'POST', ['first_name' => 'Blocked'])['status'] === 419, 'Existing CSRF protection remains enforced.');
     $before = (int) $db->query('SELECT COUNT(*) FROM users')->fetchColumn();
@@ -272,10 +311,10 @@ try {
     }
     authCheck((int) $db->query('SELECT COUNT(*) FROM users')->fetchColumn() === $before, 'Public registration cannot insert users.');
     foreach (['official', 'volunteer', 'resident'] as $role) {
-        authCheck(authRequest('api/residents.php?export=csv', authFixtureSession($ids[$role], $role))['status'] === 401, 'Existing ' . $role . ' sessions cannot export records.');
+        authCheck(authRequest('api/residents.php?export=csv', authFixtureSession($ids[$role], $role))['status'] === ($role === 'official' ? 200 : 403), 'Resident registry exports enforce the ' . $role . ' permission.');
         authCheck(authRequest('api/users.php', authFixtureSession($ids[$role]))['status'] === 401, 'Session role alone cannot grant admin access.');
         authCheck(authRequest('pages/users/index.php', authFixtureSession($ids[$role], $role))['status'] === 302, 'Non-admin sessions cannot open protected pages.');
-        authCheck(authRequest('api/users.php', authFixtureSession($ids[$role], $role), 'POST', ['full_name' => 'Blocked', 'role' => 'admin'])['status'] === 401, 'Non-admin sessions cannot create accounts.');
+        authCheck(authRequest('api/users.php', authFixtureSession($ids[$role], $role), 'POST', ['full_name' => 'Blocked', 'role' => 'admin'])['status'] === 403, 'Non-admin sessions cannot create accounts.');
     }
     authCheck(authRequest('api/users.php', authFixtureSession($ids['inactive']))['status'] === 401, 'Inactive admins cannot reuse sessions.');
     authCheck(authRequest('api/users.php', authFixtureSession($ids['admin'], 'admin', false))['status'] === 401, 'Unregistered sessions must require a new login.');

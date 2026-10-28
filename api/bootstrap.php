@@ -35,7 +35,7 @@ function requestData(): array
     return $data;
 }
 
-function requireApiLogin(array $roles = [], bool $allowPasswordChange = false): void
+function requireApiLogin(array $roles = ['admin', 'official'], bool $allowPasswordChange = false): void
 {
     header('Cache-Control: no-store, private');
     if (!isLoggedIn()) {

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../config/database.php';
-requireRole(['admin']);
+requireRole(['admin', 'official']);
 
 $dashboardStats = [
     'resources' => 0,

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
-requireApiLogin(['admin'], true);
+requireApiLogin(SAGIPBRO_LOGIN_ROLES, true);
 header('Cache-Control: no-store, private');
 if (!in_array($_SERVER['REQUEST_METHOD'], ['GET', 'POST'], true)) methodNotAllowed(['GET', 'POST']);
 try {

@@ -3,7 +3,7 @@
 require_once __DIR__ . '/bootstrap.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-	requireApiLogin();
+	requireApiLogin(($_GET['lookup'] ?? '') === 'distribution' ? ['admin', 'official', 'volunteer'] : ['admin', 'official']);
 	$showArchived = ($_GET['view'] ?? '') === 'archived';
 	// Distribution forms only need compact inventory choices, not every resource record.
 	if (($_GET['lookup'] ?? '') === 'distribution') {

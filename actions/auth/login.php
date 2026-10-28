@@ -62,7 +62,7 @@ try {
         header('Location: ../../login.php?error=Unable to sign in. Please try again later');
         exit;
     }
-    $authenticated = $user && $user['role'] === 'admin' && $user['status'] === 'Active'
+    $authenticated = $user && in_array($user['role'], SAGIPBRO_LOGIN_ROLES, true) && $user['status'] === 'Active'
         && password_verify($password, $user['password_hash']);
     $throttle->finishAttempt($authenticated);
 } catch (Throwable $e) {
@@ -104,7 +104,7 @@ if ($authenticated) {
     );
     $presence->execute([$sessionHash, $user['id']]);
 
-    header('Location: ../../' . (passwordChangeRequired() ? 'pages/profile/change-password.php' : 'dashboard/admin.php'));
+    header('Location: ../../' . (passwordChangeRequired() ? 'pages/profile/change-password.php' : dashboardPath()));
     exit;
 }
 
