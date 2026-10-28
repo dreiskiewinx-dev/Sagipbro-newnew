@@ -2,15 +2,14 @@
 require_once __DIR__ . '/config/session.php';
 
 if (isLoggedIn()) {
-    $target = ($_SESSION['role'] ?? '') === 'resident' ? 'resident.php' : (($_SESSION['role'] ?? '') === 'volunteer' ? 'volunteer.php' : 'admin.php');
-    header('Location: dashboard/' . $target);
+    header('Location: ' . (passwordChangeRequired() ? 'pages/profile/change-password.php' : 'dashboard/admin.php'));
     exit;
 }
 
 $error = trim((string) ($_GET['error'] ?? ''));
 $success = trim((string) ($_GET['success'] ?? ''));
-$pageTitle = 'Staff sign in';
-$pageDescription = 'Secure SAGIPBRO sign in for authorized Barangay Binloc officials and response volunteers.';
+$pageTitle = 'Administrator sign in';
+$pageDescription = 'Secure SAGIPBRO sign in for authorized Barangay Binloc administrators.';
 $basePath = '';
 $useLoginStyles = true;
 $isAuthPage = true;
@@ -24,7 +23,7 @@ require __DIR__ . '/includes/header.php';
             <span><strong>SAGIPBRO</strong><small>DISASTER RELIEF INFORMATION SYSTEM</small></span>
         </a>
         <div class="auth-visual-copy">
-            <span class="auth-chip"><i class="bi bi-shield-check" aria-hidden="true"></i> Secure staff portal</span>
+            <span class="auth-chip"><i class="bi bi-shield-check" aria-hidden="true"></i> Secure administrator portal</span>
             <h1>Ready to serve,<br>when it matters most.</h1>
             <p>Manage resources, coordinate evacuation support, and keep the Bonuan Binloc community informed from one dependable workspace.</p>
         </div>

@@ -2,6 +2,17 @@
 
 require_once __DIR__ . '/bootstrap.php';
 requireApiLogin(['admin']);
+require_once __DIR__ . '/../config/password_policy.php';
+
+function requireSafeNewPassword($password): void
+{
+    try {
+        $error = sagipbroPasswordPolicyError($password);
+    } catch (PasswordScreeningUnavailable $e) {
+        jsonResponse(['error' => $e->getMessage()], 503);
+    }
+    if ($error !== null) jsonResponse(['error' => $error], 422);
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $onlineSql = "(u.status = 'Active' AND EXISTS (SELECT 1 FROM user_sessions s WHERE s.user_id = u.id AND s.signed_out_at IS NULL AND s.last_seen_at >= DATE_SUB(NOW(), INTERVAL 2 MINUTE)))";
@@ -44,8 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!$record) jsonResponse(['error' => 'User not found.'], 404);
         $rank = $conn->prepare('SELECT COUNT(*) FROM users WHERE (full_name, id) < (?, ?)');
         $rank->execute([$record['full_name'], $record['id']]);
-        $perPage = (int) ($_GET['per_page'] ?? 10);
-        if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+        $perPage = 10;
         jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
     }
     if (adminQueryText('export') === 'csv') {
@@ -71,11 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $fullName = requiredString($data, 'full_name', 150);
     $username = requiredString($data, 'username', 80);
     $email = filter_var(trim((string) ($data['email'] ?? '')), FILTER_VALIDATE_EMAIL);
-    $password = (string) ($data['password'] ?? '');
+    $password = $data['password'] ?? '';
     $role = $data['role'] ?? 'resident';
-    if ($email === false || strlen($password) < 8 || !in_array($role, ['admin', 'official', 'volunteer', 'resident'], true)) {
-        jsonResponse(['error' => 'Enter a valid email, password, and role.'], 422);
+    if ($email === false || !in_array($role, ['admin', 'official', 'volunteer', 'resident'], true)) {
+        jsonResponse(['error' => 'Enter a valid email and role.'], 422);
     }
+    requireSafeNewPassword($password);
     try {
         $stmt = $conn->prepare('INSERT INTO users (full_name, username, email, password_hash, role, force_password_change) VALUES (?, ?, ?, ?, ?, ?)');
         $stmt->execute([$fullName, $username, $email, password_hash($password, PASSWORD_DEFAULT), $role, !empty($data['force_password_change']) ? 1 : 0]);
@@ -89,13 +100,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $id = positiveInt($data, 'id');
 if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    if (($data['action'] ?? '') === 'activate') {
+        $stmt = $conn->prepare("UPDATE users SET status = 'Active' WHERE id = ? AND status = 'Inactive'");
+        $stmt->execute([$id]);
+        if ($stmt->rowCount()) {
+            logActivity($conn, 'activate', 'user', $id);
+        } else {
+            $exists = $conn->prepare('SELECT id FROM users WHERE id = ?');
+            $exists->execute([$id]);
+            if (!$exists->fetchColumn()) jsonResponse(['error' => 'User not found.'], 404);
+        }
+        jsonResponse(['message' => 'User account enabled.']);
+    }
     if (($data['action'] ?? '') === 'reset_password') {
-        $password = (string) ($data['password'] ?? '');
-        if (strlen($password) < 8) jsonResponse(['error' => 'Temporary password must contain at least 8 characters.'], 422);
-        $stmt = $conn->prepare('UPDATE users SET password_hash = ?, force_password_change = 1 WHERE id = ?');
-        $stmt->execute([password_hash($password, PASSWORD_DEFAULT), $id]);
-        if (!$stmt->rowCount()) jsonResponse(['error' => 'User not found.'], 404);
-        logActivity($conn, 'reset-password', 'user', $id);
+        $password = $data['password'] ?? '';
+        requireSafeNewPassword($password);
+        $newHash = password_hash($password, PASSWORD_DEFAULT);
+        try {
+            $conn->beginTransaction();
+            $stmt = $conn->prepare('UPDATE users SET password_hash = ?, force_password_change = 1, password_changed_at=NOW() WHERE id = ?');
+            $stmt->execute([$newHash, $id]);
+            if (!$stmt->rowCount()) { $conn->rollBack(); jsonResponse(['error' => 'User not found.'], 404); }
+            $conn->prepare('UPDATE user_sessions SET signed_out_at=NOW() WHERE user_id=? AND signed_out_at IS NULL')->execute([$id]);
+            logActivity($conn, 'reset-password', 'user', $id);
+            $conn->commit();
+        } catch (Throwable $e) {
+            if ($conn->inTransaction()) $conn->rollBack();
+            error_log('Password reset failed (' . get_class($e) . ').');
+            jsonResponse(['error' => 'Password reset could not be completed. Please try again later.'], 503);
+        }
         jsonResponse(['message' => 'Temporary password issued.']);
     }
     $fullName = requiredString($data, 'full_name', 150);
@@ -105,12 +138,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
     if ($email === false || !in_array($role, ['admin', 'official', 'volunteer', 'resident'], true) || !in_array($status, ['Active', 'Inactive'], true)) {
         jsonResponse(['error' => 'Enter a valid email, role, and status.'], 422);
     }
-    $exists = $conn->prepare('SELECT id FROM users WHERE id = ?');
+    $exists = $conn->prepare('SELECT role FROM users WHERE id = ?');
     $exists->execute([$id]);
-    if (!$exists->fetchColumn()) jsonResponse(['error' => 'User not found.'], 404);
+    $previousRole = $exists->fetchColumn();
+    if ($previousRole === false) jsonResponse(['error' => 'User not found.'], 404);
     $stmt = $conn->prepare('UPDATE users SET full_name = ?, email = ?, role = ?, status = ? WHERE id = ?');
     $stmt->execute([$fullName, $email, $role, $status, $id]);
-    if ($status === 'Inactive') {
+    if ($status === 'Inactive' || $role !== $previousRole) {
         $conn->prepare('UPDATE user_sessions SET signed_out_at = NOW() WHERE user_id = ? AND signed_out_at IS NULL')->execute([$id]);
     }
     logActivity($conn, 'update', 'user', $id, ['role' => $role, 'status' => $status]);

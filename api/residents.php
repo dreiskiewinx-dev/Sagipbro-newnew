@@ -31,8 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 		$record['address_display'] = $record['address'] ?: ($record['household_address'] ?? '');
 		$rank = $conn->prepare('SELECT COUNT(*) FROM residents WHERE (last_name, first_name, id) < (?, ?, ?)');
 		$rank->execute([$record['last_name'], $record['first_name'], $record['id']]);
-		$perPage = (int) ($_GET['per_page'] ?? 10);
-		if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+		$perPage = 10;
 		jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
 	}
 	if (adminQueryText('export') === 'csv') {

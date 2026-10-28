@@ -154,7 +154,6 @@ function publicFilterForm(string $action, array $filters, array $statuses, ?arra
 {
     ?>
     <form class="filter-panel no-print" action="<?= publicEscape($action) ?>" method="get" role="search" aria-label="Search and filter records">
-        <input type="hidden" name="per_page" value="<?= publicPageRequest($_GET)['per_page'] ?>">
         <div class="filter-search">
             <label for="directory-search">Search</label>
             <input class="form-control" id="directory-search" name="q" type="search" maxlength="200" value="<?= publicEscape($filters['q'] ?? '') ?>" placeholder="Search names, locations or details">
@@ -189,10 +188,8 @@ function publicPagination(array $metadata, string $action, array $query = [], st
 {
     $page = (int) $metadata['page'];
     $pages = (int) $metadata['total_pages'];
-    $size = (int) $metadata['per_page'];
-    $query[$sizeKey] = $size;
+    unset($query[$sizeKey]);
     $query[$pageKey] = $page;
-    $id = 'public-page-size-' . preg_replace('/[^a-zA-Z0-9_-]/', '-', $pageKey . '-' . $action);
     $visible = [1, $pages];
     for ($number = max(1, $page - 1); $number <= min($pages, $page + 1); $number++) $visible[] = $number;
     if ($page <= 3) for ($number = 2; $number <= min(4, $pages); $number++) $visible[] = $number;
@@ -203,17 +200,6 @@ function publicPagination(array $metadata, string $action, array $query = [], st
     ?>
     <div class="public-pagination no-print" data-public-pagination="<?= publicEscape($pageKey) ?>">
         <p class="public-pagination-summary mb-0" role="status">Showing <?= number_format((int) $metadata['from']) ?>–<?= number_format((int) $metadata['to']) ?> of <?= number_format((int) $metadata['total']) ?> records</p>
-        <form class="public-pagination-size" method="get" action="<?= publicEscape($action) ?>">
-            <?php foreach ($query as $key => $value): if ($key === $pageKey || $key === $sizeKey || !is_scalar($value) || (string) $value === '') continue; ?>
-                <input type="hidden" name="<?= publicEscape($key) ?>" value="<?= publicEscape($value) ?>">
-            <?php endforeach; ?>
-            <input type="hidden" name="<?= publicEscape($pageKey) ?>" value="1">
-            <label for="<?= publicEscape($id) ?>">Records per page</label>
-            <select class="form-select form-select-sm" id="<?= publicEscape($id) ?>" name="<?= publicEscape($sizeKey) ?>">
-                <?php foreach ([6, 10, 25, 50, 100] as $option): ?><option value="<?= $option ?>" <?= $option === $size ? 'selected' : '' ?>><?= $option ?></option><?php endforeach; ?>
-            </select>
-            <button class="btn btn-sm btn-outline-brand" type="submit">Apply</button>
-        </form>
         <nav aria-label="<?= publicEscape($pageKey === 'page' ? 'Directory pages' : str_replace('_page', '', $pageKey) . ' pages') ?>">
             <ul class="pagination pagination-sm">
                 <li class="page-item<?= $page <= 1 ? ' disabled' : '' ?>"><?php if ($page <= 1): ?><span class="page-link" aria-disabled="true">Previous</span><?php else: ?><a class="page-link" href="<?= publicEscape($url($page - 1)) ?>" rel="prev">Previous</a><?php endif; ?></li>

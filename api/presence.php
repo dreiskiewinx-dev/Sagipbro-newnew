@@ -14,9 +14,8 @@ $sessionHash = hash('sha256', session_id());
 
 try {
     $statement = $conn->prepare(
-        'INSERT INTO user_sessions (session_hash, user_id, last_seen_at, signed_out_at)
-         VALUES (?, ?, NOW(), NULL)
-         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), last_seen_at = NOW(), signed_out_at = NULL'
+        'UPDATE user_sessions SET last_seen_at=NOW()
+         WHERE session_hash=? AND user_id=? AND signed_out_at IS NULL'
     );
     $statement->execute([$sessionHash, $userId]);
     jsonResponse(['success' => true]);

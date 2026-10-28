@@ -35,13 +35,18 @@ function requestData(): array
     return $data;
 }
 
-function requireApiLogin(array $roles = []): void
+function requireApiLogin(array $roles = [], bool $allowPasswordChange = false): void
 {
+    header('Cache-Control: no-store, private');
     if (!isLoggedIn()) {
         jsonResponse(['error' => 'Authentication required.'], 401);
     }
     if ($roles && !in_array($_SESSION['role'], $roles, true)) {
         jsonResponse(['error' => 'You are not authorized for this action.'], 403);
+    }
+    if (passwordChangeRequired() && !$allowPasswordChange) {
+        jsonResponse(['error' => 'Replace your temporary password before continuing.',
+            'code' => 'password_change_required', 'redirect' => appUrl('pages/profile/change-password.php')], 403);
     }
     if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
         verifyCsrf();

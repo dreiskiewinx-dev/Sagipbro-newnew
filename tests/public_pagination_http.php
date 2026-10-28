@@ -114,13 +114,10 @@ function ppItems(DOMXPath $xpath, array $case): array
 
 function ppFooter(DOMXPath $xpath, array $case): DOMNode
 {
-    $sizeKey = $case['size'] ?? 'per_page';
-    $select = $xpath->query('//select[@name="' . $sizeKey . '"]')->item(0);
-    ppCheck($select instanceof DOMNode, $case['route'] . ' must expose a page-size dropdown named ' . $sizeKey . '.');
-    for ($node = $select->parentNode; $node instanceof DOMElement; $node = $node->parentNode) {
-        if (str_contains(' ' . $node->getAttribute('class') . ' ', ' public-pagination ')) return $node;
-    }
-    throw new LogicException('Pagination must have a public-pagination wrapper for ' . $case['route'] . '.');
+    $pageKey = $case['page'] ?? 'page';
+    $footer = $xpath->query('//*[@data-public-pagination="' . $pageKey . '"]')->item(0);
+    ppCheck($footer instanceof DOMNode, $case['route'] . ' must expose its pagination footer.');
+    return $footer;
 }
 
 function ppControl(DOMXPath $xpath, DOMNode $footer, string $label): DOMElement
@@ -167,15 +164,12 @@ function ppPageSet(array $case): void
     ppSummary($footer, $total ? 1 : 0, min(6, $total), $total, $route);
     ppCheck(ppDisabled(ppControl($first, $footer, 'Previous')), $route . ' Previous must be disabled on the first page.');
     ppCheck(ppDisabled(ppControl($first, $footer, 'Next')) === ($total <= 6), $route . ' Next first-page state is wrong.');
-    $options = $first->query('.//select/option', $footer);
-    ppCheck(array_map(static fn(DOMElement $node): string => $node->getAttribute('value'), iterator_to_array($options)) === ['6', '10', '25', '50', '100'], $route . ' must expose six records per page alongside all larger supported sizes.');
-    $selectedDefault = $first->query('.//select/option[@selected]', $footer)->item(0);
-    ppCheck($selectedDefault instanceof DOMElement && $selectedDefault->getAttribute('value') === '6', $route . ' must select six records by default.');
+    ppCheck($first->query('.//select | .//form', $footer)->length === 0, $route . ' has fixed page sizes without a dropdown or Apply form.');
     if ($total > 6) {
         $next = ppControl($first, $footer, 'Next');
         $nextQuery = ppHrefQuery($next);
         ppCheck((int) ($nextQuery[$pageKey] ?? 0) === 2, $route . ' Next link must load page two.');
-        ppCheck((int) ($nextQuery[$sizeKey] ?? 0) === 6, $route . ' Next must retain the six-record default.');
+        ppCheck(!isset($nextQuery[$sizeKey]), $route . ' navigation must omit obsolete page-size parameters.');
         foreach ($query as $key => $value) ppCheck((string) ($nextQuery[$key] ?? '') === (string) $value, $route . ' Next must preserve ' . $key . '.');
         $second = ppDom(ppGet($route, $nextQuery)['body']);
         $secondFooter = ppFooter($second, $case);
@@ -187,14 +181,13 @@ function ppPageSet(array $case): void
         ppCheck(array_intersect($firstItems, ppItems($second, $case)) === [], $route . ' adjacent pages must not duplicate records.');
     }
     foreach ([6, 10, 25, 50, 100] as $size) {
-        $page = min(2, max(1, (int) ceil($total / $size)));
-        $from = $total ? ($page - 1) * $size + 1 : 0;
-        $to = min($page * $size, $total);
+        $page = min(2, max(1, (int) ceil($total / 6)));
+        $from = $total ? ($page - 1) * 6 + 1 : 0;
+        $to = min($page * 6, $total);
         $dom = ppDom(ppGet($route, array_merge($query, [$pageKey => 2, $sizeKey => $size]))['body']);
-        ppCheck(count(ppItems($dom, $case)) === max(0, $to - $from + ($total ? 1 : 0)), $route . ' has incorrect LIMIT/OFFSET for ' . $size . ' records.');
+        ppCheck(count(ppItems($dom, $case)) === max(0, $to - $from + ($total ? 1 : 0)), $route . ' must stay at six records when a different size is requested.');
         ppSummary(ppFooter($dom, $case), $from, $to, $total, $route);
-        $selected = $dom->query('//select[@name="' . $sizeKey . '"]/option[@selected]')->item(0);
-        ppCheck($selected instanceof DOMElement && (int) $selected->getAttribute('value') === $size, $route . ' must retain its selected page size.');
+        ppCheck($dom->query('//select[@name="' . $sizeKey . '"]')->length === 0, $route . ' must not render a page-size dropdown.');
     }
     $last = ppDom(ppGet($route, array_merge($query, [$pageKey => 999999]))['body']);
     $lastPage = max(1, (int) ceil($total / 6));
@@ -313,7 +306,7 @@ try {
         if ($variant === 'legacy') ppLegacySchema($database);
         $server = ppStartServer($project, $environment, $serverLog);
         foreach ($cases as $case) ppPageSet($case);
-        fwrite(STDOUT, 'PASS: ' . $variant . " schema directories/reports, default/all page sizes, linked navigation, boundaries, totals, and stable ordering.\n");
+        fwrite(STDOUT, 'PASS: ' . $variant . " schema directories/reports, fixed page sizes, linked navigation, boundaries, totals, and stable ordering.\n");
 
         $filters = [
             [0, ['q' => 'PAG Resource', 'category' => 'Food', 'status' => 'Low Stock'], 17],
@@ -338,7 +331,7 @@ try {
         fwrite(STDOUT, 'PASS: ' . $variant . " schema combined filters, literal wildcard searches, empty results, and privacy/publication rules.\n");
 
         foreach ([
-            [['resources_page' => 3, 'resources_per_page' => 25, 'centers_page' => 2, 'centers_per_page' => 50, 'distributions_page' => 11, 'distributions_per_page' => 10], [[4, 51, 75, 107], [5, 51, 100, 107], [6, 101, 110, 110]]],
+            [['resources_page' => 3, 'resources_per_page' => 25, 'centers_page' => 2, 'centers_per_page' => 50, 'distributions_page' => 11, 'distributions_per_page' => 10], [[4, 13, 18, 107], [5, 7, 12, 107], [6, 61, 66, 110]]],
             [['resources_page' => 3, 'resources_per_page' => 6, 'centers_page' => 2, 'centers_per_page' => 6, 'distributions_page' => 19, 'distributions_per_page' => 6], [[4, 13, 18, 107], [5, 7, 12, 107], [6, 109, 110, 110]]],
         ] as [$independentQuery, $expectedSections]) {
             $dom = ppDom(ppGet('reports.php', $independentQuery)['body']);
@@ -348,7 +341,7 @@ try {
                 $control = ppControl($dom, $footer, 'Previous');
                 $links = ppHrefQuery($control);
                 foreach ($independentQuery as $key => $value) {
-                    if ($key === $cases[$index]['page']) continue;
+                    if ($key === $cases[$index]['page'] || str_ends_with($key, '_per_page')) continue;
                     ppCheck((int) ($links[$key] ?? 0) === $value, 'Report navigation must preserve the other sections: ' . $key);
                 }
             }

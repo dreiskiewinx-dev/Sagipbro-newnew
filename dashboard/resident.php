@@ -27,6 +27,7 @@ if ($accountName !== '') {
 }
 
 $pageTitle = 'Resident portal';
+$isPortalPage = true;
 $pageDescription = 'SAGIPBRO resident information portal.';
 $basePath = '../';
 $activePage = '';
@@ -44,6 +45,12 @@ require __DIR__ . '/../includes/navbar.php';
     <section class="section-space section-soft">
         <div class="container">
             <?php require __DIR__ . '/../includes/alerts.php'; ?>
+            <section class="surface-card mb-4" aria-labelledby="resident-account-title">
+                <div class="surface-card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div><h2 id="resident-account-title" class="h5 mb-1">Your account</h2><p class="mb-0">Update your personal information, contact details, or password.</p></div>
+                    <a class="btn btn-brand" href="../pages/profile/index.php"><i class="bi bi-person-gear" aria-hidden="true"></i> Update account</a>
+                </div>
+            </section>
             <div class="quick-grid mb-4">
                 <a class="quick-card" href="../resources.php#resource-directory"><span class="quick-icon"><i class="bi bi-box-seam"></i></span><h3>Available resources</h3><p>View the latest public relief supply information and stock status.</p><span class="quick-link">Browse resources <i class="bi bi-arrow-right"></i></span></a>
                 <a class="quick-card" href="../evacuation-centers.php#center-directory"><span class="quick-icon"><i class="bi bi-buildings"></i></span><h3>Evacuation information</h3><p>Review center capacity, availability, and preparedness information.</p><span class="quick-link">View centers <i class="bi bi-arrow-right"></i></span></a>
@@ -68,7 +75,6 @@ require __DIR__ . '/../includes/navbar.php';
                 </section>
                 <aside class="center-feature"><span class="feature-icon"><i class="bi bi-backpack"></i></span><h2>Is your family go-bag ready?</h2><p>Include drinking water, food, medicines, a flashlight, radio, clothing, hygiene supplies, and copies of important documents.</p><a class="btn btn-ghost-light w-100 mt-3" href="../services.php#services-list">Review preparedness services</a></aside>
             </div>
-            <form class="mt-4 text-end" action="../actions/auth/logout.php" method="post" data-confirm-logout><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"><button class="btn btn-outline-brand" type="submit"><i class="bi bi-box-arrow-left"></i> Sign out</button></form>
         </div>
     </section>
 </main>

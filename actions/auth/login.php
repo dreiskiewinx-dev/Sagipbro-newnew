@@ -2,6 +2,7 @@
 
 require_once "../../config/database.php";
 require_once "../../config/session.php";
+require_once __DIR__ . '/../../config/login_throttle.php';
 
 function captchaPassed(): bool
 {
@@ -42,36 +43,50 @@ if (!captchaPassed()) {
     exit;
 }
 
-$username = trim($_POST["username"] ?? "");
-$password = $_POST["password"] ?? "";
+$username = is_string($_POST['username'] ?? null) ? trim($_POST['username']) : '';
+$password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
 
 if ($username === "" || $password === "") {
     header("Location: ../../login.php?error=Please fill in all fields");
     exit;
 }
 
-if (loginIsThrottled($username)) {
-    header("Location: ../../login.php?error=Too many attempts. Please try again later");
-    exit;
+$throttle = new LoginThrottle($conn);
+try {
+    $stmt = $conn->prepare('SELECT * FROM users WHERE username = ? LIMIT 1');
+    $stmt->execute([$username]);
+    $user = $stmt->fetch();
+    // Stored IDs group every username spelling accepted by the database collation.
+    $identity = $user ? 'user:' . $user['id'] : 'username:' . mb_strtolower($username, 'UTF-8');
+    if (!$throttle->beginAttempt($identity, $_SERVER['REMOTE_ADDR'] ?? 'unknown')) {
+        header('Location: ../../login.php?error=Unable to sign in. Please try again later');
+        exit;
+    }
+    $authenticated = $user && $user['role'] === 'admin' && $user['status'] === 'Active'
+        && password_verify($password, $user['password_hash']);
+    $throttle->finishAttempt($authenticated);
+} catch (Throwable $e) {
+    $throttle->cancelAttempt();
+    error_log('Login attempt protection unavailable (' . get_class($e) . ').');
+    http_response_code(503);
+    exit('Unable to sign in. Please try again later.');
 }
 
-$sql = "SELECT * FROM users WHERE username = :username AND status = 'Active' LIMIT 1";
-$stmt = $conn->prepare($sql);
-$stmt->execute([
-    ":username" => $username
-]);
+if ($authenticated) {
 
-$user = $stmt->fetch();
-
-if ($user && password_verify($password, $user["password_hash"])) {
-
-    clearLoginFailures($username);
     if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
-        $rehash = $conn->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id');
+        $previousHash = $user['password_hash'];
+        $user['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+        $rehash = $conn->prepare('UPDATE users SET password_hash = :password_hash WHERE id = :id AND BINARY password_hash = :previous_hash');
         $rehash->execute([
-            ':password_hash' => password_hash($password, PASSWORD_DEFAULT),
-            ':id' => $user['id']
+            ':password_hash' => $user['password_hash'],
+            ':id' => $user['id'],
+            ':previous_hash' => $previousHash
         ]);
+        if (!$rehash->rowCount()) {
+            header('Location: ../../login.php?error=Invalid username or password');
+            exit;
+        }
     }
     session_regenerate_id(true);
     csrfToken();
@@ -79,20 +94,19 @@ if ($user && password_verify($password, $user["password_hash"])) {
     $_SESSION["full_name"] = $user["full_name"];
     $_SESSION["username"] = $user["username"];
     $_SESSION["role"] = $user["role"];
+    $_SESSION['credential_version'] = hash('sha256', $user['password_hash']);
+    $_SESSION['force_password_change'] = (bool) $user['force_password_change'];
     $conn->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$user['id']]);
     $sessionHash = hash('sha256', session_id());
     $presence = $conn->prepare(
-        'INSERT INTO user_sessions (session_hash, user_id, last_seen_at, signed_out_at)
-         VALUES (?, ?, NOW(), NULL)
-         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), last_seen_at = NOW(), signed_out_at = NULL'
+        'INSERT INTO user_sessions (session_hash, user_id, last_seen_at, last_activity_at, signed_out_at)
+         VALUES (?, ?, NOW(), NOW(), NULL)'
     );
     $presence->execute([$sessionHash, $user['id']]);
 
-    $dashboard = $_SESSION["role"] === 'resident' ? 'resident.php' : ($_SESSION["role"] === 'volunteer' ? 'volunteer.php' : 'admin.php');
-    header("Location: ../../dashboard/" . $dashboard);
+    header('Location: ../../' . (passwordChangeRequired() ? 'pages/profile/change-password.php' : 'dashboard/admin.php'));
     exit;
 }
 
-recordLoginFailure($username);
 header("Location: ../../login.php?error=Invalid username or password");
 exit;

@@ -22,8 +22,7 @@ function adminLike(string $value): string
 /** SQL and ordering are supplied by the endpoint; values are always bound. */
 function adminPaginate(PDO $db, string $selectSql, string $countSql, array $params = []): array
 {
-    $perPage = filter_var($_GET['per_page'] ?? 10, FILTER_VALIDATE_INT);
-    if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+    $perPage = 10;
     $requestedPage = filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT);
     $requestedPage = $requestedPage !== false && $requestedPage > 0 ? $requestedPage : 1;
 

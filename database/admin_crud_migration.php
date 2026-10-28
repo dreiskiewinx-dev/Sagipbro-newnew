@@ -4,6 +4,8 @@ declare(strict_types=1);
 /** Add fields represented by the admin forms without replacing existing records. */
 function migrateAdminCrud(PDO $db): void
 {
+    require_once __DIR__ . '/login_throttle_migration.php';
+    require_once __DIR__ . '/session_security_migration.php';
     $columns = $db->prepare(
         'SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
     );
@@ -76,4 +78,6 @@ function migrateAdminCrud(PDO $db): void
             CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         ) ENGINE=InnoDB'
     );
+    migrateLoginThrottle($db);
+    migrateSessionSecurity($db);
 }

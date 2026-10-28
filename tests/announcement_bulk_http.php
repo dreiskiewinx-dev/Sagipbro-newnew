@@ -333,7 +333,7 @@ try {
     $cap = bulkApi('POST', ['action' => 'bulk_archive', 'ids' => $capIds]);
     bulkCheck($cap['selected_count'] === 100 && $cap['affected_count'] === 100, 'Maximum allowed selection of 100 real records works.');
     $filtered = bulkApi('GET', null, 200, 'admin', true, ['paginate' => 1, 'q' => 'Limit fixture', 'priority' => 'Medium', 'status' => 'Archived', 'category' => 'Advisory', 'audience' => 'All residents', 'per_page' => 25, 'page' => 4]);
-    bulkCheck((int) $filtered['pagination']['total'] === 100 && count($filtered['data']) === 25 && (int) $filtered['pagination']['page'] === 4, 'Priority combines with search, category, status, audience and database-level pagination.');
+    bulkCheck((int) $filtered['pagination']['total'] === 100 && count($filtered['data']) === 10 && (int) $filtered['pagination']['page'] === 4, 'Priority combines with search, category, status, audience and fixed ten-row pagination.');
     $empty = bulkApi('GET', null, 200, 'admin', true, ['paginate' => 1, 'q' => 'Limit fixture', 'priority' => 'Urgent']);
     bulkCheck($empty['data'] === [] && (int) $empty['pagination']['total'] === 0, 'Priority filtering returns honest empty results.');
     $priorityPayload = ['body' => 'Priority persistence verification.', 'category' => 'Advisory', 'audience' => 'All residents', 'status' => 'Published', 'published_at' => '2020-01-01T12:00'];

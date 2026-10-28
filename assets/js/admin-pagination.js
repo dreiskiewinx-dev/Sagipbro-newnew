@@ -26,15 +26,6 @@
         summary.dataset.paginationSummary = '';
         summary.setAttribute('role', 'status');
         summary.textContent = 'Loading records…';
-        const sizeLabel = document.createElement('label');
-        sizeLabel.className = 'pagination-size';
-        sizeLabel.htmlFor = `${table.id}PageSize`;
-        sizeLabel.append(document.createTextNode('Records per page'));
-        const size = document.createElement('select');
-        size.id = `${table.id}PageSize`;
-        size.className = 'form-select form-select-sm';
-        [10, 25, 50, 100].forEach((value) => size.add(new Option(String(value), String(value))));
-        sizeLabel.append(size);
 
         const navigation = document.createElement('nav');
         navigation.className = 'data-pagination-nav';
@@ -42,7 +33,7 @@
         const buttons = document.createElement('ul');
         buttons.className = 'pagination pagination-sm';
         navigation.append(buttons);
-        footer.append(summary, sizeLabel, navigation);
+        footer.append(summary, navigation);
 
         const state = { page: 1, perPage: 10, total: 0, totalPages: 1, loading: false };
         let requestNumber = 0;
@@ -165,7 +156,6 @@
                 }
                 bulk?.render(result);
                 summary.textContent = `Showing ${Number(pagination.from).toLocaleString()}–${Number(pagination.to).toLocaleString()} of ${state.total.toLocaleString()} records`;
-                size.value = String(state.perPage);
                 const counter = document.querySelector(`[data-table-count="${selector}"]`) || card.parentElement?.querySelector('[data-filter-results]');
                 if (counter) counter.textContent = `${state.total.toLocaleString()} matching records`;
                 document.dispatchEvent(new CustomEvent('sagipbro:pagination-loaded', { detail: { table, result } }));
@@ -199,11 +189,6 @@
             clearTimeout(searchTimer);
             load({ reset: true }).catch(reportError);
         }));
-        size.addEventListener('change', () => {
-            bulk?.invalidate();
-            state.perPage = Number(size.value);
-            load({ reset: true }).catch(reportError);
-        });
         const controller = { load, state, url };
         controllers.set(table, controller);
         bulk = window.SagipbroBulk?.attach({ table, pagination: controller }) || null;

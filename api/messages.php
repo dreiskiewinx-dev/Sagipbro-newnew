@@ -14,8 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             if (!$record) jsonResponse(['error' => 'Message not found.'], 404);
             $rank = $conn->prepare('SELECT COUNT(*) FROM contact_messages WHERE created_at > ? OR (created_at = ? AND id > ?)');
             $rank->execute([$record['created_at'], $record['created_at'], $id]);
-            $perPage = (int) ($_GET['per_page'] ?? 10);
-            if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+            $perPage = 10;
             jsonResponse(['data' => [$record], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
         }
         if (adminPaginationRequested()) {

@@ -1,18 +1,26 @@
 <?php
 
-require_once __DIR__ . "/../../config/database.php";
-
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit("Run this setup script from the command line.");
 }
+require_once __DIR__ . '/../../config/password_policy.php';
 
 $full_name = getenv('SAGIPBRO_ADMIN_NAME') ?: 'SAGIPBRO Administrator';
 $username = getenv('SAGIPBRO_ADMIN_USERNAME');
 $password = getenv('SAGIPBRO_ADMIN_PASSWORD');
-if (!$username || !$password || strlen($password) < 3) {
-    exit("Set SAGIPBRO_ADMIN_USERNAME and a 3-character SAGIPBRO_ADMIN_PASSWORD first.\n");
+if (!$username || !$password) {
+    fwrite(STDERR, "Set SAGIPBRO_ADMIN_USERNAME and SAGIPBRO_ADMIN_PASSWORD (at least 8 characters) first.\n");
+    exit(1);
 }
+try {
+    $error = sagipbroPasswordPolicyError($password);
+    if ($error !== null) { fwrite(STDERR, $error . "\n"); exit(1); }
+} catch (PasswordScreeningUnavailable $e) {
+    fwrite(STDERR, $e->getMessage() . "\n");
+    exit(1);
+}
+require_once __DIR__ . '/../../config/database.php';
 
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 

@@ -138,11 +138,11 @@ function checkCompactPublicDirectory(string $route, string $body): void
         $action = $route . '#' . $anchor;
         httpCheck($xpath->query('//section[@id="' . $anchor . '"]//form[@role="search" and @method="get" and @action="' . $action . '"]//input[@name="q"]')->length === 1, 'Directory search must keep its GET action and result anchor: ' . $route);
         httpCheck($xpath->query('//section[@id="' . $anchor . '"]//form[@role="search"]//select[@name="' . ($route === 'announcements.php' ? 'priority' : 'status') . '"]')->length === 1, 'Directory filter must remain available: ' . $route);
-        httpCheck($xpath->query('//section[@id="' . $anchor . '"]//*[@data-public-pagination="page"]//form[@action="' . $action . '"]//select[@name="per_page"]')->length === 1, 'Directory pagination must keep its page-size control and result anchor: ' . $route);
+        httpCheck($xpath->query('//section[@id="' . $anchor . '"]//*[@data-public-pagination="page"]//nav')->length === 1 && $xpath->query('//select[@name="per_page"]')->length === 0, 'Directory pagination keeps navigation without a page-size selector: ' . $route);
     } else {
         foreach (['resources', 'centers', 'distributions'] as $kind) {
             httpCheck($xpath->query('//section[@aria-labelledby="report-' . $kind . '"]//h2[@id="report-' . $kind . '"]')->length === 1, 'Report subsection heading must remain: ' . $kind);
-            httpCheck($xpath->query('//section[@aria-labelledby="report-' . $kind . '"]//*[@data-public-pagination="' . $kind . '_page"]//form[@action="reports.php#report-' . $kind . '"]//select[@name="' . $kind . '_per_page"]')->length === 1, 'Independent report pagination and anchor must remain: ' . $kind);
+            httpCheck($xpath->query('//section[@aria-labelledby="report-' . $kind . '"]//*[@data-public-pagination="' . $kind . '_page"]//nav')->length === 1 && $xpath->query('//select[@name="' . $kind . '_per_page"]')->length === 0, 'Independent report navigation remains without a page-size selector: ' . $kind);
         }
     }
 }

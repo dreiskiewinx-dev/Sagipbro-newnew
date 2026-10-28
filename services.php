@@ -6,8 +6,6 @@ $basePath = '';
 $bodyClass = 'services-page';
 
 require_once __DIR__ . '/includes/public_service_helpers.php';
-require_once __DIR__ . '/includes/public_announcements_panel.php';
-$announcementPanel = publicAnnouncementPanelLoad();
 
 include __DIR__ . '/includes/header.php';
 include __DIR__ . '/includes/navbar.php';
@@ -29,7 +27,7 @@ include __DIR__ . '/includes/navbar.php';
 
     <?php publicServiceNavigation(''); ?>
     <section class="section-space section-soft" id="services-list" data-scroll-target aria-label="Public services">
-        <div class="container public-services-layout">
+        <div class="container">
             <div class="public-services-main">
             <div class="service-list">
                 <article class="service-row">
@@ -94,7 +92,6 @@ include __DIR__ . '/includes/navbar.php';
                 </article>
             </div>
             </div>
-            <?php publicAnnouncementsPanel($announcementPanel); ?>
         </div>
     </section>
 
@@ -113,5 +110,4 @@ include __DIR__ . '/includes/navbar.php';
         </div>
     </section>
 </main>
-<script src="assets/js/public-announcements.js?v=3" defer></script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

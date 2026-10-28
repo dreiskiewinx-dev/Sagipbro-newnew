@@ -4,11 +4,94 @@ Modern Bootstrap 5 interface for the **SAGIPBRO Disaster Relief Resource Informa
 
 ## Included screens
 
-- Public website: Home, About, Services, Resources, Contact, Login, and Registration
-- Role-aware portals: Administrator, Volunteer, and Resident dashboards
+- Public website: Home, About, Services, Resources, Contact, and Administrator Login
+- Administrator-only login and protected administration dashboard
 - Admin operations: Resources, Evacuation Centers, Distributions, Residents, Volunteers, Announcements, Reports, Users, Activity Logs, and Profile
 - Reusable PHP components: header, public/admin navigation, sidebar, alerts, and footer
 - Responsive tables, search and filters, status badges, accessible forms, confirmation flows, modals, print styles, and CSV table export
+
+## Administrator access
+
+Only users with role `admin` and status `Active` can sign in. Protected pages and
+APIs validate the current account and its unrevoked `user_sessions` record on
+each request. Existing non-admin sessions are rejected. Account deactivation or
+role changes revoke sessions; reactivation or promotion requires a fresh login.
+Sessions without a matching database record also require a fresh login.
+
+Public registration is disabled at both `register.php` and
+`actions/auth/register.php`. Administrators manage accounts through the protected
+Users screen. Existing non-admin accounts and records are preserved.
+
+Run `php tests/admin_auth_http.php` for login, authorization, session revocation,
+registration, and CSRF checks using a private temporary database and sessions.
+The test requires PDO MySQL, `proc_open`, and CREATE/DROP DATABASE permission;
+it never selects the application's database.
+
+New passwords use the same server policy for CLI administrator setup, account
+creation, administrator resets, and profile changes: at least 8 Unicode
+characters, spaces allowed, and at most 72 UTF-8 bytes to prevent bcrypt from
+silently truncating the password. Common patterns and known breached passwords
+are rejected. Existing passwords remain usable until changed; there is no
+mandatory periodic rotation.
+
+Breach screening uses the free Pwned Passwords range API. Only a five-character
+SHA-1 hash prefix is sent, with response padding; plaintext passwords, full
+hashes, usernames, and emails are never sent. PHP cURL, a working CA certificate
+bundle, and outbound HTTPS access to `api.pwnedpasswords.com` are required.
+New password writes return a retry message when screening is unavailable;
+normal logins do not depend on this service. Stored credentials still use
+`password_hash()` and `password_verify()`.
+
+Run `php tests/password_policy.php` for deterministic policy tests. Set
+`SAGIPBRO_PASSWORD_LIVE_TEST=1` when running that test or `tests/admin_auth_http.php`
+to include the real range API, using only synthetic test credentials.
+
+Login failure limits are stored in `login_rate_limits`: 5 failed attempts against
+one account or 30 failed attempts from one IP within 15 minutes start a 15-minute
+cooldown. Unknown usernames follow the same policy. Cookies do not affect the
+counters, and blocked retries do not extend the cooldown. Successful login clears
+only that account's failures, not the IP counter. Both counters are locked in an
+InnoDB transaction through password verification to prevent concurrent bypasses.
+Only the connection's `REMOTE_ADDR` is trusted; forwarding headers are ignored.
+
+Before using this version with an existing database, run the additive migration
+with the same `SAGIPBRO_DB_*` environment settings as your PHP server:
+
+```powershell
+php database/migrate_login_throttle.php
+```
+
+Fresh installs include the table in `database/sagipbro.sql`, and the admin CRUD
+migration also creates it. The application does not create tables during login;
+missing or unavailable throttle storage safely rejects login with a retry message.
+Run `php tests/login_throttle.php` for the isolated concurrency and cooldown tests,
+and `php tests/admin_auth_http.php` for actual login requests with fresh cookies.
+
+Sessions expire after 20 minutes without user activity or eight hours after
+sign-in. Foreground page navigation and CSRF-protected activity requests renew
+only the inactivity deadline. Notification, presence, register, and session-status
+polling never renew it. A warning appears two minutes before expiry with a
+Stay signed in button; the eight-hour cap always requires a new sign-in.
+
+Password resets atomically revoke all existing sessions and require replacement
+of the temporary password. Restricted sessions can use only the password-change
+form, its password submission, sign-out, and supporting session-status/activity
+requests. Protected APIs return `password_change_required` until replacement.
+Password changes also revoke all sessions and sign the current browser out.
+Choosing the same temporary password again is rejected. Password changes and
+session revocations roll back together if the audit or database write fails.
+
+For existing databases, apply the additive session migration using the same
+database environment settings as the server:
+
+```powershell
+php database/migrate_session_security.php
+```
+
+It preserves existing session creation/activity history. Fresh schemas and the
+admin CRUD migration include this field. The HTTP authentication tests cover
+idle/absolute expiry, polling, explicit renewal, and mandatory password changes;
+the optional live-password checks also cover full reset and replacement flows.
 
 ## Run locally
 
@@ -51,7 +134,7 @@ All directories work without login or JavaScript. Search and filters use GET for
 - `announcements.php`: published, non-future, unexpired announcements only; urgent first, searchable, filterable by priority.
 - `reports.php`: public supply and evacuation availability, recent completed distributions, print and CSV export. Exports never include residents, recipients, staff names or private notes.
 
-Public directories use database-level pagination: 6 records by default, with 10, 25, 50, and 100-record options. Search and filters apply before counting and paging. Reports paginate their three tables independently; print and CSV include all matching records. Admin pagination remains at 10 records by default. Run `php tests/public_pagination_http.php` for isolated HTTP regression checks.
+Public directories use database-level pagination fixed at 6 records per page, without a records-per-page selector. Search and filters apply before counting and paging. Reports paginate their three tables independently; print and CSV include all matching records. Admin pagination is fixed at 10 records per page. Run `php tests/public_pagination_http.php` for isolated HTTP regression checks.
 
 The Services landing page uses a compact Disaster Relief Services hero and five service cards beside the announcement panel in an approximately 70/30 desktop layout. The panel stays in normal page flow at every screen size and does not follow scrolling or stretch to the Reports card. In two-column layouts its height is limited to 30rem (or the available viewport height, if smaller); long notices scroll internally while the header and View All link remain inside the card. On mobile it takes its natural height above the service cards. It displays up to five current publications, urgent first, with an urgent count across all current publications. Selecting a notice shows its full text in the panel; Back restores the list and reading position. Native expandable details remain available without JavaScript. The five service tabs include Announcements. Its service card, the panel, and the footer open the existing searchable, filterable, paginated `announcements.php` page, which displays full notice text, priority, publication time, and optional expiry.
 
@@ -104,11 +187,11 @@ Run `php tests/floating_announcement_http.php` for isolated floating-notice visi
 
 ## Admin table pagination
 
-The admin registers, dashboard activity table, report history, and resource report preview use MySQL `LIMIT` / `OFFSET` pagination. They show 10 rows by default, with 25, 50, and 100-row options. Search and filters run before counting and paging; record changes preserve the current selection and clamp pages that become empty. CSV exports and print views include every matching record.
+The admin registers, dashboard activity table, report history, and resource report preview use MySQL `LIMIT` / `OFFSET` pagination. They show a fixed 10 rows per page without a records-per-page selector. Search and filters run before counting and paging; record changes preserve the current selection and clamp pages that become empty. CSV exports and print views include every matching record.
 
 The Reports center previews Resource stock, Distribution summary, Evacuation capacity, and Resident summary independently. Each selection loads its own columns and summary metrics, clears the previous report while loading, and updates the print/export actions. Date filters apply to all four reports; resource category filters apply to stock and distributions. Distribution previews group transaction totals by resource, while resident previews summarize active residents and recorded vulnerabilities. Run `$env:SAGIPBRO_REPORT_PREVIEW_BROWSER = '1'; php tests/admin_pagination_http.php` for focused desktop/mobile preview-switching, print/export-target, and failure-recovery checks using private fixtures.
 
-Authenticated list endpoints accept `paginate=1`, `page`, `per_page`, and `q`, plus the table's filter fields. Responses include `data` and `pagination` (`page`, `per_page`, `total`, `total_pages`, `from`, `to`). Existing unpaginated lookups remain compatible. Shared code lives in `api/pagination.php` and `assets/js/admin-pagination.js`.
+Authenticated list endpoints accept `paginate=1`, `page`, `per_page`, and `q`, plus the table's filter fields. Responses include `data` and `pagination` (`page`, `per_page`, `total`, `total_pages`, `from`, `to`). Requested page sizes are ignored; paginated results always contain at most 10 records. Existing unpaginated lookups remain compatible. Shared code lives in `api/pagination.php` and `assets/js/admin-pagination.js`.
 
 Run `php tests/admin_pagination_http.php` to exercise all registers with over 100 fixtures per list in an isolated temporary database. Set `$env:SAGIPBRO_PAGINATION_BROWSER = '1'` to include Chrome checks for the actual desktop/mobile controls. The test never selects the application's database for fixture writes.
 

@@ -56,8 +56,7 @@ if ($id !== false && $id !== null) {
     if (!$row) jsonResponse(['error' => 'Activity event not found.'], 404);
     $rank = $conn->prepare('SELECT COUNT(*) FROM activity_logs WHERE created_at > ? OR (created_at = ? AND id > ?)');
     $rank->execute([$row['created_at'], $row['created_at'], $id]);
-    $perPage = filter_var($_GET['per_page'] ?? 10, FILTER_VALIDATE_INT);
-    if (!in_array($perPage, [10, 25, 50, 100], true)) $perPage = 10;
+    $perPage = 10;
     jsonResponse(['data' => [$format($row)], 'record_page' => (int) floor((int) $rank->fetchColumn() / $perPage) + 1]);
 }
 if (in_array($_GET['export'] ?? '', ['csv', 'print'], true)) {

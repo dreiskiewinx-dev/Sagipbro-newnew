@@ -66,7 +66,9 @@ window.sagipbroNotifications = {
     csrfToken: <?= json_encode(csrfToken()) ?>
 };
 </script>
-<?php else: ?>
+<?php else:
+    $publicNavbarBreakpoint = isLoggedIn() && ($_SESSION['role'] ?? '') === 'resident' ? 'xl' : 'lg';
+?>
 <div class="utility-bar">
     <div class="container d-flex justify-content-between align-items-center gap-3">
         <p class="mb-0"><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> Barangay Binloc, Dagupan City</p>
@@ -76,7 +78,7 @@ window.sagipbroNotifications = {
         </div>
     </div>
 </div>
-<nav class="navbar navbar-expand-lg public-navbar sticky-top" aria-label="Main navigation">
+<nav class="navbar navbar-expand-<?= $publicNavbarBreakpoint ?> public-navbar sticky-top" aria-label="Main navigation">
     <div class="container">
         <a class="navbar-brand brand-lockup" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>index.php" aria-label="SAGIPBRO home">
             <img src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/images/sagipbro-mark.svg" alt="" width="42" height="48">
@@ -86,7 +88,7 @@ window.sagipbroNotifications = {
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="publicNavigation">
-            <ul class="navbar-nav ms-auto align-items-lg-center">
+            <ul class="navbar-nav ms-auto align-items-<?= $publicNavbarBreakpoint ?>-center">
                 <?php
                 $publicLinks = [
                     'home' => ['Home', 'index.php'],
@@ -99,10 +101,19 @@ window.sagipbroNotifications = {
                 ?>
                     <li class="nav-item"><a class="nav-link<?= $activePage === $key ? ' active' : '' ?>" <?= $activePage === $key ? 'aria-current="page"' : '' ?> href="<?= htmlspecialchars($basePath . $href, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></a></li>
                 <?php endforeach; ?>
+                <?php if (isLoggedIn() && ($_SESSION['role'] ?? '') === 'resident'): ?>
+                    <li class="nav-item"><a class="nav-link<?= $activePage === 'account' ? ' active' : '' ?>" <?= $activePage === 'account' ? 'aria-current="page"' : '' ?> href="<?= htmlspecialchars($basePath . 'pages/profile/index.php', ENT_QUOTES, 'UTF-8') ?>">Update account</a></li>
+                <?php endif; ?>
             </ul>
             <?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
                 <?php $portalFile = ($_SESSION['role'] ?? '') === 'resident' ? 'resident.php' : (($_SESSION['role'] ?? '') === 'volunteer' ? 'volunteer.php' : 'admin.php'); ?>
-                <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath . 'dashboard/' . $portalFile, ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-grid" aria-hidden="true"></i> My Dashboard</a>
+                <a class="btn btn-brand ms-<?= $publicNavbarBreakpoint ?>-3 mt-3 mt-<?= $publicNavbarBreakpoint ?>-0" href="<?= htmlspecialchars($basePath . 'dashboard/' . $portalFile, ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-grid" aria-hidden="true"></i> My Dashboard</a>
+                <?php if (($_SESSION['role'] ?? '') === 'resident'): ?>
+                    <form class="ms-xl-2 mt-3 mt-xl-0 flex-shrink-0" action="<?= htmlspecialchars($basePath . 'actions/auth/logout.php', ENT_QUOTES, 'UTF-8') ?>" method="post" data-confirm-logout>
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <button class="btn btn-outline-brand" type="submit"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Sign out</button>
+                    </form>
+                <?php endif; ?>
             <?php else: ?>
                 <a class="btn btn-brand ms-lg-3 mt-3 mt-lg-0" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>login.php"><i class="bi bi-person-lock" aria-hidden="true"></i> Staff login</a>
             <?php endif; ?>

@@ -9,14 +9,23 @@ $basePath = '../../';
 $isAdmin = true;
 $activeAdmin = 'activity';
 
-$activityStats = ['today' => 0, 'users' => 0, 'warnings' => 0, 'blocked' => 0];
+$activityStats = ['today' => 0, 'users' => 0, 'warnings' => 0];
+$mostActiveUser = null;
 try {
     $activityStats = $conn->query("SELECT
         SUM(DATE(created_at) = CURDATE()) AS today,
         COUNT(DISTINCT CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN user_id END) AS users,
-        SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%') AS warnings,
-        SUM(LOWER(action) LIKE '%block%') AS blocked
+        SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%') AS warnings
         FROM activity_logs")->fetch() ?: $activityStats;
+    $mostActiveUser = $conn->query("SELECT
+        COALESCE(NULLIF(TRIM(u.full_name), ''), u.username) AS name,
+        COUNT(*) AS event_count
+        FROM activity_logs l
+        INNER JOIN users u ON u.id = l.user_id
+        WHERE l.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        GROUP BY u.id, u.full_name, u.username
+        ORDER BY event_count DESC, MAX(l.created_at) DESC, u.id ASC
+        LIMIT 1")->fetch() ?: null;
 } catch (Throwable $e) {
     error_log('Activity page data unavailable (' . get_class($e) . ').');
 }
@@ -44,7 +53,7 @@ include '../../includes/header.php';
                 <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Events today</span><span class="stat-card-icon"><i class="bi bi-activity" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['today'] ?></strong><span class="stat-meta">Recorded database activity</span></article>
                 <article class="stat-card info"><div class="stat-card-top"><span class="stat-card-label">Active users</span><span class="stat-card-icon"><i class="bi bi-people-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['users'] ?></strong><span class="stat-meta">Users active in the last 24 hours</span></article>
                 <article class="stat-card warning"><div class="stat-card-top"><span class="stat-card-label">Warnings</span><span class="stat-card-icon"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['warnings'] ?></strong><span class="stat-meta">Events requiring review</span></article>
-                <article class="stat-card danger"><div class="stat-card-top"><span class="stat-card-label">Blocked attempts</span><span class="stat-card-icon"><i class="bi bi-shield-x" aria-hidden="true"></i></span></div><strong class="stat-value"><?= (int) $activityStats['blocked'] ?></strong><span class="stat-meta">Rejected security events</span></article>
+                <article class="stat-card"><div class="stat-card-top"><span class="stat-card-label">Most active user</span><span class="stat-card-icon"><i class="bi bi-person-check-fill" aria-hidden="true"></i></span></div><strong class="stat-value"><?= htmlspecialchars($mostActiveUser['name'] ?? 'No activity yet', ENT_QUOTES, 'UTF-8') ?></strong><span class="stat-meta"><?php if ($mostActiveUser): ?><?= (int) $mostActiveUser['event_count'] ?> <?= (int) $mostActiveUser['event_count'] === 1 ? 'event' : 'events' ?> in the last 24 hours<?php else: ?>No user events in the last 24 hours<?php endif; ?></span></article>
             </section>
 
             <div class="info-callout mb-3" role="note"><i class="bi bi-shield-check" aria-hidden="true"></i><div><strong>Audit records are read-only</strong><span>Logs help Barangay Binloc account for system changes. Times are shown in Philippine Standard Time (UTC+8).</span></div></div>

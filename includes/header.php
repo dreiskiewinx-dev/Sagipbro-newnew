@@ -6,6 +6,7 @@ $pageTitle = $pageTitle ?? 'SAGIPBRO';
 $pageDescription = $pageDescription ?? 'SAGIPBRO Disaster Relief Resource Information System for Barangay Binloc, Dagupan City.';
 $basePath = $basePath ?? '';
 $isAdmin = $isAdmin ?? false;
+$showFloatingAnnouncement = !$isAdmin && !($isAuthPage ?? false) && !($isPortalPage ?? false);
 $bodyClass = trim(($bodyClass ?? '') . ($isAdmin ? ' admin-body' : ' public-body'));
 $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information System' : 'SAGIPBRO';
 ?>
@@ -110,7 +111,7 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.min.css?v=5.3.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap-icons/bootstrap-icons.min.css?v=1.11.3">
     <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/style.css?v=14">
-    <?php if (!$isAdmin && !($isAuthPage ?? false)): ?>
+    <?php if ($showFloatingAnnouncement): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/floating-announcement.css?v=2">
         <script>
         try {
@@ -129,7 +130,7 @@ $titleSuffix = $pageTitle === 'SAGIPBRO' ? 'Disaster Relief Resource Information
         };
         </script>
         <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-bulk.js?v=1"></script>
-        <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-pagination.js?v=2"></script>
+        <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/admin-pagination.js?v=3"></script>
     <?php endif; ?>
     <?php if (!empty($useLoginStyles)): ?>
         <link rel="stylesheet" href="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/css/login.css">

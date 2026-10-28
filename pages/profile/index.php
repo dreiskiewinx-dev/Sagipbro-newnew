@@ -1,10 +1,13 @@
 <?php
 require_once '../../includes/auth_check.php';
 require_once '../../config/database.php';
+require_once __DIR__ . '/../../config/password_policy.php';
 
 $profileUserId = currentUserId();
+$isResidentProfile = ($_SESSION['role'] ?? '') === 'resident';
 $profileRedirect = static function (string $key, string $message): void {
-    header('Location: ' . appUrl('pages/profile/index.php') . '?' . http_build_query([$key => $message]));
+    $target = passwordChangeRequired() ? 'pages/profile/change-password.php' : 'pages/profile/index.php';
+    header('Location: ' . appUrl($target) . '?' . http_build_query([$key => $message]));
     exit;
 };
 $recordProfileActivity = static function (string $action, array $details = []) use ($conn, $profileUserId): void {
@@ -22,16 +25,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $position = trim((string) ($_POST['position'] ?? ''));
             $contact = trim((string) ($_POST['contact'] ?? ''));
             $language = in_array($_POST['language'] ?? '', ['English', 'Filipino'], true) ? $_POST['language'] : 'English';
-            if ($fullName === '' || strlen($fullName) > 150 || $email === false || strlen($contact) > 11 || strlen($position) > 150) {
+            $contactLimit = $isResidentProfile ? 30 : 11;
+            if ($fullName === '' || strlen($fullName) > 150 || $email === false || strlen($email) > 160 || strlen($contact) > $contactLimit || (!$isResidentProfile && strlen($position) > 150)
+                || ($isResidentProfile && $contact !== '' && !preg_match('/\A\+?[0-9][0-9 ()-]{5,28}[0-9]\z/', $contact))) {
                 $profileRedirect('error', 'Enter valid profile information.');
             }
-            $stmt = $conn->prepare('UPDATE users SET full_name = ?, email = ?, position = ?, contact = ?, language = ? WHERE id = ?');
-            $stmt->execute([$fullName, $email, $position ?: null, $contact ?: null, $language, $profileUserId]);
+            $conn->beginTransaction();
+            if ($isResidentProfile) {
+                $stmt = $conn->prepare('UPDATE users SET full_name = ?, email = ?, contact = ? WHERE id = ?');
+                $stmt->execute([$fullName, $email, $contact ?: null, $profileUserId]);
+                $fields = ['full_name', 'email', 'contact'];
+            } else {
+                $stmt = $conn->prepare('UPDATE users SET full_name = ?, email = ?, position = ?, contact = ?, language = ? WHERE id = ?');
+                $stmt->execute([$fullName, $email, $position ?: null, $contact ?: null, $language, $profileUserId]);
+                $fields = ['full_name', 'email', 'position', 'contact', 'language'];
+            }
+            $recordProfileActivity('update-profile', ['fields' => $fields]);
+            $conn->commit();
             $_SESSION['full_name'] = $fullName;
-            $recordProfileActivity('update-profile', ['fields' => ['full_name', 'email', 'position', 'contact', 'language']]);
             $profileRedirect('success', 'Profile information updated.');
         }
         if ($intent === 'notifications') {
+            if ($isResidentProfile) $profileRedirect('error', 'Unknown account action.');
             $stmt = $conn->prepare('UPDATE users SET notify_stock = ?, notify_centers = ?, notify_digest = ? WHERE id = ?');
             $stmt->execute([isset($_POST['notify_stock']) ? 1 : 0, isset($_POST['notify_centers']) ? 1 : 0, isset($_POST['notify_digest']) ? 1 : 0, $profileUserId]);
             $recordProfileActivity('update-notifications');
@@ -41,21 +56,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare('SELECT password_hash FROM users WHERE id = ?');
             $stmt->execute([$profileUserId]);
             $passwordHash = (string) $stmt->fetchColumn();
-            $current = (string) ($_POST['current_password'] ?? '');
-            $new = (string) ($_POST['new_password'] ?? '');
-            $confirm = (string) ($_POST['confirm_new_password'] ?? '');
+            $current = is_string($_POST['current_password'] ?? null) ? $_POST['current_password'] : '';
+            $new = $_POST['new_password'] ?? '';
+            $confirm = $_POST['confirm_new_password'] ?? '';
             if (!password_verify($current, $passwordHash)) $profileRedirect('error', 'Current password is incorrect.');
-            if (strlen($new) < 8 || $new !== $confirm) $profileRedirect('error', 'New passwords must match and contain at least 8 characters.');
-            $stmt = $conn->prepare('UPDATE users SET password_hash = ?, force_password_change = 0, password_changed_at = NOW() WHERE id = ?');
-            $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $profileUserId]);
-            $recordProfileActivity('change-password');
-            try {
-                $sessionHash = hash('sha256', session_id());
-                $sessionStatement = $conn->prepare('UPDATE user_sessions SET signed_out_at = NOW(), last_seen_at = NOW() WHERE session_hash = ?');
-                $sessionStatement->execute([$sessionHash]);
-            } catch (Throwable $e) {
-                error_log('Session presence could not be closed after password change (' . get_class($e) . ').');
+            if ($new !== $confirm) $profileRedirect('error', 'New passwords must match.');
+            if (is_string($new) && password_verify($new, $passwordHash)) $profileRedirect('error', 'Choose a password different from your current or temporary password.');
+            $passwordError = sagipbroPasswordPolicyError($new);
+            if ($passwordError !== null) $profileRedirect('error', $passwordError);
+            $conn->beginTransaction();
+            $stmt = $conn->prepare('UPDATE users SET password_hash = ?, force_password_change = 0, password_changed_at = NOW() WHERE id = ? AND BINARY password_hash = ?');
+            $stmt->execute([password_hash($new, PASSWORD_DEFAULT), $profileUserId, $passwordHash]);
+            if (!$stmt->rowCount()) {
+                $conn->rollBack();
+                $profileRedirect('error', 'Your password changed during this request. Sign in again and retry.');
             }
+            $conn->prepare('UPDATE user_sessions SET signed_out_at=NOW() WHERE user_id=? AND signed_out_at IS NULL')->execute([$profileUserId]);
+            $recordProfileActivity('change-password');
+            $conn->commit();
 
             $cookieParams = session_get_cookie_params();
             $_SESSION = [];
@@ -76,7 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         $profileRedirect('error', 'Unknown profile action.');
+    } catch (PasswordScreeningUnavailable $e) {
+        $profileRedirect('error', $e->getMessage());
     } catch (Throwable $e) {
+        if ($conn->inTransaction()) $conn->rollBack();
         error_log('Profile update failed (' . get_class($e) . ').');
         $profileRedirect('error', 'Profile update could not be completed.');
     }
@@ -88,6 +109,11 @@ $profile = $profileStatement->fetch();
 if (!$profile) {
     header('Location: ' . appUrl('actions/auth/logout.php'));
     exit;
+}
+
+if ($isResidentProfile) {
+    require __DIR__ . '/resident-view.php';
+    return;
 }
 
 $profileActivityStatement = $conn->prepare(
@@ -187,15 +213,15 @@ include '../../includes/header.php';
                     </section>
 
                     <section class="data-card" aria-labelledby="passwordHeading">
-                        <div class="data-card-header"><div><h2 id="passwordHeading">Change password</h2><p>Use at least eight characters and avoid passwords used elsewhere.</p></div><i class="bi bi-shield-lock text-success" aria-hidden="true"></i></div>
+                        <div class="data-card-header"><div><h2 id="passwordHeading">Change password</h2><p>Use at least 8 characters. Spaces and passphrases are welcome; avoid passwords used elsewhere.</p></div><i class="bi bi-shield-lock text-success" aria-hidden="true"></i></div>
                         <div class="data-card-body">
                             <form action="index.php" method="post">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                 <input type="hidden" name="intent" value="password">
                                 <div class="row g-3">
                                     <div class="col-12"><label class="form-label" for="currentPassword">Current password <span class="required-mark">*</span></label><div class="input-group"><input class="form-control" id="currentPassword" name="current_password" type="password" required autocomplete="current-password"><button class="btn btn-outline-secondary" type="button" data-password-toggle="currentPassword" aria-label="Show current password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>
-                                    <div class="col-md-6"><label class="form-label" for="newPassword">New password <span class="required-mark">*</span></label><div class="input-group"><input class="form-control" id="newPassword" name="new_password" type="password" required minlength="8" autocomplete="new-password"><button class="btn btn-outline-secondary" type="button" data-password-toggle="newPassword" aria-label="Show new password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>
-                                    <div class="col-md-6"><label class="form-label" for="confirmNewPassword">Confirm new password <span class="required-mark">*</span></label><div class="input-group"><input class="form-control" id="confirmNewPassword" name="confirm_new_password" type="password" required minlength="8" autocomplete="new-password"><button class="btn btn-outline-secondary" type="button" data-password-toggle="confirmNewPassword" aria-label="Show password confirmation" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>
+                                    <div class="col-md-6"><label class="form-label" for="newPassword">New password <span class="required-mark">*</span></label><div class="input-group"><input class="form-control" id="newPassword" name="new_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><button class="btn btn-outline-secondary" type="button" data-password-toggle="newPassword" aria-label="Show new password" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>
+                                    <div class="col-md-6"><label class="form-label" for="confirmNewPassword">Confirm new password <span class="required-mark">*</span></label><div class="input-group"><input class="form-control" id="confirmNewPassword" name="confirm_new_password" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><button class="btn btn-outline-secondary" type="button" data-password-toggle="confirmNewPassword" aria-label="Show password confirmation" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button></div></div>
                                 </div>
                                 <div class="d-flex justify-content-end mt-4"><button class="btn btn-brand" type="submit"><i class="bi bi-key" aria-hidden="true"></i> Update password</button></div>
                             </form>

@@ -47,12 +47,12 @@
                 <button class="btn btn-light btn-icon" type="button" title="View" aria-label="View ${escapeHtml(user.full_name)}" data-record-json="${escapeHtml(JSON.stringify(user))}" data-bs-toggle="modal" data-bs-target="#viewUserModal"><i class="bi bi-eye"></i></button>
                 <button class="btn btn-light btn-icon" type="button" title="Edit" aria-label="Edit ${escapeHtml(user.full_name)}" data-user-edit="${user.id}" data-bs-toggle="modal" data-bs-target="#editUserModal"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-light btn-icon" type="button" title="Reset password" aria-label="Reset password for ${escapeHtml(user.full_name)}" data-user-reset="${user.id}" data-bs-toggle="modal" data-bs-target="#resetPasswordModal"><i class="bi bi-key"></i></button>
-                <button class="btn btn-light btn-icon text-danger" type="button" title="Deactivate" aria-label="Deactivate ${escapeHtml(user.full_name)}" data-user-delete="${user.id}" data-bs-toggle="modal" data-bs-target="#deactivateUserModal"><i class="bi bi-person-x"></i></button>
+                <button class="btn btn-light btn-icon ${user.status === 'Inactive' ? 'text-success' : 'text-danger'}" type="button" title="${user.status === 'Inactive' ? 'Enable' : 'Deactivate'}" aria-label="${user.status === 'Inactive' ? 'Enable' : 'Deactivate'} ${escapeHtml(user.full_name)}" data-user-delete="${user.id}" data-bs-toggle="modal" data-bs-target="#deactivateUserModal"><i class="bi ${user.status === 'Inactive' ? 'bi-person-check' : 'bi-person-x'}"></i></button>
             </div></td>
         </tr>`).join('');
         tableBody.querySelectorAll('[data-user-edit]').forEach((button) => button.addEventListener('click', () => fillEdit(Number(button.dataset.userEdit))));
         tableBody.querySelectorAll('[data-user-reset]').forEach((button) => button.addEventListener('click', () => { resetForm.dataset.id = button.dataset.userReset; }));
-        tableBody.querySelectorAll('[data-user-delete]').forEach((button) => button.addEventListener('click', () => { deactivateForm.dataset.id = button.dataset.userDelete; }));
+        tableBody.querySelectorAll('[data-user-delete]').forEach((button) => button.addEventListener('click', () => prepareStatusChange(Number(button.dataset.userDelete))));
 
         const values = document.querySelectorAll('.stat-grid .stat-value');
         const stats = result.stats || {};
@@ -70,8 +70,30 @@
         editForm.elements.role.value = roleLabel(user.role);
         editForm.elements.status.value = user.status;
     };
+    const prepareStatusChange = (id) => {
+        const user = users.find((item) => Number(item.id) === id);
+        if (!user) return;
+        const enabling = user.status === 'Inactive';
+        deactivateForm.dataset.id = id;
+        deactivateForm.dataset.action = enabling ? 'activate' : 'deactivate';
+        deactivateForm.querySelector('.modal-title').textContent = enabling ? 'Enable user account?' : 'Deactivate user account?';
+        deactivateForm.querySelector('[data-account-status-description]').textContent = enabling
+            ? 'The selected account will return to Enabled status with its existing role and permissions.'
+            : 'The selected user will no longer be able to sign in. Historical activity will remain available.';
+        deactivateForm.querySelector('[data-account-status-help]').textContent = enabling
+            ? 'An active administrator account can sign in again. Previously revoked sessions remain signed out.'
+            : 'You can enable the account later from this page.';
+        deactivateForm.querySelector('.modal-footer [data-bs-dismiss]').textContent = enabling ? 'Cancel' : 'Keep active';
+        const button = deactivateForm.querySelector('[type="submit"]');
+        button.classList.toggle('btn-danger', !enabling);
+        button.classList.toggle('btn-brand', enabling);
+        button.innerHTML = enabling
+            ? '<i class="bi bi-person-check" aria-hidden="true"></i> Enable account'
+            : '<i class="bi bi-person-x" aria-hidden="true"></i> Deactivate account';
+    };
     const submit = async (form, method, body, message = 'User account saved to the database.') => {
         const button = form.querySelector('[type="submit"]');
+        if (button?.disabled) return;
         if (button) button.disabled = true;
         try {
             await request(method, body);
@@ -112,7 +134,11 @@
     });
     deactivateForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        submit(deactivateForm, 'DELETE', { id: deactivateForm.dataset.id }, 'User account deactivated.');
+        const enabling = deactivateForm.dataset.action === 'activate';
+        submit(deactivateForm, enabling ? 'PUT' : 'DELETE', {
+            id: deactivateForm.dataset.id,
+            ...(enabling ? { action: 'activate' } : {}),
+        }, enabling ? 'User account enabled.' : 'User account deactivated.');
     });
     const pager = window.SagipbroPagination.create({ table: '#usersTable', endpoint: config.endpoint, render, autoLoad: false });
     const load = () => pager.load();

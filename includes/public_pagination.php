@@ -4,10 +4,9 @@ declare(strict_types=1);
 function publicPageRequest(array $query, string $pageKey = 'page', string $sizeKey = 'per_page'): array
 {
     $page = filter_var($query[$pageKey] ?? 1, FILTER_VALIDATE_INT);
-    $size = filter_var($query[$sizeKey] ?? 6, FILTER_VALIDATE_INT);
     return [
         'page' => $page !== false && $page > 0 ? $page : 1,
-        'per_page' => in_array($size, [6, 10, 25, 50, 100], true) ? $size : 6,
+        'per_page' => 6,
     ];
 }
 
@@ -48,7 +47,8 @@ function publicPaginate(PDO $db, string $selectSql, string $countSql, array $par
 function publicPaginationUrl(string $action, array $query): string
 {
     $parts = parse_url($action);
-    $query = array_filter($query, static fn ($value) => is_scalar($value) && (string) $value !== '');
+    $query = array_filter($query, static fn ($value, $key) => is_scalar($value) && (string) $value !== ''
+        && $key !== 'per_page' && !str_ends_with((string) $key, '_per_page'), ARRAY_FILTER_USE_BOTH);
     return ($parts['path'] ?? '') . ($query ? '?' . http_build_query($query) : '')
         . (isset($parts['fragment']) ? '#' . $parts['fragment'] : '');
 }

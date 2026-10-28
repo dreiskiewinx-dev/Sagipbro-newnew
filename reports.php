@@ -7,7 +7,6 @@ $reportQuery = [];
 foreach (['resources', 'centers', 'distributions'] as $section) {
     $reportPaging[$section] = publicPageRequest($_GET, $section . '_page', $section . '_per_page');
     $reportQuery[$section . '_page'] = $reportPaging[$section]['page'];
-    $reportQuery[$section . '_per_page'] = $reportPaging[$section]['per_page'];
 }
 $result = publicLoad(static fn(PDO $db): array => $export !== '' || $printView ? publicReport($db) : publicReport($db, $reportPaging));
 $pageTitle = 'Public Reports';

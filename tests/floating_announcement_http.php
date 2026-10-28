@@ -78,7 +78,8 @@ try {
     faCheck($homeDom->query('//*[@id="latest-announcements"]')->length === 0, 'Homepage no longer displays the large Latest Announcements section.');
     faCheck($homeDom->query('//div[contains(@class,"hero-actions")]/a[@href="announcements.php#announcement-directory"]')->length === 1, 'Homepage announcement action opens the full directory.');
     faCheck($homeDom->query('//section[@aria-labelledby="quick-info-title"]')->length === 1 && $homeDom->query('//section[@aria-labelledby="snapshot-title"]')->length === 1, 'Quick Information and live readiness sections remain available.');
-    foreach (['/__admin', '/__auth'] as $route) faCheck(!str_contains(faGet($route), 'data-floating-announcement'), 'Shortcut stays off admin/auth screens.');
+    faCheck(!str_contains(faGet('/__admin'), 'data-floating-announcement'), 'Role consoles do not include the floating announcement shortcut.');
+    faCheck(!str_contains(faGet('/__auth'), 'data-floating-announcement'), 'Shortcut stays off authentication screens.');
     if (getenv('SAGIPBRO_FLOATING_BROWSER') === '1') {
         $script = <<<'JS'
 const output=document.querySelector('pre'),frame=document.querySelector('iframe');let checks=0;

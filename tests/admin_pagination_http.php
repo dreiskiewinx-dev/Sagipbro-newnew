@@ -87,10 +87,10 @@ function checkPageSet(string $endpoint, int $total, array $baseQuery = []): void
     pageCheck((int) $first['pagination']['total'] === $total, $endpoint . ' must count all real matching records.');
     foreach ([10, 25, 50, 100] as $size) {
         $result = pageGet($endpoint, array_merge($baseQuery, ['per_page' => $size, 'page' => 2]));
-        $expectedPage = min(2, max(1, (int) ceil($total / $size)));
-        $expectedFrom = $total ? ($expectedPage - 1) * $size + 1 : 0;
-        $expectedTo = min($expectedPage * $size, $total);
-        pageCheck((int) $result['pagination']['page'] === $expectedPage && (int) $result['pagination']['per_page'] === $size, $endpoint . ' must respect the requested page size.');
+        $expectedPage = min(2, max(1, (int) ceil($total / 10)));
+        $expectedFrom = $total ? ($expectedPage - 1) * 10 + 1 : 0;
+        $expectedTo = min($expectedPage * 10, $total);
+        pageCheck((int) $result['pagination']['page'] === $expectedPage && (int) $result['pagination']['per_page'] === 10, $endpoint . ' must remain fixed at ten records regardless of requested page size.');
         pageCheck((int) $result['pagination']['from'] === $expectedFrom && (int) $result['pagination']['to'] === $expectedTo && count($result['data']) === max(0, $expectedTo - $expectedFrom + ($total ? 1 : 0)), $endpoint . ' has incorrect LIMIT/OFFSET boundaries.');
     }
     $invalid = pageGet($endpoint, array_merge($baseQuery, ['page' => -8, 'per_page' => 17]));
@@ -122,7 +122,8 @@ function pageBrowserCheck(string $directory, array $cases, array $environment, P
     global $serverAddress;
     foreach ($cases as &$case) {
         if ($case['table'] === 'activityLogsTable' && empty($case['deep'])) {
-            $case['statValues'] = array_values($database->query("SELECT SUM(DATE(created_at) = CURDATE()), COUNT(DISTINCT CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN user_id END), SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%'), SUM(LOWER(action) LIKE '%block%') FROM activity_logs")->fetch(PDO::FETCH_NUM));
+            $case['statValues'] = array_values($database->query("SELECT SUM(DATE(created_at) = CURDATE()), COUNT(DISTINCT CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN user_id END), SUM(LOWER(action) LIKE '%fail%' OR LOWER(action) LIKE '%warning%') FROM activity_logs")->fetch(PDO::FETCH_NUM));
+            $case['statValues'][] = $database->query("SELECT COALESCE(NULLIF(TRIM(u.full_name), ''), u.username) FROM activity_logs l INNER JOIN users u ON u.id = l.user_id WHERE l.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) GROUP BY u.id, u.full_name, u.username ORDER BY COUNT(*) DESC, MAX(l.created_at) DESC, u.id ASC LIMIT 1")->fetchColumn() ?: 'No activity yet';
         }
     }
     unset($case);
@@ -152,7 +153,7 @@ const statisticLabels = {
     volunteersTable: ['Registered volunteers', 'Ready for deployment', 'Currently deployed', 'Operationally available'],
     usersTable: ['Total accounts', 'Officials & admins', 'Online now', 'Inactive accounts'],
     recentReportsTable: ['Reports available', 'Records summarized', 'Last data sync', 'Scheduled reports'],
-    activityLogsTable: ['Events today', 'Active users', 'Warnings', 'Blocked attempts'],
+    activityLogsTable: ['Events today', 'Active users', 'Warnings', 'Most active user'],
     volunteerDashboardStats: ["Today's assignments", 'Open centers', 'Households assisted', 'Items distributed'],
     dashboardActivityTable: ['Total resources', 'Low-stock items', 'Evacuation centers', 'Registered residents', 'Active volunteers', 'Recent distributions']
 };
@@ -351,10 +352,7 @@ const statisticLabels = {
         await wait(() => pager.state.page === 2 && !pager.state.loading, test.table + ' next page');
         check(footer.textContent.includes('Showing 11\u201320'), test.table + ' must render the next database page');
         check(!button('Previous').disabled, test.table + ' previous must enable on page 2');
-        const size = footer.querySelector('select');
-        change(size, '25');
-        await wait(() => pager.state.page === 1 && pager.state.perPage === 25 && !pager.state.loading, test.table + ' size change');
-        check(table.tBodies[0].rows.length === 25, test.table + ' must render 25 rows');
+        check(!footer.querySelector('select') && pager.state.perPage === 10, test.table + ' has ten records per page without a size selector');
         const search = doc.querySelector('[data-table-search="#' + test.table + '"]');
         if (search) {
             change(search, 'PAG_%!', 'input');
@@ -526,6 +524,7 @@ try {
     $csrf = csrfToken();
     $sessionId = session_id();
     $sessionCookie = session_name() . '=' . $sessionId;
+    pageFixture($database, 'user_sessions', ['session_hash' => hash('sha256', $sessionId), 'user_id' => $adminId, 'last_seen_at' => date('Y-m-d H:i:s')]);
     session_write_close();
     $environment = getenv();
     $environment['SAGIPBRO_DB_HOST'] = $host;
@@ -740,7 +739,7 @@ try {
     pageCheck((int) pageGet('volunteers', ['q' => 'CRUD Pagination volunteer', 'status' => 'Deployed'])['pagination']['total'] === 1, 'Volunteer deployment must update filtered pagination.');
     pageMutation('volunteers', 'DELETE', ['id' => $volunteer['id']]);
     pageCheck((int) pageGet('volunteers', ['q' => 'CRUD Pagination volunteer', 'status' => 'Deployed'])['pagination']['total'] === 0, 'Volunteer deactivation must update filtered pagination.');
-    $userData = ['full_name' => 'CRUD Pagination user', 'username' => 'crud_pagination_user', 'email' => 'crud-user@example.test', 'password' => 'test-only-password', 'role' => 'resident'];
+    $userData = ['full_name' => 'CRUD Pagination user', 'username' => 'crud_pagination_user', 'email' => 'crud-user@example.test', 'password' => 'Pagination-test-' . bin2hex(random_bytes(16)), 'role' => 'resident'];
     $account = pageMutation('users', 'POST', $userData, 201);
     pageMutation('users', 'PUT', array_merge($userData, ['id' => $account['id'], 'role' => 'official', 'status' => 'Active']));
     pageCheck((int) pageGet('users', ['q' => 'CRUD Pagination user', 'role' => 'Barangay Official'])['pagination']['total'] === 1, 'Changing an account role must update paginated role filters.');

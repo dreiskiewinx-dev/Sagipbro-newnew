@@ -55,7 +55,7 @@
     </div>
 </footer>
 <?php endif; ?>
-<?php if (!$isAdmin && !$isAuthPage) include __DIR__ . '/floating_announcement.php'; ?>
+<?php if ($showFloatingAnnouncement ?? false) include __DIR__ . '/floating_announcement.php'; ?>
 <?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
 <div class="modal fade logout-confirm-modal" id="logoutConfirmModal" tabindex="-1" aria-labelledby="logoutConfirmTitle" aria-describedby="logoutConfirmDescription" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -74,13 +74,34 @@
     </div>
 </div>
 <?php endif; ?>
+<?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
+<div class="modal fade" id="sessionExpiryModal" tabindex="-1" aria-labelledby="sessionExpiryTitle" aria-describedby="sessionExpiryMessage" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 id="sessionExpiryTitle" class="modal-title h5">Your session will expire soon</h2></div>
+        <div class="modal-body"><p id="sessionExpiryMessage">Stay signed in to continue working.</p><p class="mb-0">Time remaining: <strong data-session-countdown role="timer"></strong></p><p class="small text-danger mt-2 mb-0" data-session-error role="alert" hidden></p></div>
+        <div class="modal-footer">
+            <form method="post" action="<?= htmlspecialchars(appUrl('actions/auth/logout.php'), ENT_QUOTES, 'UTF-8') ?>"><input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>"><button type="submit" class="btn btn-light">Sign out</button></form>
+            <button type="button" class="btn btn-brand" data-session-continue>Stay signed in</button>
+        </div>
+    </div></div>
+</div>
+<script>
+window.sagipbroSession = <?= json_encode([
+    'endpoint' => appUrl('api/session.php'),
+    'loginUrl' => appUrl('login.php'),
+    'passwordChangeUrl' => appUrl('pages/profile/change-password.php'),
+    'csrfToken' => csrfToken(),
+    'timing' => $_SESSION['session_timing'],
+], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+</script>
+<?php endif; ?>
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="appToast" class="toast border-0 shadow" role="status" aria-live="polite" aria-atomic="true">
         <div class="toast-header"><span class="toast-icon"><i class="bi bi-check-lg"></i></span><strong class="me-auto">SAGIPBRO</strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div>
         <div class="toast-body">Action completed successfully.</div>
     </div>
 </div>
-<?php if (function_exists('isLoggedIn') && isLoggedIn()): ?>
+<?php if (function_exists('isLoggedIn') && isLoggedIn() && !passwordChangeRequired()): ?>
 <script>
 window.sagipbroPresence = {
     endpoint: <?= json_encode(appUrl('api/presence.php')) ?>,
@@ -90,6 +111,7 @@ window.sagipbroPresence = {
 <?php endif; ?>
 <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/third-party/bootstrap/bootstrap.bundle.min.js?v=5.3.3"></script>
 <script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/script.js"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/session-security.js?v=1"></script>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/crud-view.js?v=9"></script><?php endif; ?>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/dashboard.js"></script><?php endif; ?>
 <?php if ($isAdmin): ?><script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/notifications.js?v=4"></script><?php endif; ?>

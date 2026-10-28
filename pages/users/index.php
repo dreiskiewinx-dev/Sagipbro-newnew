@@ -77,14 +77,14 @@ include '../../includes/header.php';
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true"><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content">
     <form id="addUserForm">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-        <div class="modal-header"><div><h2 class="modal-title" id="addUserModalLabel">Add system user</h2><p class="mb-0 mt-1 small text-body-secondary">Create secure access for an authorized SAGIPBRO user.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-header"><div><h2 class="modal-title" id="addUserModalLabel">Add system user</h2><p class="mb-0 mt-1 small text-body-secondary">Use a unique password with at least 8 characters. Spaces and passphrases are welcome.</p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
         <div class="modal-body"><div class="row g-3">
             <div class="col-md-6"><label class="form-label" for="newUserName">Full name <span class="required-mark">*</span></label><input class="form-control" id="newUserName" name="full_name" required autocomplete="name"></div>
             <div class="col-md-6"><label class="form-label" for="newUserEmail">Email address <span class="required-mark">*</span></label><input class="form-control" id="newUserEmail" name="email" type="email" placeholder="e.g. juan.delacruz@example.com" required autocomplete="email"></div>
             <div class="col-md-6"><label class="form-label" for="newUsername">Username <span class="required-mark">*</span></label><input class="form-control" id="newUsername" name="username" placeholder="e.g. juan.delacruz" required autocomplete="username" aria-describedby="usernameHelp"><div class="form-text" id="usernameHelp">Use lowercase letters and a dot between names.</div></div>
             <div class="col-md-6"><label class="form-label" for="newUserRole">Access role <span class="required-mark">*</span></label><select class="form-select" id="newUserRole" name="role" required><option value="">Select role</option><option>Administrator</option><option>Barangay Official</option><option>Volunteer</option><option>Resident</option></select></div>
-            <div class="col-md-6"><label class="form-label" for="newUserPassword">Temporary password <span class="required-mark">*</span></label><input class="form-control" id="newUserPassword" name="password" type="password" minlength="8" required autocomplete="new-password"></div>
-            <div class="col-md-6"><label class="form-label" for="newUserConfirmPassword">Confirm password <span class="required-mark">*</span></label><input class="form-control" id="newUserConfirmPassword" name="confirm_password" type="password" minlength="8" required autocomplete="new-password"></div>
+            <div class="col-md-6"><label class="form-label" for="newUserPassword">Temporary password <span class="required-mark">*</span></label><input class="form-control" id="newUserPassword" name="password" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
+            <div class="col-md-6"><label class="form-label" for="newUserConfirmPassword">Confirm password <span class="required-mark">*</span></label><input class="form-control" id="newUserConfirmPassword" name="confirm_password" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
             <div class="col-12"><div class="form-check"><input class="form-check-input" id="forcePasswordChange" name="force_password_change" type="checkbox" checked><label class="form-check-label small" for="forcePasswordChange">Require a new password on first sign-in</label></div></div>
         </div></div>
         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit"><i class="bi bi-person-check" aria-hidden="true"></i> Create account</button></div>
@@ -104,7 +104,7 @@ include '../../includes/header.php';
     <form id="resetPasswordForm">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <div class="modal-header"><h2 class="modal-title" id="resetPasswordModalLabel">Reset user password</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body"><div class="info-callout mb-3"><i class="bi bi-shield-lock" aria-hidden="true"></i><div><strong>Secure reset</strong><span>The user will be required to replace this temporary password after signing in.</span></div></div><label class="form-label" for="temporaryPassword">Temporary password</label><input class="form-control" id="temporaryPassword" name="temporary_password" type="password" minlength="8" required autocomplete="new-password"></div>
+        <div class="modal-body"><div class="info-callout mb-3"><i class="bi bi-shield-lock" aria-hidden="true"></i><div><strong>Secure reset</strong><span>Use a unique temporary password with at least 8 characters. Spaces and passphrases are welcome.</span></div></div><label class="form-label" for="temporaryPassword">Temporary password</label><input class="form-control" id="temporaryPassword" name="temporary_password" type="password" minlength="8" maxlength="72" required autocomplete="new-password"></div>
         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button><button class="btn btn-brand" type="submit">Issue temporary password</button></div>
     </form>
 </div></div></div>
@@ -113,7 +113,7 @@ include '../../includes/header.php';
     <form id="deactivateUserForm">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <div class="modal-header"><h2 class="modal-title" id="deactivateUserModalLabel">Deactivate user account?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
-        <div class="modal-body"><p class="mb-2">The selected user will no longer be able to sign in. Historical activity will remain available.</p><p class="small text-body-secondary mb-0">You can reactivate the account later from this page.</p></div>
+        <div class="modal-body"><p class="mb-2" data-account-status-description>The selected user will no longer be able to sign in. Historical activity will remain available.</p><p class="small text-body-secondary mb-0" data-account-status-help>You can enable the account later from this page.</p></div>
         <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Keep active</button><button class="btn btn-danger" type="submit"><i class="bi bi-person-x" aria-hidden="true"></i> Deactivate account</button></div>
     </form>
 </div></div></div>
@@ -125,5 +125,5 @@ include '../../includes/header.php';
         csrfToken: <?= json_encode(csrfToken()) ?>
     };
 </script>
-<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/users-api.js?v=2"></script>
+<script src="<?= htmlspecialchars($basePath, ENT_QUOTES, 'UTF-8') ?>assets/js/users-api.js?v=3"></script>
 <?php include '../../includes/footer.php'; ?>
